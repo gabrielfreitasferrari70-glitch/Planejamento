@@ -7,7 +7,7 @@ de autorização explícita na interface.
 
 ## Desenvolvimento
 
-Não há compilação nem dependências de aplicação. Com Python 3:
+Não há etapa de compilação. O SDK Supabase está incluído em `vendor/`. Com Python 3:
 
 ```bash
 cd /workspace/Planejamento
@@ -49,8 +49,41 @@ própria do cronograma neste navegador. O CSV aceita a grade semanal com datas
 os demais registros pessoais. A conexão opcional Google Sheets é somente leitura.
 
 Não coloque dados pessoais ou credenciais no repositório. Faça backup antes de
-trocar de dispositivo ou endereço de hospedagem. O site não inclui login;
-a restrição de acesso depende da proteção configurada na Vercel.
+trocar de dispositivo ou endereço de hospedagem. O planejamento local não exige login; a leitura do MedReview exige autenticação
+na conta vinculada. A proteção geral do site depende da configuração da Vercel.
+
+## Revisões do MedReview
+
+Em **Revisões → Conectar MedReview**, entre com a mesma conta administradora de
+Gabriel. A conexão usa o backend Supabase identificado no repositório `Flashcards`
+e o endereço https://flashcard-lac-xi.vercel.app/. O servidor valida a sessão;
+esta edição aceita apenas o identificador da conta administradora configurada.
+Não envie senha ou tokens por chat.
+
+O total diário conta respostas registradas em `mr_reviews`, sem duplicar IDs.
+Responder ao mesmo cartão duas vezes conta duas revisões. Cartões distintos são
+mostrados separadamente. Dias seguem o fuso `America/Cuiaba`; clicar no total abre
+baralhos, caminhos de pastas, quantidades, percentuais e avaliações de dificuldade.
+O painel inicial também mostra as revisões de flashcards realizadas hoje.
+
+São consultados apenas registros da conta autenticada e metadados dos cartões e
+baralhos necessários. Não há gravações nas tabelas do MedReview. O SDK atualiza a
+sessão; os tokens ficam no armazenamento próprio da conexão neste navegador,
+fora dos backups do planejamento. **Desconectar** remove esta sessão local.
+Nenhuma chave administrativa está incluída: `medreview-config.js` contém apenas
+URL e chave pública `anon` do cliente, além do identificador da conta vinculada.
+A autorização efetiva depende das políticas do backend.
+
+O histórico atualiza ao receber eventos do backend, ao voltar à janela e a cada
+60 segundos enquanto o site está visível. **Atualizar agora** permite nova leitura.
+Os filtros consultam 7, 30, 90 ou 365 dias, ou todo o histórico, com paginação.
+Falhas de leitura mostram erro, sem inventar totais zero. Revisões de estudo
+planejadas manualmente continuam disponíveis em uma seção separada.
+
+A distribuição usa o **baralho atual** do cartão. Revisões preservadas sem cartão
+ou baralho acessível aparecem como origem não identificada. Registros apagados no
+MedReview não podem ser recuperados por esta integração. O SDK vendorizado é
+`@supabase/supabase-js@2.117.3`, com licença em `vendor/supabase-LICENSE`.
 
 ## Validação
 
@@ -60,13 +93,17 @@ atual já fornece ambos. Em outras máquinas, instale Playwright e seu navegador
 antes de executar os testes. `CHROMIUM_PATH` pode indicar um Chromium existente.
 
 ```bash
+node --test tests/medreview-data.test.cjs
 python3 -m unittest discover -s tests -v
 ```
 
 Os testes iniciam um servidor temporário e usam contextos descartáveis do
 navegador. Cobrem navegação desktop/celular, estados do cronograma, importação
 CSV, tarefas, estudos, revisões, persistência e exportação/restauração de backup.
-Os dados de teste nunca são enviados ao Google nem adicionados ao cronograma do site.
+Os testes de autenticação e distribuição do MedReview interceptam o backend e
+usam dados sintéticos; não acessam o histórico real. Cobrem conta incorreta,
+leitura negada, contagem sem duplicatas, origem dos cartões e desconexão.
+Os dados de teste nunca são enviados aos serviços nem incluídos no site.
 
 ## Publicação na Vercel
 

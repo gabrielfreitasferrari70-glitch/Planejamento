@@ -1,10 +1,13 @@
 """Functional checks using an isolated browser and a temporary local server."""
 import functools
+import base64
 import json
 import os
 from pathlib import Path
 import shutil
 import threading
+import time
+from urllib.parse import urlsplit, parse_qs
 import unittest
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
@@ -210,6 +213,87 @@ class SiteSmokeTests(unittest.TestCase):
           return {free,busy:suggest().suggestions.length};
         }""")
         self.assertEqual(result, {'free': 1, 'busy': 0})
+
+    def medreview_fixture(self, wrong_account=False, unavailable=False):
+        """Fake remote authentication/history; never sends credentials to MedReview."""
+        root = Path(__file__).resolve().parents[1]
+        config_text = (root/'medreview-config.js').read_text().split('window.MEDREVIEW_CONFIG=',1)[1].strip().rstrip(';')
+        config = json.loads(config_text)
+        owner = config['expectedUserId']
+        user_id = 'another-user' if wrong_account else owner
+        user = {'id':user_id,'email':'fixture@example.invalid','aud':'authenticated','role':'authenticated','app_metadata':{},'user_metadata':{}}
+        def encoded(data):
+            return base64.urlsafe_b64encode(json.dumps(data).encode()).decode().rstrip('=')
+        token = encoded({'alg':'HS256','typ':'JWT'})+'.'+encoded({'sub':user_id,'aud':'authenticated','role':'authenticated','exp':int(time.time())+3600})+'.fixture-signature'
+        date = time.strftime('%Y-%m-%d',time.gmtime(time.time()-4*3600))
+        reviews = [{'id':f'r{i}','user_id':owner,'card_id':f'c{i}','reviewed_at':date+'T10:00:00Z','rating':'good'} for i in range(100)]
+        cards = [{'id':f'c{i}','deck_id':'a' if i<70 else 'b'} for i in range(100)]
+        decks = [{'id':'a','title':'Cardiovascular','parent':'folder'},{'id':'b','title':'Renal','parent':'folder'},{'id':'folder','title':'Fisiologia','parent':None}]
+        self.medreview_calls = []
+        def transport(route):
+            request=route.request;path=urlsplit(request.url).path;params=parse_qs(urlsplit(request.url).query)
+            if path=='/auth/v1/token':
+                result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
+            elif path=='/auth/v1/user':result=user
+            elif path=='/auth/v1/logout':
+                route.fulfill(status=204,body='');return
+            elif path.startswith('/rest/v1/'):
+                self.assertEqual(request.method,'GET')
+                self.medreview_calls.append(path)
+                if path.endswith('mr_reviews'):
+                    self.assertEqual(params.get('user_id'),['eq.'+owner])
+                    if unavailable:
+                        route.fulfill(status=403,content_type='application/json',body=json.dumps({'message':'Denied','code':'42501'}));return
+                    result=reviews
+                elif path.endswith('mr_cards'):result=cards
+                elif path.endswith('mr_decks'):
+                    ids=params.get('id',[''])[0]
+                    result=[d for d in decks if d['id'] in ids]
+                else:raise AssertionError('Unexpected remote table')
+            else:raise AssertionError('Unexpected remote endpoint: '+path)
+            route.fulfill(status=200,content_type='application/json',body=json.dumps(result))
+        self.context.route(config['url']+'/**',transport)
+        self.page.route_web_socket(config['url'].replace('https://','wss://')+'/**',lambda socket:socket.on_message(lambda message:None))
+        self.open();self.nav('reviews')
+        self.page.locator('[data-action="medreview-connect"]').click()
+        self.page.locator('#medreview-auth-form [name="email"]').fill('fixture@example.invalid')
+        self.page.locator('#medreview-auth-form [name="password"]').fill('test-fixture-password')
+        self.page.locator('#medreview-auth-form button[type="submit"]').click()
+
+    def test_medreview_authenticated_daily_distribution_and_logout(self):
+        self.medreview_fixture()
+        self.page.wait_for_function('MedReviewConnection.summary?.total === 100')
+        day=self.page.locator('[data-action="medreview-day"]')
+        self.assertEqual(day.count(),1)
+        self.assertIn('100',day.inner_text())
+        day.click()
+        detail=self.page.locator('#modal')
+        self.assertIn('Fisiologia / Cardiovascular',detail.inner_text())
+        self.assertIn('70 revisões',detail.inner_text())
+        self.assertIn('Fisiologia / Renal',detail.inner_text())
+        self.assertIn('30 revisões',detail.inner_text())
+        self.page.keyboard.press('Escape')
+        self.page.locator('[data-action="medreview-sync"]').click()
+        self.page.wait_for_function("MedReviewConnection.status === 'connected'")
+        self.assertEqual(self.page.evaluate('MedReviewConnection.summary.total'),100)
+        self.assertNotIn('fixture-refresh',self.page.evaluate('JSON.stringify(data)'))
+        self.page.locator('[data-action="medreview-disconnect"]').click()
+        self.assertIsNone(self.page.evaluate('MedReviewConnection.summary'))
+        self.assertEqual(self.page.locator('[data-action="medreview-day"]').count(),0)
+
+    def test_medreview_other_account_is_rejected_without_reading_history(self):
+        self.medreview_fixture(wrong_account=True)
+        self.page.wait_for_function("MedReviewConnection.status === 'error'")
+        self.assertEqual(self.medreview_calls,[])
+        self.assertIsNone(self.page.evaluate('MedReviewConnection.summary'))
+        self.assertEqual(self.page.locator('[data-action="medreview-day"]').count(),0)
+
+    def test_medreview_read_denied_does_not_display_false_zero_totals(self):
+        self.medreview_fixture(unavailable=True)
+        self.page.wait_for_function("MedReviewConnection.status === 'error'")
+        self.assertIsNone(self.page.evaluate('MedReviewConnection.summary'))
+        self.assertIn('não liberou a leitura',self.page.locator('#app').inner_text())
+        self.assertIn('—',self.page.locator('.medreview-stats').inner_text())
 
     def test_csv_import_persistence_and_reset(self):
         self.open()

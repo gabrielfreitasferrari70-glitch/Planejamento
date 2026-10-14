@@ -1,0 +1,2 @@
+// Public frontend configuration from the MedReview project. This anon key cannot authenticate a user.
+window.MEDREVIEW_CONFIG={"url":"https://fxqmezfgyxqeyqmfpnym.supabase.co","publishableKey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ4cW1lemZneXhxZXlxbWZwbnltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzOTgyOTAsImV4cCI6MjEwNjk3NDI5MH0.pu5YfYtCh8zspmW8uT5hLZ1-OP3XTUT83I7tps1llsk","site":"https://flashcard-lac-xi.vercel.app","expectedUserId":"2c337bd5-b283-4ce8-9c0a-c817e4cdd697"};

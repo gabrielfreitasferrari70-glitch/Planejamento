@@ -46,3 +46,19 @@ html[data-theme=dark] .cal-event.sheet-coded,html[data-theme=dark] .cal-event.sh
 .semester-title{flex:1;min-width:0;overflow-wrap:anywhere;font-size:12px}
 .semester-title strong{display:block}
 @media(max-width:650px){.semester-filters{grid-template-columns:1fr;gap:0}.semester-event{flex-wrap:wrap;gap:7px}.semester-time{flex-basis:100%}.semester-title{flex-basis:65%}.semester-event>.tag{white-space:normal}.semester-month>summary{padding:12px}.semester-day{padding:0 12px 12px}}
+
+.stat-link{text-align:left;color:var(--text);font:inherit}
+.stat-link:hover{border-color:var(--accent);background:var(--accentbg)}
+.medreview-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.medreview-period{max-width:260px}
+.medreview-day{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:15px 12px;border:0;border-bottom:1px solid var(--border);background:var(--card);color:var(--text);text-align:left}
+.medreview-day:hover{background:var(--accentbg)}
+.medreview-day strong{display:block;font-size:13px}
+.medreview-day small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.medreview-count{font-size:25px;font-weight:780;text-align:right}
+.medreview-count small{font-size:10px;font-weight:600}
+.medreview-distribution{padding:14px 0;border-bottom:1px solid var(--border)}
+.medreview-distribution h3{font-size:13px;overflow-wrap:anywhere}
+.local-review-details>summary{padding:14px;font-weight:700;cursor:pointer}
+.local-review-details>.panel{margin-top:10px}
+@media(max-width:650px){.medreview-stats{grid-template-columns:1fr}.medreview-day{align-items:flex-start}.medreview-period{max-width:none}}
