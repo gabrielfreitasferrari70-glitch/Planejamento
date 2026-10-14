@@ -56,6 +56,31 @@ identificador. Os rascunhos offline ficam separados por projeto e conta e são
 enviados quando a conexão volta. Sair oculta os dados da conta e desconecta o
 MedReview neste dispositivo.
 
+O semestre também é individual. A conta de Gabriel mantém o cronograma UC2 e
+o link do Drive existentes; outras contas aprovadas começam sem atividades,
+provas, tarefas, estudos, materiais ou revisões. A grade não é mais carregada
+como padrão global. A migração dos dados antigos do navegador só aparece para
+a conta identificada do proprietário (`legacyOwnerId`, sem conceder privilégios).
+As conexões Google são descartadas ao sair ou trocar de conta.
+
+Em **Configurações → Seu cronograma do semestre**, envie PDF, XLSX ou CSV
+(até 3 MB). O endpoint autenticado `/api/import-schedule` confere a identidade e
+a aprovação, analisa o arquivo em memória e retorna uma prévia. Ao confirmar,
+a grade e sua origem são salvas no documento privado da conta e sincronizadas.
+Tarefas e estudos existentes são preservados; importar a grade nunca registra
+estudos ou revisões como realizados. O PDF/Excel original não é armazenado.
+
+São aceitos PDFs com texto selecionável e grade semanal delimitada por células,
+planilhas com grade semanal ou tabela com as colunas `data`, `inicio`, `fim`,
+`atividade` e, opcionalmente, `disciplina` e `professor`. Há um modelo CSV para
+baixar. PDFs escaneados ou layouts não reconhecidos são recusados com orientação
+para usar Excel/CSV; não são inventadas atividades ou datas.
+
+A função Python usa `requirements.txt` e as variáveis públicas de conexão
+`PLANNING_SUPABASE_URL` e `PLANNING_SUPABASE_PUBLIC_KEY` na Vercel. Não usa chave
+administrativa ou `service_role`. Os arquivos acadêmicos de Gabriel continuam
+como referência no repositório, mas são excluídos da publicação e do cache PWA.
+
 Cada conta só pode ler sua linha pela política RLS. Gravações usam uma função
 transacional que determina o dono pelo JWT autenticado, verifica a revisão e
 recusa sobrescrever uma revisão antiga. A combinação entre dispositivos conserva
@@ -240,3 +265,5 @@ e diretório raiz do repositório. `vercel.json` configura a saída estática se
 instalação ou build. O envio para `main` dispara uma publicação apenas se essa
 integração estiver ativa; confirme o resultado na Vercel e no site antes de
 considerar a versão publicada. Preserve a proteção de acesso existente.
+
+Para testar a importação: `python -m unittest discover -s tests -p test_schedule_parser.py -v`.

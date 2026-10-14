@@ -31,5 +31,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/import-schedule.py": {
+      "maxDuration": 60
+    }
+  }
 }

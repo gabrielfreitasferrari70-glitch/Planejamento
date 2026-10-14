@@ -5,3 +5,7 @@ __pycache__/
 scripts/
 
 supabase/
+
+academic.json
+academic-source.json
+data/

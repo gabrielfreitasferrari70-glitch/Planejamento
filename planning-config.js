@@ -1,2 +1,2 @@
 /* Public client key only; account access is enforced by Supabase RLS. */
-window.PLANNING_CONFIG={"url":"https://eupkdyhngmrsbvmaondp.supabase.co","publishableKey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1cGtkeWhuZ21yc2J2bWFvbmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5Mzg1NDgsImV4cCI6MjEwNzUxNDU0OH0.1xR4XzSI0ijjWKpGbr3zflz3DAFwORTxLgZtaBhkrU8"};
+window.PLANNING_CONFIG={"url":"https://eupkdyhngmrsbvmaondp.supabase.co","publishableKey":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1cGtkeWhuZ21yc2J2bWFvbmRwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5Mzg1NDgsImV4cCI6MjEwNzUxNDU0OH0.1xR4XzSI0ijjWKpGbr3zflz3DAFwORTxLgZtaBhkrU8","legacyOwnerId":"ab049488-5127-4db2-b093-c397e8ea17b1"};

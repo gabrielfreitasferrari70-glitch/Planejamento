@@ -46,6 +46,8 @@ redirects=set(filter(None,(auth.get('uri_allow_list') or '').split(',')))
 redirects.add(ORIGIN+'/**')
 management('/config/auth','PATCH',{'disable_signup':False,'site_url':ORIGIN,'uri_allow_list':','.join(sorted(redirects))})
 config={'url':'https://'+PROJECT+'.supabase.co','publishableKey':public}
+owner=management('/database/query','POST',{'query':"select id from auth.users where lower(email)='gabrielfreitasferrari70@gmail.com'"})
+if isinstance(owner,list) and len(owner)==1:config['legacyOwnerId']=owner[0]['id']
 (ROOT/'planning-config.js').write_text('/* Public client key only; account access is enforced by Supabase RLS. */\nwindow.PLANNING_CONFIG='+json.dumps(config,separators=(',',':'))+';\n')
 print('Migração aplicada, RLS e permissões conferidas; login configurado para o site existente.')
 print('Somente a URL e a chave pública anon foram salvas na configuração do aplicativo.')

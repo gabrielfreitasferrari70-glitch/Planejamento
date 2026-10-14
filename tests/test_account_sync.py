@@ -33,7 +33,7 @@ class AccountSyncTests(unittest.TestCase):
         page=context.new_page();page.set_default_timeout(8000);page.on('pageerror',lambda e:self.errors.append(str(e)))
         if legacy is not None:context.add_init_script('localStorage.setItem("planejamento-medicina-2.0-personal-local",'+json.dumps(json.dumps(legacy))+')')
         remote='https://eupkdyhngmrsbvmaondp.supabase.co'
-        context.route('**/planning-config.js',lambda route:route.fulfill(content_type='application/javascript',body='window.PLANNING_CONFIG='+json.dumps({'url':remote,'publishableKey':'fixture-public-anon-key'})+';'))
+        context.route('**/planning-config.js',lambda route:route.fulfill(content_type='application/javascript',body='window.PLANNING_CONFIG='+json.dumps({'url':remote,'publishableKey':'fixture-public-anon-key','legacyOwnerId':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'})+';'))
         def encoded(obj):return base64.urlsafe_b64encode(json.dumps(obj).encode()).decode().rstrip('=')
         token=encoded({'alg':'HS256','typ':'JWT'})+'.'+encoded({'sub':owner,'aud':'authenticated','role':'authenticated','exp':int(time.time())+3600})+'.fixture-signature'
         user={'id':owner,'email':'fixture@example.invalid','aud':'authenticated','role':'authenticated','app_metadata':{},'user_metadata':{}}
@@ -148,6 +148,53 @@ class AccountSyncTests(unittest.TestCase):
         self.assertIsNone(page.evaluate('PlanningAccount.user'))
         page.locator('[data-action="account-logout"]').click()
         page.wait_for_function("document.querySelector('#account-login-form')!==null")
+
+    def test_individual_semester_preview_sync_and_other_account_stays_empty(self):
+        from lib.schedule_parser import analyze
+        owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        context,page=self.device(mobile=True)
+        self.assertEqual(page.evaluate('academicEvents().length'),0)
+        self.assertEqual(page.evaluate('exams().length'),0)
+        page.evaluate("goto('materials')")
+        self.assertEqual(page.locator('.materials-drive-link').count(),0)
+        page.evaluate("data.tasks.push({id:'keep',title:'Preservar tarefa',done:false});save()")
+        self.wait_cloud(page,1)
+        source=b'data;inicio;fim;atividade;disciplina\n20/10/2026;08:00;10:00;Aula particular;Biologia\n21/10/2026;09:00;11:00;Prova particular;Anatomia\n'
+        def analyze_fixture(route):
+            self.assertEqual(route.request.method,'POST')
+            self.assertTrue(route.request.headers['authorization'].startswith('Bearer '))
+            result=analyze(route.request.post_data_buffer,'meu-semestre.csv')
+            route.fulfill(content_type='application/json',body=json.dumps(result))
+        context.route(self.url+'api/import-schedule',analyze_fixture)
+        page.evaluate("goto('settings')")
+        page.locator('#semester-upload').set_input_files({'name':'meu-semestre.csv','mimeType':'text/csv','buffer':source})
+        page.wait_for_selector('[data-action="semester-import-confirm"]')
+        self.assertEqual(page.evaluate('academicEvents().length'),0)
+        page.locator('#modal button[data-action="close"]').first.click()
+        self.assertEqual(page.evaluate('academicEvents().length'),0)
+        page.locator('#semester-upload').set_input_files({'name':'meu-semestre.csv','mimeType':'text/csv','buffer':source})
+        page.wait_for_selector('[data-action="semester-import-confirm"]')
+        page.locator('[data-action="semester-import-confirm"]').click()
+        page.wait_for_function("PlanningAccount.status==='synced' && data.replacement.length===2")
+        self.assertEqual(page.evaluate('data.tasks[0].id'),'keep')
+        self.assertEqual(page.evaluate('exams().length'),1)
+        self.assertEqual(page.evaluate('data.sessions.length'),0)
+        self.assertEqual(page.evaluate('data.reviews.length'),0)
+        _,second=self.device()
+        self.assertEqual(second.evaluate('academicEvents().length'),2)
+        self.assertEqual(second.evaluate('data.settings.academicSource.filename'),'meu-semestre.csv')
+        _,other=self.device(owner='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',legacy={'tasks':[{'id':'old','title':'Do proprietário','done':False}]})
+        self.assertEqual(other.evaluate('events().length'),0)
+        self.assertEqual(other.locator('[data-action="account-migrate"]').count(),0)
+        other.evaluate("goto('materials')")
+        self.assertEqual(other.locator('.materials-drive-link').count(),0)
+        page.evaluate("goto('settings')")
+        page.locator('#materials-url').fill('https://drive.google.com/drive/folders/minha-pasta')
+        page.locator('[data-action="materials-link-save"]').click()
+        page.wait_for_function("PlanningAccount.status==='synced'")
+        second.evaluate('PlanningAccount.sync()')
+        second.wait_for_function("data.settings.materialsUrl==='https://drive.google.com/drive/folders/minha-pasta'")
+        self.assertFalse(other.evaluate('Boolean(data.settings.materialsUrl)'))
 
     def wait_cloud(self,page,count):
         page.wait_for_function("PlanningAccount.status==='synced' && data.tasks.length === "+str(count))
