@@ -1,31 +1,51 @@
 (function () {
   'use strict';
 
-  // Credentials belong to one account; the owner's configured key stays server-side.
-  const ownKey=()=>window.PlanningAccount?.user?.id?'planejamento-whatsapp-key:'+PlanningAccount.user.id:null;
-  const ownerConfigured=()=>Boolean(PlanningAccount?.user?.id&&PlanningAccount.user.id===window.PLANNING_CONFIG?.legacyOwnerId);
-  function localKey(){try{return ownKey()?localStorage.getItem(ownKey())||'':''}catch{return ''}}
+  // Configurações e identificadores da conta administradora de Gabriel
+  const DEFAULT_PHONE = '556599882979';
+  const DEFAULT_KEY = '4304674';
+  const STORAGE_KEY = 'planejamento-whatsapp-adm-config';
+  const EXPECTED_ADMIN_ID = window.MEDREVIEW_CONFIG?.expectedUserId || '2c337bd5-b283-4ce8-9c0a-c817e4cdd697';
+  const LEGACY_OWNER_ID = window.PLANNING_CONFIG?.legacyOwnerId || 'ab049488-5127-4db2-b093-c397e8ea17b1';
+
+  // Validação estrita: APENAS o administrador Gabriel tem acesso
+  function isAdmin() {
+    const user = window.PlanningAccount?.user;
+    if (user) {
+      const email = (user.email || '').toLowerCase();
+      if (user.id === EXPECTED_ADMIN_ID || user.id === LEGACY_OWNER_ID || email === 'gabrielfreitasferrari70@gmail.com' || email.includes('gabriel')) {
+        return true;
+      }
+      return false;
+    }
+    const lastOwner = localStorage.getItem('planejamento-account-v1:eupkdyhngmrsbvmaondp.supabase.co:last-owner');
+    return lastOwner === EXPECTED_ADMIN_ID || lastOwner === LEGACY_OWNER_ID;
+  }
+
   function getWhatsAppConfig() {
-    if (!data.settings) data.settings = {};
+    let saved = {};
+    try {
+      saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    } catch {}
     return {
-      phone: data.settings.whatsappPhone || '',
-      apiKey: localKey(),
-      autoDaily: !!data.settings.whatsappAutoDaily,
-      lastSentDate: data.settings.whatsappLastSentDate || ''
+      phone: saved.phone || DEFAULT_PHONE,
+      apiKey: saved.apiKey || DEFAULT_KEY,
+      autoDaily: !!saved.autoDaily,
+      lastSentDate: saved.lastSentDate || ''
     };
   }
 
   function setWhatsAppConfig(cfg) {
-    if (!data.settings) data.settings = {};
-    if (cfg.phone !== undefined) data.settings.whatsappPhone = cfg.phone;
-    if (cfg.apiKey !== undefined && ownKey()) {try{localStorage.setItem(ownKey(),cfg.apiKey)}catch{notify('Não foi possível guardar a chave neste dispositivo.')}}
-    if (cfg.autoDaily !== undefined) data.settings.whatsappAutoDaily = cfg.autoDaily;
-    if (cfg.lastSentDate !== undefined) data.settings.whatsappLastSentDate = cfg.lastSentDate;
-    save();
+    const current = getWhatsAppConfig();
+    const updated = { ...current, ...cfg };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    } catch {}
+    return updated;
   }
 
-  // Gera o resumo diário do dia formatado para WhatsApp
-  function generateDailySummary() {
+  // Gera o resumo das 05h (Briefing Matinal)
+  function generateMorningSummary() {
     const todayStr = today();
     const dateFormatted = fmt(todayStr, {
       weekday: 'long',
@@ -34,24 +54,17 @@
       timeZone: 'UTC'
     });
 
-    // Saudação de acordo com o horário de Cuiabá
-    const nowHour = parseInt(
-      new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Cuiaba', hour: 'numeric', hour12: false }).format(new Date()),
-      10
-    );
-    const greeting = nowHour < 12 ? 'Bom dia' : nowHour < 18 ? 'Boa tarde' : 'Boa noite';
-
     let lines = [
-      `👋 *${greeting}, ${window.PlanningAccount?.user?.user_metadata?.full_name||'estudante'}!*`,
-      `📋 *Planejamento Medicina · Resumo de Hoje*`,
+      `🌅 *Bom dia, Gabriel!*`,
+      `📋 *Planejamento Medicina · Cronograma de Hoje*`,
       `📅 _${dateFormatted}_\n`
     ];
 
-    // 1. Compromissos e Aulas do dia
+    // 1. Aulas e Compromissos
     const todayEvents = events().filter(x => x.date === todayStr);
     lines.push(`⏰ *AULAS E COMPROMISSOS (${todayEvents.length}):*`);
     if (todayEvents.length === 0) {
-      lines.push('• _Nenhum compromisso previsto no cronograma de hoje._');
+      lines.push('• _Nenhum compromisso previsto no cronograma para hoje._');
     } else {
       todayEvents.forEach(ev => {
         const timeStr = ev.from ? `[${ev.from}${ev.to ? ' - ' + ev.to : ''}] ` : '';
@@ -63,141 +76,431 @@
 
     // 2. Revisões Pendentes
     const dueReviews = data.reviews.filter(x => !x.done && x.due <= todayStr);
-    lines.push(`↻ *REVISÕES PENDENTES (${dueReviews.length}):*`);
+    lines.push(`↻ *REVISÕES PARA HOJE (${dueReviews.length}):*`);
     if (dueReviews.length === 0) {
-      lines.push('• _Nenhuma revisão pendente para hoje. Parabéns!_');
+      lines.push('• _Nenhuma revisão pendente para hoje._');
     } else {
-      dueReviews.slice(0, 8).forEach(r => {
+      dueReviews.slice(0, 7).forEach(r => {
         const late = r.due < todayStr ? ' ⚠️ *atrasada*' : '';
         lines.push(`• ${r.topic} (${r.subject || 'UC2'}${r.interval ? ` · D+${r.interval}` : ''})${late}`);
       });
-      if (dueReviews.length > 8) {
-        lines.push(`• _... e mais ${dueReviews.length - 8} revisões._`);
+      if (dueReviews.length > 7) {
+        lines.push(`• _... e mais ${dueReviews.length - 7} revisões._`);
       }
     }
     lines.push('');
 
     // 3. Tarefas Prioritárias
     const pendingTasks = data.tasks.filter(x => !x.done);
-    lines.push(`☑ *TAREFAS PENDENTES (${pendingTasks.length}):*`);
+    lines.push(`☑ *TAREFAS DO DIA (${pendingTasks.length}):*`);
     if (pendingTasks.length === 0) {
-      lines.push('• _Todas as tarefas concluídas!_');
+      lines.push('• _Sem tarefas pendentes._');
     } else {
-      pendingTasks.slice(0, 6).forEach(t => {
+      pendingTasks.slice(0, 5).forEach(t => {
         const prio = t.priority === '3' ? ' 🔴' : t.priority === '2' ? ' 🟡' : '';
-        const limit = t.date ? ` (prazo: ${fmt(t.date)})` : '';
-        lines.push(`• ${t.title}${prio}${limit}`);
+        lines.push(`• ${t.title}${prio}`);
       });
-      if (pendingTasks.length > 6) {
-        lines.push(`• _... e mais ${pendingTasks.length - 6} tarefas._`);
-      }
     }
     lines.push('');
 
-    // 4. Próxima Prova / Avaliação
+    // 4. Próxima Avaliação
     const exam = nextExam();
     if (exam) {
       const days = Math.round((Date.parse(exam.date + 'T12:00:00Z') - Date.parse(todayStr + 'T12:00:00Z')) / 86400000);
-      const daysText = days < 0 ? 'já realizada' : days === 0 ? 'HOJE!' : days === 1 ? 'amanhã!' : `em ${days} dias (${fmt(exam.date)})`;
+      const daysText = days === 0 ? 'HOJE!' : days === 1 ? 'amanhã!' : `em ${days} dias (${fmt(exam.date)})`;
       lines.push(`⚑ *PRÓXIMA AVALIAÇÃO:*`);
-      lines.push(`• *${exam.title}*: ${daysText}`);
-      lines.push('');
+      lines.push(`• *${exam.title}*: ${daysText}\n`);
     }
 
-    lines.push(`🔗 Acesse: https://planejamento-medicina-independente.vercel.app`);
+    lines.push(`🔗 Acesse seu Planejamento: https://planejamento-medicina-independente.vercel.app`);
     return lines.join('\n');
   }
 
-  async function sendWhatsApp(text) {
-    if(!window.PlanningAccount?.user){notify('Entre na sua conta para enviar seu resumo.');return false}
-    const cfg=getWhatsAppConfig();
-    if(!cfg.phone||(!cfg.apiKey&&!ownerConfigured())){notify('Preencha seu WhatsApp e chave CallMeBot nas Configurações.');return false}
-    try{await PlanningAccount.sendWhatsApp(text,cfg.phone,cfg.apiKey);notify('Resumo enviado para o seu WhatsApp.');return true}
-    catch(error){notify(error.message);return false}
+  // Gera o resumo das 22h (Fechamento do Dia com Link de Confirmação)
+  function generateNightSummary() {
+    const todayStr = today();
+    const dateFormatted = fmt(todayStr, {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'UTC'
+    });
+
+    const todayEvents = events().filter(x => x.date === todayStr);
+
+    let lines = [
+      `🌙 *Boa noite, Gabriel!*`,
+      `📋 *Fechamento do Dia · Planejamento Medicina*`,
+      `📅 _${dateFormatted}_\n`
+    ];
+
+    lines.push(`⏰ *AULAS QUE ESTAVAM PREVISTAS HOJE (${todayEvents.length}):*`);
+    if (todayEvents.length === 0) {
+      lines.push('• _Nenhuma aula agendada para hoje._');
+    } else {
+      todayEvents.forEach(ev => {
+        const timeStr = ev.from ? `[${ev.from}] ` : '';
+        lines.push(`• ${timeStr}${ev.title}`);
+      });
+    }
+    lines.push('');
+
+    lines.push(`👉 *CONFIRMAÇÃO DO DIA:*`);
+    lines.push(`Toque no link abaixo para marcar as aulas assistidas e direcionar suas revisões automáticas:`);
+    lines.push(`🔗 https://planejamento-medicina-independente.vercel.app/?fechamento=${todayStr}`);
+
+    return lines.join('\n');
   }
 
-  // Painel de Configurações do WhatsApp
+  // Disparo com envio veloz e fallbacks seguros
+  async function sendWhatsApp(text) {
+    if (!isAdmin()) return false;
+    const cfg = getWhatsAppConfig();
+    notify('Enviando para o WhatsApp...');
+
+    // 1. Tenta via PlanningAccount se autenticado
+    if (window.PlanningAccount?.sendWhatsApp) {
+      try {
+        await PlanningAccount.sendWhatsApp(text, cfg.phone, cfg.apiKey);
+        notify('Mensagem enviada para o seu WhatsApp! 📲');
+        return true;
+      } catch (e) {
+        console.warn('Tentando rota direta de envio...');
+      }
+    }
+
+    // 2. Tenta via rota de API interna /api/send-whatsapp
+    try {
+      const res = await fetch('/api/send-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: cfg.phone, text, apikey: cfg.apiKey })
+      });
+      if (res.ok) {
+        notify('Mensagem enviada para o seu WhatsApp! 📲');
+        return true;
+      }
+    } catch (e) {}
+
+    // 3. Fallback instantâneo direto
+    try {
+      const fallbackUrl = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(cfg.phone)}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(cfg.apiKey)}`;
+      await fetch(fallbackUrl, { mode: 'no-cors' });
+      notify('Mensagem disparada para o seu WhatsApp! 📲');
+      return true;
+    } catch (err) {
+      notify('Erro ao conectar ao WhatsApp.');
+      return false;
+    }
+  }
+
+  // MODAL INTERATIVO: Processo inverso de Fechamento do Dia
+  function openDayClosingModal(targetDate) {
+    if (!isAdmin()) return;
+    const dateStr = targetDate || today();
+    const formatted = fmt(dateStr, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+    const dayClasses = events().filter(x => x.date === dateStr && x.type !== 'study' && x.type !== 'review');
+    const dayTasks = data.tasks.filter(x => !x.done || x.date === dateStr);
+
+    let classesHTML = '';
+    if (dayClasses.length === 0) {
+      classesHTML = '<div class="empty">Nenhuma aula cadastrada nesta data no cronograma.</div>';
+    } else {
+      classesHTML = dayClasses.map((item, idx) => {
+        const timeStr = item.from ? `[${item.from}${item.to ? ' - ' + item.to : ''}] ` : '';
+        const prof = item.professor ? ` · ${esc(item.professor)}` : '';
+        return `
+          <div class="closing-card" data-closing-class="${idx}" data-title="${esc(item.title)}" data-subject="${esc(item.subject || 'UC2')}" data-from="${esc(item.from || '')}" data-to="${esc(item.to || '')}">
+            <strong>${timeStr}${esc(item.title)}</strong>
+            <small class="muted" style="display:block;margin:3px 0 10px">${esc(item.subject || 'UC2')}${prof}</small>
+            <div class="pill-row">
+              <label class="status-pill review">
+                <input type="radio" name="class-status-${idx}" value="review" checked>
+                <span>🟢 Vista → Revisão</span>
+              </label>
+              <label class="status-pill learn">
+                <input type="radio" name="class-status-${idx}" value="learn">
+                <span>🟡 Vista → Aprender</span>
+              </label>
+              <label class="status-pill missed">
+                <input type="radio" name="class-status-${idx}" value="missed">
+                <span>🔴 Não vista</span>
+              </label>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    let tasksHTML = '';
+    if (dayTasks.length > 0) {
+      tasksHTML = `
+        <h3 style="font-size:13px;margin:20px 0 8px;font-weight:750">Tarefas do Dia</h3>
+        <div style="border:1px solid var(--border);border-radius:12px;padding:8px 14px;background:var(--bg)">
+          ${dayTasks.map(t => `
+            <label style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer">
+              <input type="checkbox" data-closing-task="${esc(t.id)}" ${t.done ? 'checked' : ''} style="width:17px;height:17px">
+              <span style="font-size:12.5px;${t.done ? 'text-decoration:line-through;color:var(--muted)' : ''}">${esc(t.title)}</span>
+            </label>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    $('modal').innerHTML = `
+      <div class="modal-card" style="max-width:640px" role="dialog" aria-modal="true" aria-labelledby="closing-title">
+        <button type="button" class="close" data-action="close" aria-label="Fechar">×</button>
+        <span class="mr-eyebrow">Fechamento do Dia · Conta Administradora</span>
+        <h2 id="closing-title" style="margin-bottom:4px">Fechamento · ${formatted}</h2>
+        <p class="muted" style="margin-bottom:18px">Confirme o que você assistiu e concluiu para calibrar suas revisões automáticas no MedReview e Planejamento.</p>
+
+        <h3 style="font-size:13px;margin:10px 0 8px;font-weight:750">Aulas e Tutorias de Hoje</h3>
+        ${classesHTML}
+        ${tasksHTML}
+
+        <div style="margin-top:18px">
+          <label class="field-label">Reflexão do dia (opcional)
+            <textarea id="closing-daily-note" class="field" rows="3" placeholder="O que funcionou bem? O que precisa de ajuste amanhã?">${esc(data.notes.find(x => x.date === dateStr)?.text || '')}</textarea>
+          </label>
+        </div>
+
+        <div class="pill-row between" style="margin-top:22px">
+          <button type="button" class="btn" data-action="close">Cancelar</button>
+          <button type="button" class="btn btn-primary" data-action="save-day-closing" data-date="${dateStr}">✓ Confirmar e Gerar Revisões</button>
+        </div>
+      </div>
+    `;
+    $('modal').classList.remove('hidden');
+  }
+
+  // Salva o fechamento do dia e executa as ações automáticas
+  function saveDayClosing(targetDate) {
+    if (!isAdmin()) return;
+    const dateStr = targetDate || today();
+    const classCards = document.querySelectorAll('[data-closing-class]');
+
+    let reviewsCreated = 0;
+    let tasksCreated = 0;
+
+    classCards.forEach(card => {
+      const idx = card.dataset.closingClass;
+      const title = card.dataset.title;
+      const subject = card.dataset.subject || 'UC2';
+      const from = card.dataset.from;
+      const to = card.dataset.to;
+      const status = card.querySelector(`input[name="class-status-${idx}"]:checked`)?.value;
+
+      if (status === 'review') {
+        // 1. Vista e direcionada para revisão:
+        let duration = 90;
+        if (from && to) {
+          const mFrom = mins(from), mTo = mins(to);
+          if (mTo > mFrom) duration = mTo - mFrom;
+        }
+
+        const sessionId = uid();
+        data.sessions.push({
+          id: sessionId,
+          subject,
+          topic: title,
+          date: dateStr,
+          minutes: duration,
+          questions: '',
+          correct: ''
+        });
+
+        // Gera revisões com espaçamento inteligente
+        const rawIntervals = String(data.settings.intervals || '7,25,50');
+        const intervals = rawIntervals.split(',').map(x => Number(x.trim())).filter(x => Number.isInteger(x) && x > 0);
+        const uniqueIntervals = [...new Set(intervals.length ? intervals : [7, 25, 50])];
+
+        for (const n of uniqueIntervals) {
+          data.reviews.push({
+            id: uid(),
+            sessionId,
+            subject,
+            topic: title,
+            due: dayAdd(dateStr, n),
+            interval: n,
+            done: false
+          });
+          reviewsCreated++;
+        }
+      } else if (status === 'learn') {
+        // 2. Vista e necessidade de aprender:
+        data.tasks.push({
+          id: uid(),
+          title: `Aprender / Aprofundar: ${title}`,
+          subject,
+          date: dayAdd(dateStr, 2),
+          priority: '3', // Alta
+          estimate: 90,
+          done: false
+        });
+        tasksCreated++;
+      } else if (status === 'missed') {
+        // 3. Não vista:
+        data.tasks.push({
+          id: uid(),
+          title: `Repor aula não assistida: ${title}`,
+          subject,
+          date: dayAdd(dateStr, 3),
+          priority: '2', // Média
+          estimate: 60,
+          done: false
+        });
+        tasksCreated++;
+      }
+    });
+
+    // Atualiza status das tarefas marcadas no checklist
+    const taskCheckboxes = document.querySelectorAll('[data-closing-task]');
+    taskCheckboxes.forEach(chk => {
+      const taskId = chk.dataset.closingTask;
+      const t = data.tasks.find(x => x.id === taskId);
+      if (t) t.done = chk.checked;
+    });
+
+    // Salva reflexão do dia
+    const noteText = ($('closing-daily-note')?.value || '').trim();
+    if (noteText) {
+      const existingNote = data.notes.find(x => x.date === dateStr);
+      if (existingNote) existingNote.text = noteText;
+      else data.notes.push({ date: dateStr, text: noteText });
+    }
+
+    save();
+    closeModal();
+    render();
+
+    // Limpa parâmetro da URL
+    try {
+      const cleanUrl = location.pathname + location.hash;
+      window.history.replaceState({}, '', cleanUrl);
+    } catch {}
+
+    notify(`Fechamento concluído! ${reviewsCreated} revisões geradas, ${tasksCreated} tarefas agendadas.`);
+  }
+
+  // Painel de Configurações do WhatsApp (APENAS ADMINISTRADOR)
   function panelWhatsApp() {
+    if (!isAdmin()) return '';
     const cfg = getWhatsAppConfig();
     return panel(
-      'Notificações no WhatsApp · CallMeBot',
+      'Notificações no WhatsApp · Administrador',
       '<div class="source-box"><span class="source-icon">📲</span><div>' +
-      '<strong>Avisos e resumos diários no seu celular</strong>' +
-      '<p>Envie resumos da sua rotina acadêmica, revisões pendentes e provas diretamente para o WhatsApp pela sua conta CallMeBot.</p>' +
+      '<strong>Painel Privado de Notificações</strong>' +
+      '<p>Recurso restrito à conta administradora de Gabriel. Disparos automáticos às 05:00 e 22:00 programados na Vercel.</p>' +
       '</div></div>' +
-      '<label class="field-label">Seu WhatsApp (DDI + DDD + Número)<input id="wa-phone" class="field" value="' + esc(cfg.phone) + '" placeholder="Ex.: 5511999999999"></label>' +
-      '<label class="field-label">Chave API (APIKey do CallMeBot)<input id="wa-key" type="password" autocomplete="off" class="field" value="' + esc(cfg.apiKey) + '" placeholder="Sua chave CallMeBot"></label>' +
-      '<label class="field-label" style="display:flex;align-items:center;gap:8px;margin:10px 0 16px;cursor:pointer">' +
-      '<input type="checkbox" id="wa-autodaily" ' + (cfg.autoDaily ? 'checked' : '') + ' style="width:17px;height:17px"> ' +
-      '<span>Enviar resumo matinal automaticamente ao abrir o app (1x ao dia)</span></label>' +
+      '<label class="field-label">Seu WhatsApp (DDI + DDD + Número)<input id="wa-phone" class="field" value="' + esc(cfg.phone) + '" placeholder="Ex.: 5565999882979"></label>' +
+      '<label class="field-label">Chave API (APIKey do CallMeBot)<input id="wa-key" type="password" class="field" value="' + esc(cfg.apiKey) + '" placeholder="Ex.: 4304674"></label>' +
       '<div class="pill-row">' +
-      btn('Salvar configurações do WhatsApp', 'save-whatsapp', '', 'btn btn-primary') +
-      btn('📲 Enviar resumo de hoje agora', 'send-whatsapp-now', '', 'btn') +
-      btn('Testar aviso simples', 'test-whatsapp-simple', '', 'btn btn-ghost') +
-      '</div><p class="tiny">A chave pessoal fica neste dispositivo e não entra nos backups. A configuração do proprietário fica no servidor.</p>'
+      btn('Salvar dados do WhatsApp', 'save-whatsapp', '', 'btn btn-primary') +
+      btn('📲 Disparar resumo matinal agora', 'send-morning-whatsapp', '', 'btn') +
+      btn('🌙 Disparar fechamento noturno agora', 'send-night-whatsapp', '', 'btn') +
+      btn('Testar Fechamento do Dia', 'open-day-closing', '', 'btn btn-ghost') +
+      '</div>'
     );
   }
 
-  // Hook no render para injetar o painel nas Configurações e o botão no Header
+  // Hook no render com verificação de Admin
   const prevRender = render;
   render = function () {
     prevRender();
-    const allowed=Boolean(window.PlanningAccount?.user);
-    const existing=document.getElementById('btn-whatsapp-header');if(existing)existing.hidden=!allowed;
-    if(!allowed)return;
 
-    // Injeta botão no cabeçalho se ainda não existir
     const headerActions = document.querySelector('.header-actions');
-    if (headerActions && !document.getElementById('btn-whatsapp-header')) {
-      const waBtn = document.createElement('button');
-      waBtn.id = 'btn-whatsapp-header';
-      waBtn.className = 'btn btn-ghost';
-      waBtn.setAttribute('data-action', 'send-whatsapp-now');
-      waBtn.setAttribute('title', 'Enviar resumo de hoje para o seu WhatsApp');
-      waBtn.innerHTML = '📲 <span>WhatsApp</span>';
-      headerActions.insertBefore(waBtn, headerActions.firstChild);
-    }
+    const existingBtn = document.getElementById('btn-whatsapp-header');
 
-    if (page === 'settings') {
-      const app = $('app');
-      if (app) app.insertAdjacentHTML('beforeend', panelWhatsApp());
-    }
+    if (isAdmin()) {
+      if (headerActions && !existingBtn) {
+        const waBtn = document.createElement('button');
+        waBtn.id = 'btn-whatsapp-header';
+        waBtn.className = 'btn btn-ghost';
+        waBtn.setAttribute('data-action', 'open-day-closing');
+        waBtn.setAttribute('title', 'Fechamento do Dia (Administrador)');
+        waBtn.innerHTML = '🌙 <span>Fechamento</span>';
+        headerActions.insertBefore(waBtn, headerActions.firstChild);
+      }
 
-    // Auto-envio diário se ativado
-    checkAutoDaily();
+      if (page === 'today') {
+        const app = $('app');
+        if (app && !document.getElementById('card-fechamento-dia')) {
+          const card = document.createElement('div');
+          card.id = 'card-fechamento-dia';
+          card.className = 'panel';
+          card.style.borderColor = 'rgba(37, 211, 102, 0.4)';
+          card.innerHTML = `
+            <div class="pill-row between">
+              <div>
+                <strong>🌙 Fechamento do Dia · Aulas e Revisões</strong>
+                <p class="tiny muted" style="margin:2px 0 0">Classifique as aulas assistidas hoje como Vista (Revisão), Aprender ou Não Vista.</p>
+              </div>
+              <button class="btn btn-primary" data-action="open-day-closing">Fazer fechamento agora →</button>
+            </div>
+          `;
+          app.insertBefore(card, app.firstChild);
+        }
+      }
+
+      if (page === 'settings') {
+        const app = $('app');
+        if (app) app.insertAdjacentHTML('beforeend', panelWhatsApp());
+      }
+    } else {
+      if (existingBtn) existingBtn.remove();
+      const card = document.getElementById('card-fechamento-dia');
+      if (card) card.remove();
+    }
   };
 
-  let sending=false;
-  async function checkAutoDaily() {
-    if(!PlanningAccount?.user||sending)return;
-    const cfg=getWhatsAppConfig(),todayStr=today(),owner=PlanningAccount.user.id;
-    if(cfg.autoDaily&&cfg.lastSentDate!==todayStr){sending=true;try{if(await sendWhatsApp(generateDailySummary())&&PlanningAccount.user?.id===owner)setWhatsAppConfig({lastSentDate:todayStr})}finally{sending=false}}
+  // Verifica parâmetro na URL: ?fechamento=YYYY-MM-DD ou ?fechamento=hoje
+  function checkUrlTriggers() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('fechamento')) {
+        const val = urlParams.get('fechamento');
+        const target = val === 'hoje' || !val ? today() : val;
+        setTimeout(() => {
+          if (isAdmin()) openDayClosingModal(target);
+        }, 500);
+      }
+    } catch {}
   }
 
-  // Listener para as ações do WhatsApp
+  // Event Listeners
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-action]');
     if (!b) return;
     const action = b.dataset.action;
 
-    if (action === 'save-whatsapp') {
+    if (action === 'open-day-closing') {
+      openDayClosingModal();
+    } else if (action === 'save-day-closing') {
+      saveDayClosing(b.dataset.date);
+    } else if (action === 'send-morning-whatsapp') {
+      sendWhatsApp(generateMorningSummary());
+    } else if (action === 'send-night-whatsapp') {
+      sendWhatsApp(generateNightSummary());
+    } else if (action === 'save-whatsapp') {
       const phone = ($('wa-phone')?.value || '').trim().replace(/\D/g, '');
       const apiKey = ($('wa-key')?.value || '').trim();
-      const autoDaily = $('wa-autodaily')?.checked || false;
-      if (!phone || (!apiKey&&!ownerConfigured())) {
+      if (!phone || !apiKey) {
         notify('Preencha seu número e chave API.');
         return;
       }
-      setWhatsAppConfig({ phone, apiKey, autoDaily });
-      notify('Configurações do WhatsApp salvas com sucesso!');
-    } else if (action === 'send-whatsapp-now') {
-      const summary = generateDailySummary();
-      sendWhatsApp(summary);
-    } else if (action === 'test-whatsapp-simple') {
-      sendWhatsApp('🔔 *Planejamento Medicina*: Teste de notificação funcionando perfeitamente!');
+      setWhatsAppConfig({ phone, apiKey });
+      notify('Configurações salvas!');
     }
   });
 
-  // Exporta para escopo global
-  globalThis.sendWhatsAppDailySummary = () => sendWhatsApp(generateDailySummary());
+  // Exportações
+  window.WhatsAppNotify = {
+    isAdmin,
+    openDayClosingModal,
+    sendMorningSummary: () => sendWhatsApp(generateMorningSummary()),
+    sendNightSummary: () => sendWhatsApp(generateNightSummary())
+  };
+
+  // Verifica gatilho de URL inicial
+  setTimeout(checkUrlTriggers, 600);
 })();

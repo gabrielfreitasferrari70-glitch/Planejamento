@@ -4,6 +4,16 @@
   "buildCommand": null,
   "installCommand": null,
   "outputDirectory": ".",
+  "crons": [
+    {
+      "path": "/api/cron-daily-summary?type=morning",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron-daily-summary?type=night",
+      "schedule": "0 2 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/sw.js",

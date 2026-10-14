@@ -100,3 +100,13 @@ html{min-height:100%;-webkit-text-size-adjust:100%;scroll-padding-top:20px}body{
 
 #btn-whatsapp-header{color:#25d366;border-color:rgba(37,211,102,.35)}
 #btn-whatsapp-header:hover{background:rgba(37,211,102,.12);border-color:#25d366}
+
+.closing-card{border:1px solid var(--border);background:var(--bg);border-radius:12px;padding:14px;margin:10px 0}
+.closing-card strong{font-size:13px;display:block}
+.status-pill{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid var(--border);border-radius:9px;cursor:pointer;font-size:11px;font-weight:650;background:var(--card);transition:all .15s ease}
+.status-pill input{margin:0;cursor:pointer}
+.status-pill:has(input:checked){border-color:var(--accent);background:var(--accentbg);color:var(--accent)}
+.status-pill.review:has(input:checked){border-color:#25d366;background:rgba(37,211,102,.14);color:#128c7e}
+.status-pill.learn:has(input:checked){border-color:#e6a23c;background:rgba(230,162,60,.14);color:#b88230}
+.status-pill.missed:has(input:checked){border-color:#f56c6c;background:rgba(245,108,108,.14);color:#c45656}
+
