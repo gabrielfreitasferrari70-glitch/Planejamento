@@ -45,6 +45,12 @@
   "functions": {
     "api/import-schedule.py": {
       "maxDuration": 60
+    },
+    "api/send-whatsapp.js": {
+      "maxDuration": 60
+    },
+    "api/cron-daily-summary.js": {
+      "maxDuration": 60
     }
   }
 }

@@ -28,15 +28,17 @@ class AccountSyncTests(unittest.TestCase):
     def tearDown(self):
         for context in self.contexts:context.close()
         self.assertEqual(self.errors,[])
-    def device(self,owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legacy=None,mobile=False,auto_login=True):
+    def device(self,owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legacy=None,mobile=False,auto_login=True,global_storage=None,fixture_email="fixture@example.invalid"):
         context=self.browser.new_context(timezone_id='America/Cuiaba',service_workers='block',viewport={'width':390 if mobile else 1280,'height':844 if mobile else 720},has_touch=mobile,is_mobile=mobile);self.contexts.append(context)
+        if global_storage:
+            for key,value in global_storage.items():context.add_init_script('localStorage.setItem('+json.dumps(key)+','+json.dumps(json.dumps(value))+')')
         page=context.new_page();page.set_default_timeout(8000);page.on('pageerror',lambda e:self.errors.append(str(e)))
         if legacy is not None:context.add_init_script('localStorage.setItem("planejamento-medicina-2.0-personal-local",'+json.dumps(json.dumps(legacy))+')')
         remote='https://eupkdyhngmrsbvmaondp.supabase.co'
         context.route('**/planning-config.js',lambda route:route.fulfill(content_type='application/javascript',body='window.PLANNING_CONFIG='+json.dumps({'url':remote,'publishableKey':'fixture-public-anon-key','legacyOwnerId':'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'})+';'))
         def encoded(obj):return base64.urlsafe_b64encode(json.dumps(obj).encode()).decode().rstrip('=')
         token=encoded({'alg':'HS256','typ':'JWT'})+'.'+encoded({'sub':owner,'aud':'authenticated','role':'authenticated','exp':int(time.time())+3600})+'.fixture-signature'
-        user={'id':owner,'email':'fixture@example.invalid','aud':'authenticated','role':'authenticated','app_metadata':{},'user_metadata':{}}
+        user={'id':owner,'email':fixture_email,'aud':'authenticated','role':'authenticated','app_metadata':{},'user_metadata':{}}
         def transport(route):
             request=route.request;path=urlsplit(request.url).path;params=parse_qs(urlsplit(request.url).query)
             if path=='/auth/v1/signup':
@@ -195,6 +197,38 @@ class AccountSyncTests(unittest.TestCase):
         second.evaluate('PlanningAccount.sync()')
         second.wait_for_function("data.settings.materialsUrl==='https://drive.google.com/drive/folders/minha-pasta'")
         self.assertFalse(other.evaluate('Boolean(data.settings.materialsUrl)'))
+
+    def test_antigravity_classes_and_three_tabs_are_preserved_and_private(self):
+        old={'planejamento-evaluated-classes':[{'id':'old-class','topic':'Conteúdo antigo','subject':'Fisiologia','date':'2026-10-13','minutes':90,'status':'review'}]}
+        _,other=self.device(owner='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',global_storage=old,fixture_email='gabriel.aluno@example.invalid')
+        other.evaluate("goto('reviews')")
+        self.assertFalse(other.evaluate('WhatsAppNotify.isAdmin()'))
+        self.assertEqual(other.evaluate('ClassStatusTracker.getTrackedClasses().length'),0)
+        self.assertEqual(other.locator('[data-action="open-day-closing"]').count(),0)
+        context,owner=self.device(global_storage=old)
+        owner.evaluate("goto('reviews')")
+        self.assertEqual(owner.locator('[data-action="set-review-tab"]').count(),3)
+        owner.wait_for_function("PlanningAccount.status==='synced' && data.settings.evaluatedClasses.length===1")
+        self.assertEqual(owner.evaluate('ClassStatusTracker.getTrackedClasses()[0].topic'),'Conteúdo antigo')
+        owner.locator('[data-action="set-review-tab"][data-tab="aulas"]').click()
+        owner.locator('[data-action="mark-class-mastered"][data-id="old-class"]').click()
+        owner.wait_for_function("PlanningAccount.status==='synced' && data.settings.evaluatedClasses[0].status==='mastered'")
+        owner.locator('[data-action="set-review-tab"][data-tab="dominadas"]').first.click()
+        owner.wait_for_function("PlanningAccount.status==='synced'")
+        _,second=self.device()
+        second.evaluate("goto('reviews')")
+        self.assertIn('Conteúdo antigo',second.locator('#app').inner_text())
+        self.assertEqual(second.evaluate('ClassStatusTracker.getTrackedClasses()[0].status'),'mastered')
+        self.assertEqual(second.evaluate('data.settings.reviewTab'),'dominadas')
+        self.assertEqual(other.evaluate('ClassStatusTracker.getTrackedClasses().length'),0)
+        self.assertEqual(owner.evaluate("JSON.parse(localStorage.getItem('planejamento-evaluated-classes'))[0].status"),'review')
+        owner.evaluate("goto('settings')")
+        self.assertTrue(owner.locator('[data-action="send-morning-whatsapp"]').is_visible())
+        self.assertTrue(owner.locator('[data-action="send-night-whatsapp"]').is_visible())
+        self.assertTrue(owner.locator('[data-action="open-day-closing"]').count()>0)
+        owner.evaluate('PlanningAccount.logout()');owner.wait_for_function('PlanningAccount.user===null')
+        self.assertFalse(owner.evaluate('WhatsAppNotify.isAdmin()'))
+        self.assertNotIn('Conteúdo antigo',owner.locator('#app').inner_text())
 
     def wait_cloud(self,page,count):
         page.wait_for_function("PlanningAccount.status==='synced' && data.tasks.length === "+str(count))

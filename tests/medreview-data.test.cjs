@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {summarize}=require('../medreview-data.js');
+const {summarize}=require('./load-browser-module.cjs')('medreview-data.js');
 const user='owner';
 const decks=[{id:'folder',title:'Fisiologia',parent:null},{id:'a',title:'Cardiovascular',parent:'folder'},{id:'b',title:'Renal',parent:'folder'}];
 const cards=Array.from({length:100},(_,i)=>({id:'card-'+i,deck_id:i<70?'a':'b'}));

@@ -1,7 +1,7 @@
 /* Cache only the public app shell. Never cache accounts, histories or Drive files. */
 'use strict';
-const CACHE='planejamento-shell-v2';
-const ASSETS=['/','/index.html','/styles.css','/insights.css','/app.js','/insights.js','/legacy-import.js','/cloud-drive.js','/medreview-config.js','/medreview-data.js','/medreview.js','/pwa.js','/planning-config.js','/cloud-data.js','/account-sync.js','/semester-import.js','/whatsapp-notify.js','/vendor/supabase-2.117.3.js','/favicon.svg','/manifest.webmanifest','/icons/app-192-v2.png','/icons/app-512-v2.png','/icons/app-maskable-512-v2.png','/icons/apple-touch-icon-v2.png'];
+const CACHE='planejamento-shell-v3';
+const ASSETS=['/','/index.html','/styles.css','/insights.css','/app.js','/insights.js','/legacy-import.js','/cloud-drive.js','/medreview-config.js','/medreview-data.js','/medreview.js','/pwa.js','/planning-config.js','/cloud-data.js','/account-sync.js','/account-features.js','/semester-import.js','/whatsapp-notify.js','/vendor/supabase-2.117.3.js','/favicon.svg','/manifest.webmanifest','/icons/app-192-v2.png','/icons/app-512-v2.png','/icons/app-maskable-512-v2.png','/icons/apple-touch-icon-v2.png'];
 const ALLOWED=new Set(ASSETS);
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{

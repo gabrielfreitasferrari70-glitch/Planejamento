@@ -1,48 +1,10 @@
 (function () {
   'use strict';
 
-  // Configurações e identificadores da conta administradora de Gabriel
-  const DEFAULT_PHONE = '556599882979';
-  const DEFAULT_KEY = '4304674';
-  const STORAGE_KEY = 'planejamento-whatsapp-adm-config';
-  const EXPECTED_ADMIN_ID = window.MEDREVIEW_CONFIG?.expectedUserId || '2c337bd5-b283-4ce8-9c0a-c817e4cdd697';
-  const LEGACY_OWNER_ID = window.PLANNING_CONFIG?.legacyOwnerId || 'ab049488-5127-4db2-b093-c397e8ea17b1';
-
-  // Validação estrita: APENAS o administrador Gabriel tem acesso
-  function isAdmin() {
-    const user = window.PlanningAccount?.user;
-    if (user) {
-      const email = (user.email || '').toLowerCase();
-      if (user.id === EXPECTED_ADMIN_ID || user.id === LEGACY_OWNER_ID || email === 'gabrielfreitasferrari70@gmail.com' || email.includes('gabriel')) {
-        return true;
-      }
-      return false;
-    }
-    const lastOwner = localStorage.getItem('planejamento-account-v1:eupkdyhngmrsbvmaondp.supabase.co:last-owner');
-    return lastOwner === EXPECTED_ADMIN_ID || lastOwner === LEGACY_OWNER_ID;
-  }
-
-  function getWhatsAppConfig() {
-    let saved = {};
-    try {
-      saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-    } catch {}
-    return {
-      phone: saved.phone || DEFAULT_PHONE,
-      apiKey: saved.apiKey || DEFAULT_KEY,
-      autoDaily: !!saved.autoDaily,
-      lastSentDate: saved.lastSentDate || ''
-    };
-  }
-
-  function setWhatsAppConfig(cfg) {
-    const current = getWhatsAppConfig();
-    const updated = { ...current, ...cfg };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch {}
-    return updated;
-  }
+  // Existing administrator features now use the verified account adapter.
+  function isAdmin(){return Boolean(window.AccountFeatureData?.isOwner())}
+  function getWhatsAppConfig(){return window.AccountFeatureData?.whatsapp()||{phone:'',apiKey:'',autoDaily:false,lastSentDate:''}}
+  function setWhatsAppConfig(cfg){return window.AccountFeatureData?.saveWhatsApp(cfg)}
 
   // Gera o resumo das 05h (Briefing Matinal)
   function generateMorningSummary() {
@@ -154,44 +116,10 @@
 
   // Disparo com envio veloz e fallbacks seguros
   async function sendWhatsApp(text) {
-    if (!isAdmin()) return false;
-    const cfg = getWhatsAppConfig();
-    notify('Enviando para o WhatsApp...');
-
-    // 1. Tenta via PlanningAccount se autenticado
-    if (window.PlanningAccount?.sendWhatsApp) {
-      try {
-        await PlanningAccount.sendWhatsApp(text, cfg.phone, cfg.apiKey);
-        notify('Mensagem enviada para o seu WhatsApp! 📲');
-        return true;
-      } catch (e) {
-        console.warn('Tentando rota direta de envio...');
-      }
-    }
-
-    // 2. Tenta via rota de API interna /api/send-whatsapp
-    try {
-      const res = await fetch('/api/send-whatsapp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: cfg.phone, text, apikey: cfg.apiKey })
-      });
-      if (res.ok) {
-        notify('Mensagem enviada para o seu WhatsApp! 📲');
-        return true;
-      }
-    } catch (e) {}
-
-    // 3. Fallback instantâneo direto
-    try {
-      const fallbackUrl = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(cfg.phone)}&text=${encodeURIComponent(text)}&apikey=${encodeURIComponent(cfg.apiKey)}`;
-      await fetch(fallbackUrl, { mode: 'no-cors' });
-      notify('Mensagem disparada para o seu WhatsApp! 📲');
-      return true;
-    } catch (err) {
-      notify('Erro ao conectar ao WhatsApp.');
-      return false;
-    }
+    if(!isAdmin())return false;
+    const cfg=getWhatsAppConfig();notify('Enviando para o WhatsApp...');
+    try{await PlanningAccount.sendWhatsApp(text,cfg.phone,cfg.apiKey);notify('Mensagem enviada para o seu WhatsApp! 📲');return true}
+    catch(error){notify(error.message||'Não foi possível enviar a mensagem.');return false}
   }
 
   // MODAL INTERATIVO: Processo inverso de Fechamento do Dia
@@ -417,8 +345,8 @@
       '<strong>Painel Privado de Notificações</strong>' +
       '<p>Recurso restrito à conta administradora de Gabriel. Disparos automáticos às 05:00 e 22:00 programados na Vercel.</p>' +
       '</div></div>' +
-      '<label class="field-label">Seu WhatsApp (DDI + DDD + Número)<input id="wa-phone" class="field" value="' + esc(cfg.phone) + '" placeholder="Ex.: 5565999882979"></label>' +
-      '<label class="field-label">Chave API (APIKey do CallMeBot)<input id="wa-key" type="password" class="field" value="' + esc(cfg.apiKey) + '" placeholder="Ex.: 4304674"></label>' +
+      '<label class="field-label">Seu WhatsApp (DDI + DDD + Número)<input id="wa-phone" class="field" value="' + esc(cfg.phone) + '" placeholder="Informe sua configuração pessoal"></label>' +
+      '<label class="field-label">Chave API (APIKey do CallMeBot)<input id="wa-key" type="password" class="field" value="' + esc(cfg.apiKey) + '" placeholder="Informe sua configuração pessoal"></label>' +
       '<div class="pill-row">' +
       btn('Salvar dados do WhatsApp', 'save-whatsapp', '', 'btn btn-primary') +
       btn('📲 Disparar resumo matinal agora', 'send-morning-whatsapp', '', 'btn') +
@@ -515,11 +443,11 @@
     } else if (action === 'save-whatsapp') {
       const phone = ($('wa-phone')?.value || '').trim().replace(/\D/g, '');
       const apiKey = ($('wa-key')?.value || '').trim();
-      if (!phone || !apiKey) {
+      if (!phone) {
         notify('Preencha seu número e chave API.');
         return;
       }
-      setWhatsAppConfig({ phone, apiKey });
+      setWhatsAppConfig({phone,...(apiKey?{apiKey}:{})});
       notify('Configurações salvas!');
     }
   });

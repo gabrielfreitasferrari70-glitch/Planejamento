@@ -50,17 +50,12 @@
     const lastRead=summary&&state.syncedAt&&state.status==='error'?'<p class="tiny">Última leitura concluída: '+new Date(state.syncedAt).toLocaleString('pt-BR',{timeZone:ZONE})+'</p>':'';
     return panel('Flashcards · MedReview','<p class="muted">Suas revisões realizadas no MedReview, agrupadas por dia. Clique no total diário para ver a distribuição por baralho.</p><div class="pill-row">'+actions+'<a href="'+esc(config?.site||'https://flashcard-lac-xi.vercel.app')+'" target="_blank" rel="noopener noreferrer" class="surface-link">Abrir MedReview ↗</a></div>'+identity+'<p class="tiny" role="status">'+esc(status)+'</p>'+lastRead+selector)+stats+activity(summary)+panel('Histórico diário','<p class="tiny">Uma revisão é uma resposta registrada. O mesmo cartão pode ser respondido mais de uma vez.</p>'+list+notes);
   }
-  let activeReviewTab = (function(){try{return localStorage.getItem('pm-review-active-tab')||'flashcards'}catch{return 'flashcards'}})();
+  let activeReviewTab = 'flashcards';
 
   const TRACKER_STORAGE_KEY = 'planejamento-evaluated-classes';
 
   function getTrackedClasses() {
-    let list = [];
-    try {
-      list = JSON.parse(localStorage.getItem(TRACKER_STORAGE_KEY) || '[]');
-    } catch {}
-    if (!Array.isArray(list)) list = [];
-
+    let list = window.AccountFeatureData?.trackedClasses()||[];
     // Sincroniza com as sessões de aulas registradas nos fechamentos anteriores
     const existingSessions = data.sessions || [];
     existingSessions.forEach(s => {
@@ -121,9 +116,7 @@
   }
 
   function saveTrackedClasses(list) {
-    try {
-      localStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(list));
-    } catch {}
+    window.AccountFeatureData?.saveTrackedClasses(list);
   }
 
   function setClassStatus(id, newStatus) {
@@ -167,16 +160,7 @@
   };
 
   function isGabrielAdmin() {
-    if (window.WhatsAppNotify?.isAdmin) return window.WhatsAppNotify.isAdmin();
-    const EXPECTED_ADMIN_ID = window.MEDREVIEW_CONFIG?.expectedUserId || '2c337bd5-b283-4ce8-9c0a-c817e4cdd697';
-    const LEGACY_OWNER_ID = window.PLANNING_CONFIG?.legacyOwnerId || 'ab049488-5127-4db2-b093-c397e8ea17b1';
-    const user = window.PlanningAccount?.user;
-    if (user) {
-      const email = (user.email || '').toLowerCase();
-      return user.id === EXPECTED_ADMIN_ID || user.id === LEGACY_OWNER_ID || email.includes('gabriel');
-    }
-    const lastOwner = localStorage.getItem('planejamento-account-v1:eupkdyhngmrsbvmaondp.supabase.co:last-owner');
-    return lastOwner === EXPECTED_ADMIN_ID || lastOwner === LEGACY_OWNER_ID;
+    return Boolean(window.AccountFeatureData?.isOwner());
   }
 
   function reviewTabsHeader() {
@@ -297,6 +281,7 @@
   }
 
   reviewView = function() {
+    if(personalAccount())activeReviewTab=window.AccountFeatureData?.reviewTab()||'flashcards';
     const header = reviewTabsHeader();
     if (activeReviewTab === 'aulas') {
       return header + aulasVotedView();
@@ -419,7 +404,7 @@
       case'medreview-disconnect':clearSession();client?.auth.signOut({scope:'local'});break;
       case'set-review-tab':
         activeReviewTab=button.dataset.tab;
-        try{localStorage.setItem('pm-review-active-tab',activeReviewTab)}catch{}
+        window.AccountFeatureData?.setReviewTab(activeReviewTab)
         render();
         break;
       case'mark-class-mastered':

@@ -1,13 +1,14 @@
-import fs from 'fs';
-import path from 'path';
+import {ownerDocument,authorizeCron} from '../server/account-access.js';
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
-
-  const type = req.query.type || 'morning'; // 'morning' ou 'night'
-  const phone = '556599882979';
-  const apikey = '4304674';
+  res.setHeader('Cache-Control','private, no-store');
+  const authorization=authorizeCron(req);
+  if(authorization)return res.status(authorization).json({error:'Acesso reservado ao agendamento autorizado.'});
+  const type=req.query.type||'morning';
+  if(!['morning','night'].includes(type))return res.status(400).json({error:'Tipo de resumo inválido.'});
+  const phone=process.env.PLANNING_OWNER_WHATSAPP_PHONE;
+  const apikey=process.env.PLANNING_OWNER_WHATSAPP_KEY;
+  if(!phone||!apikey)return res.status(503).json({error:'Configuração do WhatsApp indisponível.'});
 
   const zone = 'America/Cuiaba';
   const now = new Date();
@@ -25,16 +26,12 @@ export default async function handler(req, res) {
     month: 'long'
   }).format(new Date(todayStr + 'T12:00:00Z'));
 
-  // Carrega eventos acadêmicos
-  let academic = [];
+  // Read only the approved administrator's private semester and commitments.
+  let academic=[];
   try {
-    const filePath = path.join(process.cwd(), 'academic.json');
-    if (fs.existsSync(filePath)) {
-      academic = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    }
-  } catch (err) {
-    console.error('Erro ao ler academic.json:', err);
-  }
+    const document=await ownerDocument();
+    academic=[...(document.payload?.replacement||[]),...(document.payload?.events||[])];
+  } catch(error){return res.status(error.status||503).json({error:'Não foi possível ler o cronograma da conta administradora.'})}
 
   const todayEvents = academic.filter(x => x.date === todayStr);
 
@@ -88,17 +85,17 @@ export default async function handler(req, res) {
 
   try {
     const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(message)}&apikey=${encodeURIComponent(apikey)}`;
-    const upstream = await fetch(url);
+    const upstream = await fetch(url,{signal:AbortSignal.timeout(20000)});
     const body = await upstream.text();
+    if(!upstream.ok||/\bERROR\b|invalid apikey/i.test(body))return res.status(502).json({error:'O envio não foi confirmado pelo CallMeBot.'});
     return res.status(200).json({
       success: true,
       type,
-      today: todayStr,
-      upstreamBody: body
+      today: todayStr
     });
   } catch (error) {
     return res.status(500).json({
-      error: error.message || 'Erro ao disparar WhatsApp'
+      error: 'Não foi possível concluir o disparo do WhatsApp.'
     });
   }
 }

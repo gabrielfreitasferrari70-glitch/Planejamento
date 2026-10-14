@@ -280,3 +280,12 @@ criptografadas `PLANNING_OWNER_ID`, `PLANNING_OWNER_WHATSAPP_PHONE` e
 `PLANNING_OWNER_WHATSAPP_KEY` da Vercel. O endpoint verifica identidade e
 aprovação; outras contas nunca herdam essas credenciais. Testes de envio usam
 apenas respostas simuladas, sem mensagens reais.
+
+## Mapeamento de contas e integração do Antigravity
+
+Consulte [MAPEAMENTO-CONTAS.md](MAPEAMENTO-CONTAS.md) para o inventário de recursos,
+a separação de dados e os ajustes de integração da versão atual. Os agendamentos
+do WhatsApp continuam às 05h e 22h de Cuiabá. A Vercel usa `CRON_SECRET` para
+autorizar o cron e `PLANNING_SUPABASE_SERVICE_KEY` apenas no servidor, para ler
+o documento privado do administrador aprovado. Nunca exponha esses segredos
+na configuração pública ou nos backups.

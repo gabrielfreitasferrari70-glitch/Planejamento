@@ -17,7 +17,8 @@
     result.settings={availability:clone(settings.availability||{}),goal:settings.goal??12,intervals:settings.intervals??'',theme:settings.theme||'light'};
     if(settings.academicSource!==undefined){if(!object(settings.academicSource))throw Error('Fonte acadêmica inválida.');result.settings.academicSource=clone(settings.academicSource)}
     if(settings.materialsUrl!==undefined)result.settings.materialsUrl=String(settings.materialsUrl);
-    for(const key of ['whatsappPhone','whatsappAutoDaily','whatsappLastSentDate'])if(settings[key]!==undefined)result.settings[key]=clone(settings[key]);
+    for(const key of ['whatsappPhone','whatsappAutoDaily','whatsappLastSentDate','whatsappLegacyImported','evaluatedClassesLegacyImported','reviewTab'])if(settings[key]!==undefined)result.settings[key]=clone(settings[key]);
+    if(settings.evaluatedClasses!==undefined){if(!Array.isArray(settings.evaluatedClasses))throw Error('Avaliações de aulas inválidas.');result.settings.evaluatedClasses=clone(settings.evaluatedClasses);index(result.settings.evaluatedClasses,'evaluatedClasses')}
     result.examScopes=clone(source.examScopes||{});if(!object(result.examScopes))throw Error('Conteúdos de provas inválidos.');
     result.integration={};for(const key of ['clientId','lastSync','driveRestoredAt','sheetUrl','sheetRange'])if(source.integration?.[key]!==undefined)result.integration[key]=clone(source.integration[key]);
     return result;
@@ -27,6 +28,7 @@
     base=snapshot(base);local=snapshot(local);remote=snapshot(remote);const conflicts=[];
     function field(b,l,r,path){
       if(equal(l,r))return clone(l);if(equal(l,b))return clone(r);if(equal(r,b))return clone(l);
+      if(path.join('.')==='settings.evaluatedClasses'&&Array.isArray(l)&&Array.isArray(r)){const bm=index(b||[],'evaluatedClasses'),lm=index(l,'evaluatedClasses'),rm=index(r,'evaluatedClasses'),out=[];for(const id of new Set([...rm.keys(),...lm.keys(),...bm.keys()])){const record=field(bm.get(id),lm.get(id),rm.get(id),path.concat(id));if(record!==undefined)out.push(record)}return out}
       if(object(l)&&object(r)&&(object(b)||b===undefined)){const out={};for(const key of new Set([...Object.keys(b||{}),...Object.keys(l),...Object.keys(r)])){const value=field(b?.[key],l[key],r[key],path.concat(key));if(value!==undefined)out[key]=value}return out}
       conflicts.push({path:path.join(' / '),local:clone(l),remote:clone(r)});return clone(prefer==='remote'?r:l);
     }
