@@ -9,6 +9,29 @@
   function update(){if(['reviews','dashboard','today','studies','reports'].includes(page))render()}
   function fail(message){state.status='error';state.message=message;update()}
   function formatDay(date){return fmt(date,{day:'2-digit',month:'short',year:'numeric',timeZone:'UTC'})}
+  const ratingLabels={again:'Novamente',hard:'Difícil',good:'Bom',easy:'Fácil'};
+  function ratingBars(ratings,total){
+    const known=Object.values(ratings).reduce((a,b)=>a+b,0);
+    return '<div class="mr-ratings">'+Object.entries(ratingLabels).map(([key,label])=>{
+      const count=ratings[key]||0,pct=total?Math.round(count/total*100):0;
+      return '<div class="mr-rating '+key+'"><div><span>'+label+'</span><strong>'+count+' <small>('+pct+'%)</small></strong></div><div class="mr-track"><span style="width:'+pct+'%"></span></div></div>';
+    }).join('')+'</div>'+(known<total?'<p class="tiny">'+(total-known)+' respostas sem avaliação de dificuldade identificada.</p>':'');
+  }
+  function activity(summary){
+    if(!summary)return '';
+    const count=state.period==='7'?7:14,days=Array.from({length:count},(_,i)=>dayAdd(today(),i+1-count));
+    const indexed=new Map(summary.days.map(day=>[day.date,day])),max=Math.max(1,...days.map(date=>indexed.get(date)?.count||0));
+    const bars=days.map(date=>{
+      const day=indexed.get(date),n=day?.count||0,label=formatDay(date)+': '+n+' revisões';
+      return '<button type="button" class="mr-activity-day" '+(day?'data-action="medreview-day" data-date="'+date+'"':'disabled')+' aria-label="'+esc(label)+'" title="'+esc(label)+'"><strong>'+n+'</strong><span class="mr-activity-track"><span style="height:'+Math.max(n?3:0,n/max*100)+'%"></span></span><small>'+date.slice(8)+'</small></button>';
+    }).join('');
+    const active=summary.days.length,best=summary.days.reduce((a,b)=>b.count>(a?.count||0)?b:a,null);
+    const metrics='<div class="mr-insights"><div><strong>'+active+'</strong><span>Dias com revisões</span></div><div><strong>'+Math.round(summary.total/(active||1))+'</strong><span>Média por dia ativo</span></div><div><strong>'+(best?.count||0)+'</strong><span>Maior volume diário'+(best?' · '+formatDay(best.date):'')+'</span></div></div>';
+    const grouped=new Map();summary.days.forEach(day=>day.distribution.forEach(group=>{grouped.set(group.path,(grouped.get(group.path)||0)+group.count)}));
+    const top=[...grouped].sort((a,b)=>b[1]-a[1]).slice(0,5);
+    const sources=top.map(([path,n])=>'<div class="mr-source"><div><span>'+esc(path)+'</span><strong>'+n+' revisões</strong></div><div class="mr-track"><span style="width:'+(summary.total?n/summary.total*100:0)+'%"></span></div></div>').join('')||empty('Sem revisões no período.');
+    return panel('Seu ritmo de revisão','<p class="tiny">Últimos '+count+' dias, incluindo dias sem revisões. Clique em uma barra para explorar o dia.</p><div class="mr-activity" role="group" aria-label="Revisões por dia">'+bars+'</div>'+metrics)+panel('Baralhos mais revisados','<p class="tiny">Os cinco baralhos com mais respostas no período selecionado. A barra indica a participação no total.</p>'+sources);
+  }
   function overview(){
     const connected=Boolean(state.user),summary=state.summary;
     const status=state.status==='loading'?'Atualizando histórico...':state.status==='error'?state.message:connected?(state.syncedAt?'Atualizado em '+new Date(state.syncedAt).toLocaleString('pt-BR',{timeZone:ZONE}):'Conta conectada. Carregando histórico...'):'Conecte sua conta do MedReview para consultar suas revisões reais.';
@@ -19,17 +42,24 @@
     const stats='<div class="stats medreview-stats"><div class="stat"><div class="stat-top">Revisões de flashcards hoje</div><div class="stat-main">'+(summary?todayCount:'—')+'</div><div class="stat-hint">Fuso de Cuiabá</div></div><div class="stat"><div class="stat-top">Revisões no período</div><div class="stat-main">'+(summary?summary.total:'—')+'</div><div class="stat-hint">Cada resposta registrada conta uma vez</div></div><div class="stat"><div class="stat-top">Cartões distintos</div><div class="stat-main">'+(summary?summary.uniqueCards:'—')+'</div><div class="stat-hint">No período selecionado</div></div></div>';
     const selector='<label class="field-label medreview-period" for="medreview-period">Período<select id="medreview-period" class="field">'+ranges.map(([value,label])=>'<option value="'+value+'" '+(state.period===value?'selected':'')+'>'+label+'</option>').join('')+'</select></label>';
     const days=summary?.days||[];
-    const list=days.length?days.map(day=>'<button class="medreview-day" type="button" data-action="medreview-day" data-date="'+day.date+'"><span><strong>'+formatDay(day.date)+'</strong><small>'+day.uniqueCards+' cartões distintos · '+day.distribution.length+' origens</small></span><span class="medreview-count">'+day.count+'<small>revisões ↗</small></span></button>').join(''):empty(summary?'Nenhuma revisão registrada nesse período.':connected?'O histórico aparecerá após a leitura do MedReview.':'O histórico ficará disponível depois de conectar sua conta.');
+    const list=days.length?days.map(day=>{
+      const previews=day.distribution.slice(0,2).map(group=>'<span class="mr-day-source">'+esc(group.path.split(' / ').pop())+' <b>'+group.count+'</b></span>').join('');
+      return '<button class="medreview-day" type="button" data-action="medreview-day" data-date="'+day.date+'"><span class="mr-day-info"><strong>'+formatDay(day.date)+'</strong><small>'+day.uniqueCards+' cartões distintos · '+day.distribution.length+' baralhos</small><span class="mr-day-previews">'+previews+(day.distribution.length>2?'<span class="tiny">+ '+(day.distribution.length-2)+' baralhos</span>':'')+'</span></span><span class="medreview-count">'+day.count+'<small>revisões</small><span class="mr-day-open">Ver distribuição →</span></span></button>';
+    }).join(''):empty(summary?'Nenhuma revisão registrada nesse período.':connected?'O histórico aparecerá após a leitura do MedReview.':'O histórico ficará disponível depois de conectar sua conta.');
     const notes=summary&&(summary.invalidDates||summary.unidentified)?'<p class="tiny">'+(summary.unidentified?summary.unidentified+' revisões sem baralho identificável. ':'')+(summary.invalidDates?summary.invalidDates+' registros sem data válida não foram contabilizados.':'')+'</p>':'';
-    const lastRead=summary&&state.syncedAt?'<p class="tiny">Última leitura concluída: '+new Date(state.syncedAt).toLocaleString('pt-BR',{timeZone:ZONE})+'</p>':'';
-    return panel('Flashcards · MedReview','<p class="muted">Suas revisões realizadas no MedReview, agrupadas por dia. Clique no total diário para ver a distribuição por baralho.</p><div class="pill-row">'+actions+'<a href="'+esc(config?.site||'https://flashcard-lac-xi.vercel.app')+'" target="_blank" rel="noopener noreferrer" class="surface-link">Abrir MedReview ↗</a></div>'+identity+'<p class="tiny" role="status">'+esc(status)+'</p>'+lastRead)+stats+panel('Histórico diário',selector+list+notes);
+    const lastRead=summary&&state.syncedAt&&state.status==='error'?'<p class="tiny">Última leitura concluída: '+new Date(state.syncedAt).toLocaleString('pt-BR',{timeZone:ZONE})+'</p>':'';
+    return panel('Flashcards · MedReview','<p class="muted">Suas revisões realizadas no MedReview, agrupadas por dia. Clique no total diário para ver a distribuição por baralho.</p><div class="pill-row">'+actions+'<a href="'+esc(config?.site||'https://flashcard-lac-xi.vercel.app')+'" target="_blank" rel="noopener noreferrer" class="surface-link">Abrir MedReview ↗</a></div>'+identity+'<p class="tiny" role="status">'+esc(status)+'</p>'+lastRead+selector)+stats+activity(summary)+panel('Histórico diário','<p class="tiny">Uma revisão é uma resposta registrada. O mesmo cartão pode ser respondido mais de uma vez.</p>'+list+notes);
   }
   reviewView=function(){return overview()+'<details class="local-review-details"><summary>Revisões de estudo planejadas neste site</summary>'+originalReviewView()+'</details>'};
   function showDay(date){
     const day=state.summary?.days.find(x=>x.date===date);if(!day)return;
-    const ratings={again:'Novamente',hard:'Difícil',good:'Bom',easy:'Fácil'};
-    const rows=day.distribution.map(group=>'<section class="medreview-distribution"><h3>'+esc(group.path)+'</h3><div class="pill-row">'+tag(group.count+' revisões')+tag(group.uniqueCards+' cartões distintos','gray')+tag(Math.round(group.count/day.count*100)+'% do dia','gray')+'</div><p class="tiny">'+Object.entries(group.ratings).map(([key,count])=>ratings[key]+': '+count).join(' · ')+'</p></section>').join('');
-    $('modal').innerHTML='<div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="medreview-detail-title"><button type="button" class="close" data-action="close" aria-label="Fechar">×</button><h2 id="medreview-detail-title">Flashcards · '+formatDay(day.date)+'</h2><p>'+day.count+' revisões · '+day.uniqueCards+' cartões distintos</p>'+rows+'<p class="tiny">Distribuição pelo baralho atual do cartão. Cartões removidos ou sem acesso aparecem como baralho não identificado. São contabilizadas apenas revisões da sua conta registradas pelo MedReview.</p></div>';
+    const totals={again:0,hard:0,good:0,easy:0};
+    day.distribution.forEach(group=>Object.keys(totals).forEach(key=>totals[key]+=group.ratings[key]||0));
+    const rows=day.distribution.map(group=>{
+      const parts=group.path.split(' / '),title=parts.pop(),pct=Math.round(group.count/day.count*100);
+      return '<section class="medreview-distribution"><p class="mr-breadcrumb">'+esc(parts.join(' / ')||'Baralho')+'</p><div class="mr-distribution-heading"><h3>'+esc(title)+'</h3><strong>'+pct+'% <small>do dia</small></strong></div><div class="mr-share mr-track"><span style="width:'+group.count/day.count*100+'%"></span></div><div class="pill-row">'+tag(group.count+' revisões')+tag(group.uniqueCards+' cartões distintos','gray')+'</div>'+ratingBars(group.ratings,group.count)+'</section>';
+    }).join('');
+    $('modal').innerHTML='<div class="modal-card medreview-detail" role="dialog" aria-modal="true" aria-labelledby="medreview-detail-title"><button type="button" class="close" data-action="close" aria-label="Fechar">×</button><span class="mr-eyebrow">Seu estudo em detalhes</span><h2 id="medreview-detail-title">Flashcards · '+formatDay(day.date)+'</h2><div class="mr-detail-summary"><div><strong>'+day.count+'</strong><span>Revisões realizadas</span></div><div><strong>'+day.uniqueCards+'</strong><span>Cartões distintos</span></div><div><strong>'+day.distribution.length+'</strong><span>Baralhos revisados</span></div></div><section class="mr-day-ratings"><h3>Como você avaliou as respostas</h3><p class="tiny">Estas são as avaliações escolhidas no MedReview; não representam uma nota de prova ou taxa de acerto.</p>'+ratingBars(totals,day.count)+'</section><h3>De onde vieram as revisões</h3><div class="mr-distribution-grid">'+rows+'</div><p class="tiny">Distribuição pelo baralho atual do cartão. Cartões removidos ou sem acesso aparecem como baralho não identificado. São contabilizadas apenas revisões da sua conta registradas pelo MedReview.</p></div>';
     $('modal').classList.remove('hidden');
   }
   function showAuth(){

@@ -65,6 +65,11 @@ Responder ao mesmo cartão duas vezes conta duas revisões. Cartões distintos s
 mostrados separadamente. Dias seguem o fuso `America/Cuiaba`; clicar no total abre
 baralhos, caminhos de pastas, quantidades, percentuais e avaliações de dificuldade.
 O painel inicial também mostra as revisões de flashcards realizadas hoje.
+A tela de revisões inclui atividade dos últimos 7 ou 14 dias, média por dia ativo,
+maior volume diário e os cinco baralhos mais revisados no período. O detalhe do
+dia mostra participação por baralho e avaliações de dificuldade, sem tratá-las
+como taxa de acerto. Nas avaliações, verde indica data passada e amarelo indica
+hoje ou data futura; essas cores não confirmam presença ou aprovação.
 
 São consultados apenas registros da conta autenticada e metadados dos cartões e
 baralhos necessários. Não há gravações nas tabelas do MedReview. O SDK atualiza a

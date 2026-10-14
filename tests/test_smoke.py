@@ -214,6 +214,18 @@ class SiteSmokeTests(unittest.TestCase):
         }""")
         self.assertEqual(result, {'free': 1, 'busy': 0})
 
+    def test_exam_colors_follow_local_date_without_claiming_completion(self):
+        self.open()
+        self.page.evaluate("""data.events=[
+          {id:'past',type:'exam',date:dayAdd(today(),-1),title:'Prova passada'},
+          {id:'today',type:'exam',date:today(),title:'Prova hoje'},
+          {id:'future',type:'exam',date:dayAdd(today(),10),title:'Prova futura'}]""")
+        self.nav('exams')
+        self.assertEqual(self.page.locator('.exam-past').count(),1)
+        self.assertEqual(self.page.locator('.exam-upcoming').count(),2)
+        self.assertEqual(self.page.locator('.exam-past .tag.good').inner_text(),'Data passada')
+        self.assertEqual(self.page.locator('.exam-upcoming .tag.pending').count(),2)
+
     def medreview_fixture(self, wrong_account=False, unavailable=False):
         """Fake remote authentication/history; never sends credentials to MedReview."""
         root = Path(__file__).resolve().parents[1]
@@ -263,15 +275,23 @@ class SiteSmokeTests(unittest.TestCase):
     def test_medreview_authenticated_daily_distribution_and_logout(self):
         self.medreview_fixture()
         self.page.wait_for_function('MedReviewConnection.summary?.total === 100')
-        day=self.page.locator('[data-action="medreview-day"]')
+        day=self.page.locator('.medreview-day')
         self.assertEqual(day.count(),1)
         self.assertIn('100',day.inner_text())
+        self.assertEqual(self.page.locator('.mr-activity-day').count(),14)
+        self.assertEqual(self.page.locator('.mr-source').count(),2)
         day.click()
         detail=self.page.locator('#modal')
-        self.assertIn('Fisiologia / Cardiovascular',detail.inner_text())
+        self.assertIn('Fisiologia',detail.inner_text())
+        self.assertIn('Cardiovascular',detail.inner_text())
         self.assertIn('70 revisões',detail.inner_text())
-        self.assertIn('Fisiologia / Renal',detail.inner_text())
+        self.assertIn('Renal',detail.inner_text())
         self.assertIn('30 revisões',detail.inner_text())
+        self.assertIn('70%',detail.inner_text())
+        self.assertIn('não representam uma nota',detail.inner_text())
+        self.page.set_viewport_size({'width':320,'height':568})
+        self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
+        self.page.set_viewport_size({'width':1280,'height':720})
         self.page.keyboard.press('Escape')
         self.page.locator('[data-action="medreview-sync"]').click()
         self.page.wait_for_function("MedReviewConnection.status === 'connected'")
