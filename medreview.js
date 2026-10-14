@@ -52,68 +52,257 @@
   }
   let activeReviewTab = (function(){try{return localStorage.getItem('pm-review-active-tab')||'flashcards'}catch{return 'flashcards'}})();
 
+  const TRACKER_STORAGE_KEY = 'planejamento-evaluated-classes';
+
+  function getTrackedClasses() {
+    let list = [];
+    try {
+      list = JSON.parse(localStorage.getItem(TRACKER_STORAGE_KEY) || '[]');
+    } catch {}
+    if (!Array.isArray(list)) list = [];
+
+    // Sincroniza com as sessões de aulas registradas nos fechamentos anteriores
+    const existingSessions = data.sessions || [];
+    existingSessions.forEach(s => {
+      let found = list.find(x => x.topic === s.topic && x.date === s.date);
+      if (!found) {
+        list.push({
+          id: s.id || uid(),
+          topic: s.topic,
+          subject: s.subject || 'UC2',
+          date: s.date,
+          minutes: s.minutes || 90,
+          professor: s.professor || '',
+          status: s.evaluationStatus || 'review',
+          votedAt: s.votedAt || s.date || new Date().toISOString(),
+          masteredAt: s.masteredAt || null
+        });
+      }
+    });
+
+    // Sincroniza tarefas de aprender/repor
+    (data.tasks || []).forEach(t => {
+      if (t.title && t.title.startsWith('Aprender / Aprofundar: ')) {
+        const topic = t.title.replace('Aprender / Aprofundar: ', '').trim();
+        let found = list.find(x => x.topic === topic);
+        if (!found) {
+          list.push({
+            id: t.id || uid(),
+            topic,
+            subject: t.subject || 'UC2',
+            date: t.date || today(),
+            minutes: 90,
+            professor: '',
+            status: t.done ? 'mastered' : 'learn',
+            votedAt: new Date().toISOString(),
+            masteredAt: t.done ? new Date().toISOString() : null
+          });
+        }
+      } else if (t.title && t.title.startsWith('Repor aula não assistida: ')) {
+        const topic = t.title.replace('Repor aula não assistida: ', '').trim();
+        let found = list.find(x => x.topic === topic);
+        if (!found) {
+          list.push({
+            id: t.id || uid(),
+            topic,
+            subject: t.subject || 'UC2',
+            date: t.date || today(),
+            minutes: 90,
+            professor: '',
+            status: t.done ? 'mastered' : 'missed',
+            votedAt: new Date().toISOString(),
+            masteredAt: t.done ? new Date().toISOString() : null
+          });
+        }
+      }
+    });
+
+    return list;
+  }
+
+  function saveTrackedClasses(list) {
+    try {
+      localStorage.setItem(TRACKER_STORAGE_KEY, JSON.stringify(list));
+    } catch {}
+  }
+
+  function setClassStatus(id, newStatus) {
+    const list = getTrackedClasses();
+    const item = list.find(x => x.id === id);
+    if (!item) return;
+
+    item.status = newStatus;
+    if (newStatus === 'mastered') {
+      item.masteredAt = new Date().toISOString();
+      // Conclui revisões pendentes desse tópico
+      (data.reviews || []).filter(r => r.topic === item.topic && !r.done).forEach(r => {
+        r.done = true;
+        r.completedAt = new Date().toISOString();
+      });
+      // Conclui tarefas desse tópico
+      (data.tasks || []).filter(t => t.title && t.title.includes(item.topic) && !t.done).forEach(t => {
+        t.done = true;
+      });
+      notify(`"${item.topic}" marcado como Concluído! Movido para Conteúdos Dominados 📘`);
+    } else if (newStatus === 'review') {
+      item.masteredAt = null;
+      notify(`"${item.topic}" movido para Revisão 🟢`);
+    } else if (newStatus === 'learn') {
+      item.masteredAt = null;
+      notify(`"${item.topic}" marcado como Necessidade de Aprender 🟡`);
+    } else if (newStatus === 'missed') {
+      item.masteredAt = null;
+      notify(`"${item.topic}" marcado como Não Vista 🔴`);
+    }
+
+    saveTrackedClasses(list);
+    save();
+    render();
+  }
+
+  window.ClassStatusTracker = {
+    getTrackedClasses,
+    saveTrackedClasses,
+    setClassStatus
+  };
+
+  function isGabrielAdmin() {
+    if (window.WhatsAppNotify?.isAdmin) return window.WhatsAppNotify.isAdmin();
+    const EXPECTED_ADMIN_ID = window.MEDREVIEW_CONFIG?.expectedUserId || '2c337bd5-b283-4ce8-9c0a-c817e4cdd697';
+    const LEGACY_OWNER_ID = window.PLANNING_CONFIG?.legacyOwnerId || 'ab049488-5127-4db2-b093-c397e8ea17b1';
+    const user = window.PlanningAccount?.user;
+    if (user) {
+      const email = (user.email || '').toLowerCase();
+      return user.id === EXPECTED_ADMIN_ID || user.id === LEGACY_OWNER_ID || email.includes('gabriel');
+    }
+    const lastOwner = localStorage.getItem('planejamento-account-v1:eupkdyhngmrsbvmaondp.supabase.co:last-owner');
+    return lastOwner === EXPECTED_ADMIN_ID || lastOwner === LEGACY_OWNER_ID;
+  }
+
   function reviewTabsHeader() {
+    const list = getTrackedClasses();
+    const activeCount = list.filter(x => x.status !== 'mastered').length;
+    const masteredCount = list.filter(x => x.status === 'mastered').length;
+    const canDoClosing = isGabrielAdmin();
+
     return '<div class="section-actions" style="margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border)">' +
       '<div class="segmented">' +
         '<button class="'+(activeReviewTab==='flashcards'?'active':'')+'" data-action="set-review-tab" data-tab="flashcards">🃏 Flashcards</button>' +
-        '<button class="'+(activeReviewTab==='aulas'?'active':'')+'" data-action="set-review-tab" data-tab="aulas">🎓 Aulas & Cronograma</button>' +
+        '<button class="'+(activeReviewTab==='aulas'?'active':'')+'" data-action="set-review-tab" data-tab="aulas">🎓 Aulas & Cronograma ('+activeCount+')</button>' +
+        '<button class="'+(activeReviewTab==='dominadas'?'active':'')+'" data-action="set-review-tab" data-tab="dominadas">📘 Conteúdos Dominados ('+masteredCount+')</button>' +
       '</div>' +
+      (canDoClosing ? (
       '<div class="pill-row">' +
         btn('🌙 Fechamento do Dia','open-day-closing','','btn btn-primary') +
-        btn('Intervalos (D+)','navigate','data-page="settings"','btn btn-ghost') +
-      '</div>' +
+      '</div>'
+      ) : '') +
     '</div>';
   }
 
-  function aulasView() {
-    const sessions = data.sessions || [];
-    const reviews = data.reviews || [];
-    const pendingReviews = reviews.filter(x => !x.done);
-    const dueToday = pendingReviews.filter(x => x.due <= today());
-    const dueFuture = pendingReviews.filter(x => x.due > today());
-    const doneReviews = reviews.filter(x => x.done);
+  function aulasVotedView() {
+    const list = getTrackedClasses();
+    const active = list.filter(x => x.status !== 'mastered');
+    const masteredCount = list.filter(x => x.status === 'mastered').length;
 
-    const learnTasks = (data.tasks || []).filter(x => !x.done && x.title.includes('Aprender'));
-    const missedTasks = (data.tasks || []).filter(x => !x.done && x.title.includes('Repor aula'));
+    const countReview = active.filter(x => x.status === 'review').length;
+    const countLearn = active.filter(x => x.status === 'learn').length;
+    const countMissed = active.filter(x => x.status === 'missed').length;
 
     const statsHTML = '<div class="stats">' +
-      '<div class="stat"><div class="stat-top">Aulas Assistidas (com revisão)</div><div class="stat-main">' + sessions.length + '</div><div class="stat-hint">' + doneReviews.length + ' revisões concluídas</div></div>' +
-      '<div class="stat"><div class="stat-top">Revisões para Hoje</div><div class="stat-main">' + dueToday.length + '</div><div class="stat-hint">' + dueFuture.length + ' futuras agendadas</div></div>' +
-      '<div class="stat"><div class="stat-top">Necessidade de Aprender</div><div class="stat-main">' + learnTasks.length + '</div><div class="stat-hint">Blocos de estudo prioritários</div></div>' +
-      '<div class="stat"><div class="stat-top">Aulas Não Vistas</div><div class="stat-main">' + missedTasks.length + '</div><div class="stat-hint">Pendentes de reposição</div></div>' +
+      '<div class="stat"><div class="stat-top">🟢 Em Revisão</div><div class="stat-main">' + countReview + '</div><div class="stat-hint">Aulas assistidas</div></div>' +
+      '<div class="stat"><div class="stat-top">🟡 Precisa Aprender</div><div class="stat-main">' + countLearn + '</div><div class="stat-hint">Blocos para aprofundar</div></div>' +
+      '<div class="stat"><div class="stat-top">🔴 Não Vistas</div><div class="stat-main">' + countMissed + '</div><div class="stat-hint">Pendentes de reposição</div></div>' +
+      '<div class="stat"><div class="stat-top">🔵 Já Dominadas</div><div class="stat-main">' + masteredCount + '</div><div class="stat-hint">' + btn('Ver dominadas →','set-review-tab','data-tab="dominadas"','surface-link') + '</div></div>' +
     '</div>';
 
-    const renderReviewItem = x => '<div class="task">' +
-      '<input type="checkbox" aria-label="Concluir revisão" data-action="review-done" data-id="' + esc(x.id) + '"/>' +
-      '<div class="task-text"><strong>' + esc(x.topic) + '</strong><small>' + esc(x.subject || 'UC2') + ' · ' + fmt(x.due) + ' · D+' + x.interval + '</small></div>' +
-      tag(x.due < today() ? 'Atrasada' : 'Pendente', x.due < today() ? 'exam' : '') +
+    let contentHTML = '';
+    if (active.length === 0) {
+      contentHTML = empty('Nenhuma aula pendente de revisão ou estudo no momento. Realize o Fechamento do Dia para registrar suas aulas ou confira os conteúdos concluídos na aba Conteúdos Dominados.');
+    } else {
+      contentHTML = active.map(item => {
+        let badgeClass = 'review', badgeLabel = '🟢 Revisão', cardClass = 'status-review';
+        if (item.status === 'learn') {
+          badgeClass = 'learn'; badgeLabel = '🟡 Aprender'; cardClass = 'status-learn';
+        } else if (item.status === 'missed') {
+          badgeClass = 'missed'; badgeLabel = '🔴 Não vista'; cardClass = 'status-missed';
+        }
+
+        return '<div class="class-status-card ' + cardClass + '">' +
+          '<div class="pill-row between" style="margin-bottom:8px">' +
+            '<span class="status-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+            '<small class="muted">Aula de ' + fmt(item.date) + '</small>' +
+          '</div>' +
+          '<h3 style="font-size:15px;margin:0 0 4px;font-weight:750">' + esc(item.topic) + '</h3>' +
+          '<p class="muted" style="font-size:12px;margin:0 0 14px">' +
+            esc(item.subject || 'UC2') + (item.professor ? ' · Prof. ' + esc(item.professor) : '') + ' · ' + (item.minutes || 90) + ' min' +
+          '</p>' +
+          '<div class="pill-row between" style="border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap;gap:10px">' +
+            '<button class="btn btn-mastered" data-action="mark-class-mastered" data-id="' + esc(item.id) + '">✓ Concluir (Dominei o assunto) 📘</button>' +
+            '<div class="pill-row">' +
+              '<span class="tiny muted">Mudar voto:</span>' +
+              '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="review" title="Mudar para Revisão (Verde)">🟢</button>' +
+              '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="learn" title="Mudar para Aprender (Amarelo)">🟡</button>' +
+              '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="missed" title="Mudar para Não Vista (Vermelho)">🔴</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+
+    const panelVoted = panel('Aulas Avaliadas nos Fechamentos · ' + active.length,
+      '<p class="muted" style="margin-bottom:14px">Aqui estão as aulas do seu cronograma com o status exato que você votou. Ao dominar o conteúdo, clique no botão azul <b>"Concluir"</b> para movê-lo para a aba Conteúdos Dominados.</p>' +
+      contentHTML
+    );
+    return statsHTML + panelVoted;
+  }
+
+  function masteredClassesView() {
+    const list = getTrackedClasses();
+    const mastered = list.filter(x => x.status === 'mastered').sort((a,b) => String(b.masteredAt||'').localeCompare(String(a.masteredAt||'')));
+
+    const statsHTML = '<div class="stats">' +
+      '<div class="stat"><div class="stat-top">Conteúdos Dominados</div><div class="stat-main">' + mastered.length + '</div><div class="stat-hint">Assuntos concluídos com sucesso</div></div>' +
+      '<div class="stat"><div class="stat-top">Carga Horária Consolidada</div><div class="stat-main">' + hours(mastered.reduce((s,x)=>s+(x.minutes||90),0)) + '</div><div class="stat-hint">Tempo investido nas aulas</div></div>' +
     '</div>';
 
-    const duePanel = panel('Revisões vencidas ou de hoje · ' + dueToday.length, dueToday.length ? dueToday.map(renderReviewItem).join('') : empty('Nenhuma revisão pendente para hoje. Parabéns!'));
-    const futurePanel = panel('Revisões futuras agendadas · ' + dueFuture.length, dueFuture.length ? dueFuture.map(x => '<div class="event"><div class="event-time">' + fmt(x.due) + '</div><div class="event-content review"><strong>' + esc(x.topic) + '</strong><small>' + esc(x.subject || 'UC2') + ' · D+' + x.interval + '</small></div></div>').join('') : empty('Nenhuma revisão futura agendada.'));
+    let contentHTML = '';
+    if (mastered.length === 0) {
+      contentHTML = empty('Você ainda não marcou nenhum conteúdo como concluído. Na aba "Aulas & Cronograma", clique no botão azul "Concluir (Dominei o assunto)" para mover os assuntos dominados para esta caixinha.');
+    } else {
+      contentHTML = mastered.map(item => {
+        const masteredDate = item.masteredAt ? fmt(item.masteredAt.slice(0, 10)) : fmt(item.date);
+        return '<div class="class-status-card status-mastered">' +
+          '<div class="pill-row between" style="margin-bottom:8px">' +
+            '<span class="status-badge mastered">🔵 Concluído · Conteúdo Dominado</span>' +
+            '<small class="muted">Concluído em: ' + masteredDate + '</small>' +
+          '</div>' +
+          '<h3 style="font-size:15px;margin:0 0 4px;font-weight:750">' + esc(item.topic) + '</h3>' +
+          '<p class="muted" style="font-size:12px;margin:0 0 10px">' +
+            esc(item.subject || 'UC2') + (item.professor ? ' · Prof. ' + esc(item.professor) : '') + ' · ' + (item.minutes || 90) + ' min' +
+          '</p>' +
+          '<div class="pill-row between" style="border-top:1px solid var(--border);padding-top:10px;font-size:11px;color:var(--muted)">' +
+            '<span>📅 <b>Data original da aula:</b> ' + fmt(item.date) + '</span>' +
+            '<button class="btn btn-ghost btn-small" data-action="reopen-class-status" data-id="' + esc(item.id) + '">Reabrir para estudos ↻</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
 
-    const actionPanel = panel('Progresso do Cronograma e Fechamentos',
-      '<p class="muted">As revisões de aulas (D+7, D+25, D+50...) entram automaticamente nesta aba conforme você realiza o <b>Fechamento do Dia</b> e marca as aulas como "Vista → Revisão".</p>' +
-      '<div class="pill-row" style="margin-top:12px">' +
-        btn('🌙 Fazer Fechamento de Hoje','open-day-closing','','btn btn-primary') +
-        btn('Ver Cronograma Completo →','navigate','data-page="calendar"') +
-      '</div>'
+    const panelMastered = panel('Histórico de Conteúdos Dominados · ' + mastered.length,
+      '<p class="muted" style="margin-bottom:14px">Todo o histórico de aulas e conteúdos que você assistiu, revisou e dominou fica registrado aqui permanentemente com a data original da aula e o momento da conclusão.</p>' +
+      contentHTML
     );
 
-    const recentSessions = sessions.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 10);
-    const historyPanel = panel('Aulas Registradas nos Fechamentos',
-      recentSessions.length ? '<div class="table-scroll"><table class="data-table"><thead><tr><th>Data</th><th>Disciplina</th><th>Aula / Conteúdo</th><th>Duração</th></tr></thead><tbody>' +
-        recentSessions.map(s => '<tr><td>' + fmt(s.date) + '</td><td>' + esc(s.subject||'UC2') + '</td><td><strong>' + esc(s.topic) + '</strong></td><td>' + s.minutes + ' min</td></tr>').join('') +
-      '</tbody></table></div>' : empty('Nenhuma aula registrada ainda nos fechamentos.')
-    );
-
-    return statsHTML + actionPanel + duePanel + futurePanel + historyPanel;
+    return statsHTML + panelMastered;
   }
 
   reviewView = function() {
     const header = reviewTabsHeader();
     if (activeReviewTab === 'aulas') {
-      return header + aulasView();
+      return header + aulasVotedView();
+    }
+    if (activeReviewTab === 'dominadas') {
+      return header + masteredClassesView();
     }
     return header + overview();
   };
@@ -232,6 +421,15 @@
         activeReviewTab=button.dataset.tab;
         try{localStorage.setItem('pm-review-active-tab',activeReviewTab)}catch{}
         render();
+        break;
+      case'mark-class-mastered':
+        setClassStatus(button.dataset.id, 'mastered');
+        break;
+      case'set-class-status':
+        setClassStatus(button.dataset.id, button.dataset.status);
+        break;
+      case'reopen-class-status':
+        setClassStatus(button.dataset.id, 'review');
         break;
     }
   });

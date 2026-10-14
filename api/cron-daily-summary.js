@@ -59,7 +59,7 @@ export default async function handler(req, res) {
     }
 
     lines.push('');
-    lines.push(`🔗 Acesse seu Planejamento: https://planejamento.vercel.app`);
+    lines.push(`🔗 Acesse seu Planejamento: https://planejamento-medicina-independente.vercel.app`);
     message = lines.join('\n');
   } else {
     // Night
@@ -82,7 +82,7 @@ export default async function handler(req, res) {
     lines.push('');
     lines.push(`👉 *CONFIRMAÇÃO DO DIA:*`);
     lines.push(`Toque no link abaixo para marcar as aulas assistidas e direcionar suas revisões automáticas:`);
-    lines.push(`🔗 https://planejamento.vercel.app/?fechamento=${todayStr}`);
+    lines.push(`🔗 https://planejamento-medicina-independente.vercel.app/?fechamento=${todayStr}`);
     message = lines.join('\n');
   }
 

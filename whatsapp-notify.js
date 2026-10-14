@@ -288,15 +288,40 @@
       const subject = card.dataset.subject || 'UC2';
       const from = card.dataset.from;
       const to = card.dataset.to;
-      const status = card.querySelector(`input[name="class-status-${idx}"]:checked`)?.value;
+      const status = card.querySelector(`input[name="class-status-${idx}"]:checked`)?.value || 'review';
+
+      let duration = 90;
+      if (from && to) {
+        const mFrom = mins(from), mTo = mins(to);
+        if (mTo > mFrom) duration = mTo - mFrom;
+      }
+
+      // Sincroniza com o ClassStatusTracker
+      if (window.ClassStatusTracker) {
+        const trackerList = window.ClassStatusTracker.getTrackedClasses();
+        let found = trackerList.find(x => x.topic === title && x.date === dateStr);
+        if (!found) {
+          trackerList.push({
+            id: uid(),
+            topic: title,
+            subject,
+            date: dateStr,
+            minutes: duration,
+            professor: card.dataset.prof || '',
+            status,
+            votedAt: new Date().toISOString(),
+            masteredAt: null
+          });
+        } else {
+          found.status = status;
+          found.votedAt = new Date().toISOString();
+          if (status !== 'mastered') found.masteredAt = null;
+        }
+        window.ClassStatusTracker.saveTrackedClasses(trackerList);
+      }
 
       if (status === 'review') {
         // 1. Vista e direcionada para revisão:
-        let duration = 90;
-        if (from && to) {
-          const mFrom = mins(from), mTo = mins(to);
-          if (mTo > mFrom) duration = mTo - mFrom;
-        }
 
         const sessionId = uid();
         data.sessions.push({
@@ -404,9 +429,9 @@
   }
 
   // Hook no render com verificação de Admin
-  const prevRender = render;
-  render = function () {
-    prevRender();
+  const prevRender = (typeof render === 'function') ? render : (typeof window !== 'undefined' ? window.render : null);
+  const customRender = function () {
+    if (prevRender) prevRender();
 
     const headerActions = document.querySelector('.header-actions');
     const existingBtn = document.getElementById('btn-whatsapp-header');
@@ -452,6 +477,12 @@
       if (card) card.remove();
     }
   };
+
+  try {
+    render = customRender;
+  } catch {
+    window.render = customRender;
+  }
 
   // Verifica parâmetro na URL: ?fechamento=YYYY-MM-DD ou ?fechamento=hoje
   function checkUrlTriggers() {
