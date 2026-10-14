@@ -93,3 +93,6 @@ html{min-height:100%;-webkit-text-size-adjust:100%;scroll-padding-top:20px}body{
 /* Account login and cross-device status. */
 .account-welcome{max-width:560px;margin:24px auto;padding:30px}.account-welcome>img{border-radius:15px;margin-bottom:20px}.account-welcome h2{font-size:25px}.account-welcome form{margin-top:24px}.account-legacy{margin-top:24px;padding-top:20px;border-top:1px solid var(--border)}.account-legacy strong{font-size:13px}.account-welcome .pill-row>button{flex:1}.account-welcome .mr-eyebrow{margin-bottom:10px}#account-status{font-size:12px}#account-status>span{flex:1;min-width:180px}
 @media(max-width:650px){.account-welcome{padding:24px 20px;margin:10px 0}.account-welcome h2{font-size:23px}#account-launch{font-size:11px}.header-actions .app-install-launch span{display:none}}
+
+/* Keep legacy local records hidden until the account gate is initialized. */
+.account-boot #app{visibility:hidden}
