@@ -52,6 +52,19 @@ Não coloque dados pessoais ou credenciais no repositório. Faça backup antes d
 trocar de dispositivo ou endereço de hospedagem. O planejamento local não exige login; a leitura do MedReview exige autenticação
 na conta vinculada. A proteção geral do site depende da configuração da Vercel.
 
+## Tarefas
+
+Tarefas representam ações escolhidas por você. A tela separa prazos vencidos,
+ações para hoje, blocos com horário reservado e tarefas a organizar, com filtros
+para pendentes e concluídas. Prazo é opcional e indica a data limite; horário
+planejado vem dos blocos aplicados no Planejador. Editar preserva o identificador,
+o estado de conclusão e o horário já reservado.
+
+Marcar a caixa conclui a tarefa, sem criar minutos de estudo ou flashcards.
+**Registrar estudo** abre uma sessão com disciplina, assunto e duração sugeridos;
+revise e salve o tempo realmente estudado. Os registros continuam locais e são
+preservados nas exportações de backup.
+
 ## Revisões do MedReview
 
 Em **Revisões → Conectar MedReview**, entre com a mesma conta administradora de
