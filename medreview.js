@@ -50,7 +50,73 @@
     const lastRead=summary&&state.syncedAt&&state.status==='error'?'<p class="tiny">Última leitura concluída: '+new Date(state.syncedAt).toLocaleString('pt-BR',{timeZone:ZONE})+'</p>':'';
     return panel('Flashcards · MedReview','<p class="muted">Suas revisões realizadas no MedReview, agrupadas por dia. Clique no total diário para ver a distribuição por baralho.</p><div class="pill-row">'+actions+'<a href="'+esc(config?.site||'https://flashcard-lac-xi.vercel.app')+'" target="_blank" rel="noopener noreferrer" class="surface-link">Abrir MedReview ↗</a></div>'+identity+'<p class="tiny" role="status">'+esc(status)+'</p>'+lastRead+selector)+stats+activity(summary)+panel('Histórico diário','<p class="tiny">Uma revisão é uma resposta registrada. O mesmo cartão pode ser respondido mais de uma vez.</p>'+list+notes);
   }
-  reviewView=function(){return overview()+'<details class="local-review-details"><summary>Revisões de estudo planejadas neste site</summary>'+originalReviewView()+'</details>'};
+  let activeReviewTab = (function(){try{return localStorage.getItem('pm-review-active-tab')||'flashcards'}catch{return 'flashcards'}})();
+
+  function reviewTabsHeader() {
+    return '<div class="section-actions" style="margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--border)">' +
+      '<div class="segmented">' +
+        '<button class="'+(activeReviewTab==='flashcards'?'active':'')+'" data-action="set-review-tab" data-tab="flashcards">🃏 Flashcards</button>' +
+        '<button class="'+(activeReviewTab==='aulas'?'active':'')+'" data-action="set-review-tab" data-tab="aulas">🎓 Aulas & Cronograma</button>' +
+      '</div>' +
+      '<div class="pill-row">' +
+        btn('🌙 Fechamento do Dia','open-day-closing','','btn btn-primary') +
+        btn('Intervalos (D+)','navigate','data-page="settings"','btn btn-ghost') +
+      '</div>' +
+    '</div>';
+  }
+
+  function aulasView() {
+    const sessions = data.sessions || [];
+    const reviews = data.reviews || [];
+    const pendingReviews = reviews.filter(x => !x.done);
+    const dueToday = pendingReviews.filter(x => x.due <= today());
+    const dueFuture = pendingReviews.filter(x => x.due > today());
+    const doneReviews = reviews.filter(x => x.done);
+
+    const learnTasks = (data.tasks || []).filter(x => !x.done && x.title.includes('Aprender'));
+    const missedTasks = (data.tasks || []).filter(x => !x.done && x.title.includes('Repor aula'));
+
+    const statsHTML = '<div class="stats">' +
+      '<div class="stat"><div class="stat-top">Aulas Assistidas (com revisão)</div><div class="stat-main">' + sessions.length + '</div><div class="stat-hint">' + doneReviews.length + ' revisões concluídas</div></div>' +
+      '<div class="stat"><div class="stat-top">Revisões para Hoje</div><div class="stat-main">' + dueToday.length + '</div><div class="stat-hint">' + dueFuture.length + ' futuras agendadas</div></div>' +
+      '<div class="stat"><div class="stat-top">Necessidade de Aprender</div><div class="stat-main">' + learnTasks.length + '</div><div class="stat-hint">Blocos de estudo prioritários</div></div>' +
+      '<div class="stat"><div class="stat-top">Aulas Não Vistas</div><div class="stat-main">' + missedTasks.length + '</div><div class="stat-hint">Pendentes de reposição</div></div>' +
+    '</div>';
+
+    const renderReviewItem = x => '<div class="task">' +
+      '<input type="checkbox" aria-label="Concluir revisão" data-action="review-done" data-id="' + esc(x.id) + '"/>' +
+      '<div class="task-text"><strong>' + esc(x.topic) + '</strong><small>' + esc(x.subject || 'UC2') + ' · ' + fmt(x.due) + ' · D+' + x.interval + '</small></div>' +
+      tag(x.due < today() ? 'Atrasada' : 'Pendente', x.due < today() ? 'exam' : '') +
+    '</div>';
+
+    const duePanel = panel('Revisões vencidas ou de hoje · ' + dueToday.length, dueToday.length ? dueToday.map(renderReviewItem).join('') : empty('Nenhuma revisão pendente para hoje. Parabéns!'));
+    const futurePanel = panel('Revisões futuras agendadas · ' + dueFuture.length, dueFuture.length ? dueFuture.map(x => '<div class="event"><div class="event-time">' + fmt(x.due) + '</div><div class="event-content review"><strong>' + esc(x.topic) + '</strong><small>' + esc(x.subject || 'UC2') + ' · D+' + x.interval + '</small></div></div>').join('') : empty('Nenhuma revisão futura agendada.'));
+
+    const actionPanel = panel('Progresso do Cronograma e Fechamentos',
+      '<p class="muted">As revisões de aulas (D+7, D+25, D+50...) entram automaticamente nesta aba conforme você realiza o <b>Fechamento do Dia</b> e marca as aulas como "Vista → Revisão".</p>' +
+      '<div class="pill-row" style="margin-top:12px">' +
+        btn('🌙 Fazer Fechamento de Hoje','open-day-closing','','btn btn-primary') +
+        btn('Ver Cronograma Completo →','navigate','data-page="calendar"') +
+      '</div>'
+    );
+
+    const recentSessions = sessions.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 10);
+    const historyPanel = panel('Aulas Registradas nos Fechamentos',
+      recentSessions.length ? '<div class="table-scroll"><table class="data-table"><thead><tr><th>Data</th><th>Disciplina</th><th>Aula / Conteúdo</th><th>Duração</th></tr></thead><tbody>' +
+        recentSessions.map(s => '<tr><td>' + fmt(s.date) + '</td><td>' + esc(s.subject||'UC2') + '</td><td><strong>' + esc(s.topic) + '</strong></td><td>' + s.minutes + ' min</td></tr>').join('') +
+      '</tbody></table></div>' : empty('Nenhuma aula registrada ainda nos fechamentos.')
+    );
+
+    return statsHTML + actionPanel + duePanel + futurePanel + historyPanel;
+  }
+
+  reviewView = function() {
+    const header = reviewTabsHeader();
+    if (activeReviewTab === 'aulas') {
+      return header + aulasView();
+    }
+    return header + overview();
+  };
   function showDay(date){
     const day=state.summary?.days.find(x=>x.date===date);if(!day)return;
     const totals={again:0,hard:0,good:0,easy:0};
@@ -162,6 +228,11 @@
       case'medreview-sync':sync();break;
       case'medreview-day':showDay(button.dataset.date);break;
       case'medreview-disconnect':clearSession();client?.auth.signOut({scope:'local'});break;
+      case'set-review-tab':
+        activeReviewTab=button.dataset.tab;
+        try{localStorage.setItem('pm-review-active-tab',activeReviewTab)}catch{}
+        render();
+        break;
     }
   });
   window.addEventListener('online',async()=>{try{if(client){const {data:auth}=await client.auth.getSession();if(auth.session)await acceptSession(auth.session)}}catch{fail('Não foi possível retomar o MedReview. Tente atualizar o histórico novamente.')}});
