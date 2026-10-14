@@ -5,10 +5,11 @@
   if(!enabled){window.PlanningAccount={enabled:false};document.body.classList.remove('account-boot');return}
   const model=PlanningCloudData,originalLegacy=JSON.parse(JSON.stringify(data)),prefix='planejamento-account-v1:'+new URL(config.url).hostname+':';
   let legacy=model.empty(),legacyError='';try{legacy=model.snapshot(data)}catch(error){legacyError=error.message}
+  data=model.empty();
   const client=window.supabase.createClient(config.url,config.publishableKey,{auth:{storageKey:prefix+'auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   const state={user:null,accessToken:null,base:model.empty(),revision:0,status:'loading',message:'Verificando sua conta...',syncedAt:null,migrated:false,conflicts:null};
   let generation=0,flight=null,timer=null,channel=null,formDirty=false,queuedRemote=false,migrationConflict=false;
-  const previousSave=save,previousRender=render,previousGoto=goto;
+  const previousRender=render,previousGoto=goto;
   const count=payload=>['tasks','sessions','reviews','materials','events','notes','mistakes','replacement'].reduce((sum,key)=>sum+payload[key].length,0);
   const hasLegacy=Boolean(legacyError)||count(legacy)>0||!model.equal(legacy,model.empty());
   function canLegacy(){try{const owner=localStorage.getItem(prefix+'legacy-owner');return hasLegacy&&(!owner||owner===state.user?.id)}catch{return false}}
@@ -18,6 +19,7 @@
   function editing(){return formDirty||Boolean(document.activeElement?.closest('#app input,#app textarea,#app select,#modal input,#modal textarea,#modal select'))}
   function status(){
     const el=$('account-status'),button=$('account-launch');if(button){button.classList.remove('hidden');button.textContent=state.user?'Minha conta':'Entrar'}
+    for(const action of ['create','search','theme'])document.querySelectorAll('.header [data-action="'+action+'"]').forEach(button=>button.disabled=!state.user);
     if(!el)return;el.classList.remove('hidden');
     const dirty=state.user&&!model.equal(state.base,model.snapshot(data));
     const label=!state.user?state.message||'Entre para sincronizar seus registros.':state.status==='conflict'?'Há alterações diferentes em dois dispositivos. Escolha qual manter.':state.status==='error'?state.message:!navigator.onLine?'Sem internet · alterações guardadas neste dispositivo.':state.status==='syncing'?'Sincronizando seus registros...':dirty?'Alterações guardadas neste dispositivo · aguardando envio.':state.syncedAt?'Sincronizado · '+new Date(state.syncedAt).toLocaleTimeString('pt-BR',{timeZone:ZONE,hour:'2-digit',minute:'2-digit'}):'Conta conectada · lendo registros...';
@@ -28,7 +30,7 @@
   function migrationPanel(){if(state.migrated||!canLegacy())return '';if(legacyError)return panel('Preservamos seus registros anteriores','<p class="tiny">Os registros locais precisam de revisão antes da importação: '+esc(legacyError)+'</p>'+btn('Baixar cópia dos registros anteriores','account-legacy-backup'));return panel('Trazer registros deste dispositivo','<p class="tiny">Encontramos registros e ajustes anteriores ao login ('+count(legacy)+' registros). Você pode acrescentá-los à sua conta, mantendo os identificadores para não duplicar os mesmos registros.</p><div class="pill-row">'+btn('Trazer meus registros','account-migrate','','btn btn-primary')+btn('Baixar cópia local','account-legacy-backup')+btn('Não trazer neste dispositivo','account-skip-migration')+'</div>')}
   render=function(){if(!state.user){nav();$('app').innerHTML=loginView();renderAcademicStatus()}else {previousRender();const migration=migrationPanel();if(migration)$('app').insertAdjacentHTML('afterbegin',migration);if(page==='settings')$('app').insertAdjacentHTML('afterbegin',accountPanel())}document.body.classList.remove('account-boot');status()};
   goto=function(target){formDirty=false;previousGoto(target);if(queuedRemote){queuedRemote=false;sync()}};
-  save=function(){if(!state.user){previousSave();return}formDirty=false;state.status=state.conflicts?'conflict':navigator.onLine?'pending':'offline';persist();status();if(timer)clearTimeout(timer);timer=setTimeout(()=>sync(),450)};
+  save=function(){if(!state.user){notify('Entre na sua conta para salvar registros.');return}formDirty=false;state.status=state.conflicts?'conflict':navigator.onLine?'pending':'offline';persist();status();if(timer)clearTimeout(timer);timer=setTimeout(()=>sync(),450)};
   document.addEventListener('input',event=>{if(event.target.closest('#app,#modal')&&event.target.matches('input:not([type=checkbox]):not([type=file]),textarea,select'))formDirty=true});
   document.addEventListener('focusout',()=>{if(!formDirty&&queuedRemote)setTimeout(()=>{queuedRemote=false;sync()},0)});
   function setError(message){state.status='error';state.message=message;status()}

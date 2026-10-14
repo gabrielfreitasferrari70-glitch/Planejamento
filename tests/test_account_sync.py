@@ -92,6 +92,10 @@ class AccountSyncTests(unittest.TestCase):
         self.assertTrue(b.locator('#account-login-form').is_visible());self.assertNotIn('Editada no celular',b.locator('#app').inner_text())
         a.evaluate('PlanningAccount.logout()');a.wait_for_function('PlanningAccount.user===null')
         self.assertEqual(a.locator('[data-action="account-legacy-backup"]').count(),0)
+        self.assertTrue(a.locator('header [data-action="create"]').is_disabled())
+        original=a.evaluate("localStorage.getItem('planejamento-medicina-2.0-personal-local')")
+        a.evaluate("data.tasks.push({id:'unsigned',title:'Não salvar sem login'});save()")
+        self.assertEqual(a.evaluate("localStorage.getItem('planejamento-medicina-2.0-personal-local')"),original)
         _,other=self.device(owner='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');self.assertEqual(other.evaluate('data.tasks.length'),0)
     def test_offline_account_cache_survives_missing_auth_session_and_explicit_logout(self):
         context,page=self.device()
