@@ -24,11 +24,11 @@ class AccountSyncTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.browser.close();cls.playwright.stop();cls.server.shutdown();cls.server.server_close();cls.thread.join()
-    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False
+    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[]
     def tearDown(self):
         for context in self.contexts:context.close()
         self.assertEqual(self.errors,[])
-    def device(self,owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legacy=None,mobile=False):
+    def device(self,owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legacy=None,mobile=False,auto_login=True):
         context=self.browser.new_context(timezone_id='America/Cuiaba',service_workers='block',viewport={'width':390 if mobile else 1280,'height':844 if mobile else 720},has_touch=mobile,is_mobile=mobile);self.contexts.append(context)
         page=context.new_page();page.set_default_timeout(8000);page.on('pageerror',lambda e:self.errors.append(str(e)))
         if legacy is not None:context.add_init_script('localStorage.setItem("planejamento-medicina-2.0-personal-local",'+json.dumps(json.dumps(legacy))+')')
@@ -39,7 +39,13 @@ class AccountSyncTests(unittest.TestCase):
         user={'id':owner,'email':'fixture@example.invalid','aud':'authenticated','role':'authenticated','app_metadata':{},'user_metadata':{}}
         def transport(route):
             request=route.request;path=urlsplit(request.url).path;params=parse_qs(urlsplit(request.url).query)
-            if path=='/auth/v1/token':result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
+            if path=='/auth/v1/signup':
+                self.signups.append(request.post_data_json)
+                if self.signup_error:
+                    route.fulfill(status=400,content_type='application/json',body=json.dumps({'error_code':self.signup_error,'msg':'internal diagnostic must not be shown'}));return
+                user['user_metadata']=request.post_data_json['data']
+                result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
+            elif path=='/auth/v1/token':result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
             elif path=='/auth/v1/user':result=user
             elif path=='/auth/v1/logout':route.fulfill(status=204,body='');return
             elif path=='/rest/v1/planejamento_documents':
@@ -58,11 +64,47 @@ class AccountSyncTests(unittest.TestCase):
         context.route(remote+'/**',transport)
         page.route_web_socket(remote.replace('https://','wss://')+'/**',lambda socket:socket.on_message(lambda message:None))
         page.goto(self.url,wait_until='networkidle')
+        if not auto_login:return context,page
         page.locator('#account-login-form [name="email"]').fill('fixture@example.invalid')
         page.locator('#account-login-form [name="password"]').fill('fixture-password')
         page.locator('#account-login-form button[value="login"]').click()
         page.wait_for_function("PlanningAccount.user !== null && PlanningAccount.status === 'synced'")
         return context,page
+    def test_signup_requires_name_and_profile_is_escaped_and_persistent(self):
+        _,page=self.device(mobile=True,auto_login=False)
+        page.locator('[name="email"]').fill('fixture@example.invalid')
+        page.locator('[name="password"]').fill('fixture-password')
+        page.locator('button[value="signup"]').click()
+        self.assertIn('Informe seu nome',page.locator('#account-form-status').inner_text())
+        self.assertEqual(self.signups,[])
+        name='Gabriel <img src=x onerror=alert(1)>'
+        page.locator('[name="fullName"]').fill('  '+name+'  ')
+        page.locator('button[value="signup"]').click()
+        page.wait_for_function("PlanningAccount.user!==null && PlanningAccount.status==='synced'")
+        self.assertEqual(self.signups[0]['data'],{'full_name':name})
+        self.assertEqual(page.evaluate('PlanningAccount.user.user_metadata.full_name'),name)
+        page.locator('[data-action="account-open"]').click()
+        self.assertIn(name,page.locator('#modal').inner_text())
+        self.assertEqual(page.locator('#modal img').count(),0)
+        page.locator('#modal [data-action="close"]').click()
+        page.reload(wait_until='networkidle')
+        page.wait_for_function("PlanningAccount.user!==null && PlanningAccount.status==='synced'")
+        self.assertEqual(page.evaluate('PlanningAccount.user.user_metadata.full_name'),name)
+        self.assertTrue(page.evaluate('document.documentElement.scrollWidth<=innerWidth'))
+
+    def test_signup_errors_explain_cause_without_server_diagnostics(self):
+        _,page=self.device(auto_login=False)
+        page.locator('[name="fullName"]').fill('Gabriel')
+        page.locator('[name="email"]').fill('fixture@example.invalid')
+        for code,expected in [('signup_disabled','temporariamente indisponível'),('weak_password','pelo menos 6 caracteres'),('over_email_send_rate_limit','limite de envio de e-mails')]:
+            self.signup_error=code
+            page.locator('[name="password"]').fill('fixture-password')
+            page.locator('button[value="signup"]').click()
+            page.wait_for_function("document.querySelector('#account-form-status').textContent.includes("+json.dumps(expected)+")")
+            self.assertNotIn('internal diagnostic',page.locator('#account-form-status').inner_text())
+            self.assertIsNone(page.evaluate('PlanningAccount.user'))
+            self.assertFalse(page.locator('button[value="signup"]').is_disabled())
+
     def wait_cloud(self,page,count):
         page.wait_for_function("PlanningAccount.status==='synced' && data.tasks.length === "+str(count))
     def test_migration_two_devices_offline_merge_conflict_and_logout(self):

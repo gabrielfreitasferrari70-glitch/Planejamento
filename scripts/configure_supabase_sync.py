@@ -43,7 +43,7 @@ if not row.get('rls_enabled') or row.get('anonymous_read') or row.get('direct_wr
 auth=management('/config/auth')
 redirects=set(filter(None,(auth.get('uri_allow_list') or '').split(',')))
 redirects.add(ORIGIN+'/**')
-management('/config/auth','PATCH',{'site_url':ORIGIN,'uri_allow_list':','.join(sorted(redirects))})
+management('/config/auth','PATCH',{'disable_signup':False,'site_url':ORIGIN,'uri_allow_list':','.join(sorted(redirects))})
 config={'url':'https://'+PROJECT+'.supabase.co','publishableKey':public}
 (ROOT/'planning-config.js').write_text('/* Public client key only; account access is enforced by Supabase RLS. */\nwindow.PLANNING_CONFIG='+json.dumps(config,separators=(',',':'))+';\n')
 print('Migração aplicada, RLS e permissões conferidas; login configurado para o site existente.')

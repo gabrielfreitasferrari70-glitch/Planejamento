@@ -9,8 +9,10 @@ de autorização explícita na interface.
 
 O projeto real foi configurado: migração aplicada, acesso anônimo negado,
 isolamento por conta e proteção contra revisões antigas conferidos no Supabase.
-Os registros dos testes SQL foram revertidos por rollback. A confirmação de
-e-mail está habilitada; no primeiro acesso, crie e confirme a conta do Planejamento.
+Os registros dos testes SQL foram revertidos por rollback. O cadastro por e-mail
+está habilitado. Na configuração atual do Supabase, a confirmação é automática:
+no primeiro acesso, informe nome, e-mail e senha para criar a conta. O nome fica
+no perfil da conta e aparece também nos outros dispositivos; não concede permissões.
 
 O código de login e sincronização usa o projeto Supabase
 `eupkdyhngmrsbvmaondp`, informado pelo usuário. A ativação depende da migração
