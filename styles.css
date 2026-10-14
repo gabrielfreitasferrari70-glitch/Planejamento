@@ -17,6 +17,7 @@ html[data-theme=dark] .cal-event.sheet-coded,html[data-theme=dark] .cal-event.sh
 .event-content .teacher-name{color:var(--muted);font-size:11px}
 .professor-detail{font-size:13px!important;color:var(--text)!important;margin:16px 0 12px!important}
 @media(max-width:650px){.sheet-legend{gap:8px 12px}.legend-key{font-size:9px}}
+<<<<<<< HEAD
 /* Mantém todas as seções acessíveis em janelas de pouca altura. */
 .sidebar{height:100dvh;min-height:0}
 .sidebar .brand,.sidebar .side-bottom{flex-shrink:0}
@@ -96,3 +97,6 @@ html{min-height:100%;-webkit-text-size-adjust:100%;scroll-padding-top:20px}body{
 
 /* Keep legacy local records hidden until the account gate is initialized. */
 .account-boot #app{visibility:hidden}
+
+#btn-whatsapp-header{color:#25d366;border-color:rgba(37,211,102,.35)}
+#btn-whatsapp-header:hover{background:rgba(37,211,102,.12);border-color:#25d366}
