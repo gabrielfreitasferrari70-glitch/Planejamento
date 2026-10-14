@@ -45,7 +45,7 @@ class SiteSmokeTests(unittest.TestCase):
 
     def setUp(self):
         self.context = self.browser.new_context(
-            timezone_id='America/Cuiaba', viewport={'width': 1280, 'height': 720})
+            timezone_id='America/Cuiaba', viewport={'width': 1280, 'height': 720},service_workers='block')
         self.page = self.context.new_page()
         self.page.set_default_timeout(5000)
         self.errors = []
@@ -213,6 +213,64 @@ class SiteSmokeTests(unittest.TestCase):
           return {free,busy:suggest().suggestions.length};
         }""")
         self.assertEqual(result, {'free': 1, 'busy': 0})
+
+    def test_phone_and_ipad_touch_navigation_and_calendar(self):
+        self.context.close()
+        self.context=self.browser.new_context(timezone_id='America/Cuiaba',service_workers='block',is_mobile=True,has_touch=True,viewport={'width':390,'height':844})
+        self.page=self.context.new_page();self.page.set_default_timeout(5000)
+        self.page.on('pageerror',lambda error:self.errors.append(str(error)))
+        self.page.route('**/academic.json',lambda route:route.fulfill(content_type='application/json',body='[]'))
+        for width,height in [(390,844),(768,1024),(1024,768)]:
+            with self.subTest(width=width,height=height):
+                self.page.set_viewport_size({'width':width,'height':height});self.open()
+                for target in ['dashboard','week','calendar','tasks','planner','settings','materials','reviews']:
+                    if width<=650:
+                        self.page.locator('#mobile-nav [data-action="more-menu"]').click()
+                        self.page.locator(f'#modal [data-page="{target}"]').click()
+                    else:self.nav(target)
+                    self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'),target)
+                if width<=650:
+                    self.assertGreaterEqual(self.page.locator('#mobile-nav button').first.bounding_box()['height'],44)
+                self.page.evaluate("goto('week')")
+                self.assertEqual(self.page.locator('.cal-day').count(),7)
+                self.assertTrue(self.page.evaluate("document.querySelector('.calendar').scrollWidth <= document.querySelector('.calendar-scroller').clientWidth"))
+
+    def test_pwa_install_metadata_offline_reload_and_history(self):
+        self.context.close()
+        self.context=self.browser.new_context(timezone_id='America/Cuiaba',service_workers='allow',viewport={'width':390,'height':844})
+        self.page=self.context.new_page();self.page.set_default_timeout(10000)
+        self.page.on('pageerror',lambda error:self.errors.append(str(error)))
+        self.open()
+        manifest=self.context.request.get(self.url+'manifest.webmanifest').json()
+        self.assertEqual(manifest['display'],'standalone')
+        self.assertEqual(manifest['scope'],'/')
+        self.assertEqual(len(manifest['icons']),3)
+        self.assertEqual(self.page.locator('link[rel="apple-touch-icon"]').count(),1)
+        self.page.wait_for_function('navigator.serviceWorker.controller !== null')
+        self.page.evaluate("data.tasks.push({id:'offline-task',title:'Minha tarefa offline',priority:'1',done:false});save();goto('tasks')")
+        self.page.evaluate("goto('settings')")
+        self.page.go_back()
+        self.assertEqual(self.page.locator('#heading').inner_text(),'Tarefas')
+        self.page.locator('[data-action="app-install"]').first.click()
+        self.assertTrue(self.page.get_by_role('dialog').is_visible())
+        self.page.keyboard.press('Escape')
+        self.context.set_offline(True)
+        self.page.reload(wait_until='domcontentloaded')
+        self.page.wait_for_function("academicStatus==='ready'")
+        self.assertIn('Minha tarefa offline',self.page.locator('#app').inner_text())
+        self.assertTrue(self.page.locator('#app-offline').is_visible())
+        self.page.locator('[data-action="toggle"]').click()
+        self.assertTrue(self.saved()['tasks'][0]['done'])
+        self.page.evaluate("goto('calendar')")
+        self.assertEqual(self.page.locator('.semester-event').count(),193)
+        self.page.evaluate("goto('materials')")
+        self.assertEqual(self.page.locator('.materials-drive-link').get_attribute('href'),'https://drive.google.com/drive/folders/1Ew9MsEW8f0SmbEvVotxqbaekZZGTcNlt')
+        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v1');return (await cache.keys()).map(req=>req.url)}")
+        self.assertTrue(all(url.startswith(self.url) for url in cached))
+        self.assertFalse(any('mr_reviews' in url or '/auth/' in url or '.pdf' in url for url in cached))
+        self.context.set_offline(False)
+        self.page.wait_for_function('navigator.onLine')
+        self.assertFalse(self.page.locator('#app-offline').is_visible())
 
     def test_planner_selects_blocks_saves_and_releases_without_losing_tasks(self):
         self.open()

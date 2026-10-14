@@ -5,6 +5,34 @@ Os registros pessoais ficam no navegador, separados por endereço do site.
 O backup no Google Drive e a leitura do Google Sheets são opcionais e precisam
 de autorização explícita na interface.
 
+## Aplicativo para celular e iPad
+
+O site é um PWA instalável, com manifesto, ícones de aplicativo e versão para
+a tela inicial. No iPhone/iPad, abra no Safari e use **Compartilhar → Adicionar
+à Tela de Início**. No Android/Chrome e em navegadores compatíveis, use
+**Instalar app**. O botão também apresenta instruções quando a instalação
+não é oferecida pelo navegador. Guarde um backup antes de instalar ou trocar de
+dispositivo; a instalação não cria sincronização automática de registros locais.
+
+Após o primeiro carregamento completo, o aplicativo, a agenda e o cronograma
+incluído abrem offline. Tarefas, sessões, anotações e configurações continuam
+salvas no dispositivo. MedReview, Google, PDF original e links de materiais
+precisam de internet. O histórico privado do MedReview não é armazenado no cache
+do service worker; a sessão é validada novamente no backend quando online.
+
+`sw.js` guarda apenas os caminhos públicos explicitamente listados. Não
+intercepta APIs externas, autenticação, backups nem arquivos da pasta Drive.
+Online, busca a versão atual dos arquivos; offline, usa a última cópia disponível.
+Atualizações do worker aparecem com botão explícito para recarregar o app.
+Ao acrescentar um novo arquivo necessário offline, inclua-o em `ASSETS`.
+Não acrescente respostas privadas ou URLs de APIs à lista.
+
+A navegação suporta o botão Voltar e atalhos `/#today`, `/#tasks` e `/#reviews`.
+O layout adapta agenda, formulários, menus e alvos de toque a celular e tablet,
+com áreas seguras e altura dos formulários ajustada à janela visível.
+Os testes cobrem esses tamanhos em Chromium; a instalação no Safari/iOS usa
+metadados padrão, mas não foi testada em um iPhone ou iPad físico neste ambiente.
+
 ## Desenvolvimento
 
 Não há etapa de compilação. O SDK Supabase está incluído em `vendor/`. Com Python 3:

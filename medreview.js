@@ -137,7 +137,7 @@
     const validationGeneration=generation;
     const {data:identity,error}=await client.auth.getUser(session.access_token);
     if(validationGeneration!==generation)return;
-    if(error||!identity.user){clearSession();fail('A sessão do MedReview expirou. Conecte sua conta novamente.');return}
+    if(error||!identity.user){clearSession();fail(navigator.onLine?'A sessão do MedReview expirou. Conecte sua conta novamente.':'Sem internet para consultar o MedReview. A conexão será retomada quando você estiver online.');return}
     if(identity.user.id!==config.expectedUserId){
       clearSession();await client.auth.signOut({scope:'local'});fail('Conecte a conta administradora de Gabriel usada no MedReview.');return;
     }
@@ -164,6 +164,7 @@
       case'medreview-disconnect':clearSession();client?.auth.signOut({scope:'local'});break;
     }
   });
+  window.addEventListener('online',async()=>{try{if(client){const {data:auth}=await client.auth.getSession();if(auth.session)await acceptSession(auth.session)}}catch{fail('Não foi possível retomar o MedReview. Tente atualizar o histórico novamente.')}});
   window.addEventListener('focus',()=>{if(state.user)sync()});
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&state.user)sync()});
   setInterval(()=>{if(state.user&&document.visibilityState==='visible')sync()},60000);

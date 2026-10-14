@@ -1,0 +1,22 @@
+{
+  "id": "/",
+  "name": "Planejamento Medicina",
+  "short_name": "Planejamento",
+  "description": "Sua agenda, tarefas, estudos e revisões de Medicina.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f7fa",
+  "theme_color": "#161f31",
+  "icons": [
+    {"src": "/icons/app-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/app-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "/icons/app-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "Meu dia", "url": "/#today"},
+    {"name": "Tarefas", "url": "/#tasks"},
+    {"name": "Revisões", "url": "/#reviews"}
+  ]
+}
