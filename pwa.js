@@ -2,7 +2,7 @@
 (function(){
   let installPrompt=null,registration=null;
   const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
-  function appPanel(){return panel('Planejamento no seu celular e iPad','<p class="tiny">Instale na tela inicial para abrir como app. Tarefas e estudos ficam neste dispositivo. O cronograma e o planejamento abrem sem internet após o primeiro carregamento; MedReview e Drive precisam de conexão.</p>'+btn(standalone()?'App instalado':'Instalar aplicativo','app-install','','btn btn-primary')+'<p class="tiny" id="app-install-status">'+(standalone()?'Você está usando a versão instalada.':'No iPhone e iPad, abra no Safari e escolha Adicionar à Tela de Início.')+'</p>')}
+  function appPanel(){return panel('Planejamento no seu celular e iPad','<p class="tiny">Instale na tela inicial para abrir como app. '+(window.PlanningAccount?.enabled?'Entre com a mesma conta para sincronizar tarefas e estudos entre seus dispositivos.':'Tarefas e estudos ficam neste dispositivo.')+' O cronograma e o planejamento abrem sem internet após o primeiro carregamento; MedReview e Drive precisam de conexão.</p>'+btn(standalone()?'App instalado':'Instalar aplicativo','app-install','','btn btn-primary')+'<p class="tiny" id="app-install-status">'+(standalone()?'Você está usando a versão instalada.':'No iPhone e iPad, abra no Safari e escolha Adicionar à Tela de Início.')+'</p>')}
   const previousRender=render;
   render=function(){previousRender();if(page==='settings')$('app').insertAdjacentHTML('afterbegin',appPanel());updateNotices()};
   const previousGoto=goto;

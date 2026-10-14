@@ -7,6 +7,11 @@ de autorização explícita na interface.
 
 ## Login e sincronização da conta
 
+O projeto real foi configurado: migração aplicada, acesso anônimo negado,
+isolamento por conta e proteção contra revisões antigas conferidos no Supabase.
+Os registros dos testes SQL foram revertidos por rollback. A confirmação de
+e-mail está habilitada; no primeiro acesso, crie e confirme a conta do Planejamento.
+
 O código de login e sincronização usa o projeto Supabase
 `eupkdyhngmrsbvmaondp`, informado pelo usuário. A ativação depende da migração
 `supabase/migrations/001_planejamento_sync.sql` e da chave pública de cliente em

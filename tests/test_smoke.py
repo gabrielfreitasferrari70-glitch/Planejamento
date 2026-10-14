@@ -50,6 +50,8 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.set_default_timeout(5000)
         self.errors = []
         self.page.on('pageerror', lambda error: self.errors.append(str(error)))
+        # Core local-mode checks; authenticated sync has its own isolated suite.
+        self.context.route('**/planning-config.js',lambda route:route.fulfill(content_type='application/javascript',body='window.PLANNING_CONFIG={};'))
         # Empty-state checks use a fixture; the semester test loads real assets.
         self.page.route('**/academic.json', lambda route: route.fulfill(
             content_type='application/json', body='[]'))
@@ -219,6 +221,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.context=self.browser.new_context(timezone_id='America/Cuiaba',service_workers='block',is_mobile=True,has_touch=True,viewport={'width':390,'height':844})
         self.page=self.context.new_page();self.page.set_default_timeout(5000)
         self.page.on('pageerror',lambda error:self.errors.append(str(error)))
+        self.context.route('**/planning-config.js',lambda route:route.fulfill(content_type='application/javascript',body='window.PLANNING_CONFIG={};'))
         self.page.route('**/academic.json',lambda route:route.fulfill(content_type='application/json',body='[]'))
         for width,height in [(390,844),(768,1024),(1024,768)]:
             with self.subTest(width=width,height=height):
@@ -240,6 +243,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.context=self.browser.new_context(timezone_id='America/Cuiaba',service_workers='allow',viewport={'width':390,'height':844})
         self.page=self.context.new_page();self.page.set_default_timeout(10000)
         self.page.on('pageerror',lambda error:self.errors.append(str(error)))
+        self.context.route('**/planning-config.js',lambda route:route.fulfill(content_type='application/javascript',body='window.PLANNING_CONFIG={};'))
         self.open()
         manifest=self.context.request.get(self.url+'manifest.webmanifest').json()
         self.assertEqual(manifest['display'],'standalone')
