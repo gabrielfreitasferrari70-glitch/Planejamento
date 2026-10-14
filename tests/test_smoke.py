@@ -214,6 +214,55 @@ class SiteSmokeTests(unittest.TestCase):
         }""")
         self.assertEqual(result, {'free': 1, 'busy': 0})
 
+    def test_planner_selects_blocks_saves_and_releases_without_losing_tasks(self):
+        self.open()
+        self.page.evaluate("""() => {
+          const day=dayAdd(today(),1),weekday=new Date(day+'T12:00:00Z').getUTCDay();
+          data.settings.availability={[weekday]:{from:'18:00',to:'20:00'}};
+          data.tasks=[{id:'a',title:'Revisar fisiologia',subject:'Fisiologia',estimate:'40',priority:'3',date:day,done:false},{id:'b',title:'Resolver questões',estimate:'30',priority:'1',done:false},{id:'c',title:'Tarefa sem duração',priority:'1',done:false}];
+          save();
+        }""")
+        self.nav('planner')
+        self.assertEqual(self.page.locator('.planner-day').count(),7)
+        self.assertEqual(self.page.locator('[data-planner-id]').count(),2)
+        self.assertIn('duração estimada',self.page.locator('.planner-missed').inner_text())
+        self.page.locator('[data-planner-id="b"]').uncheck()
+        self.page.locator('[data-action="apply"]').click()
+        records={x['id']:x for x in self.saved()['tasks']}
+        self.assertEqual(records['a']['start'],'18:00')
+        self.assertNotIn('scheduled',records['b'])
+        self.assertNotIn('scheduled',records['c'])
+        self.assertEqual(self.page.locator('.planner-slot.existing').count(),1)
+        self.page.locator('[data-action="task-unschedule"]').click()
+        self.assertEqual(len(self.saved()['tasks']),3)
+        self.assertNotIn('scheduled',self.saved()['tasks'][0])
+        # A new commitment invalidates a previously displayed suggestion.
+        self.page.evaluate("data.events.push({id:'busy',type:'class',title:'Novo compromisso',date:dayAdd(today(),1),from:'18:00',to:'20:00'})")
+        self.page.locator('[data-action="apply"]').click()
+        self.assertFalse(any(x.get('scheduled') for x in self.saved()['tasks']))
+        self.page.set_viewport_size({'width':320,'height':568})
+        self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
+
+    def test_settings_availability_validation_and_optional_connections(self):
+        self.open();self.nav('settings')
+        self.page.evaluate('save()')
+        self.assertEqual(self.page.locator('.availability-row').count(),7)
+        self.assertFalse(self.page.locator('#settings-connections').is_visible())
+        self.page.locator('#start-1').fill('18:00')
+        self.page.locator('[data-action="save-availability"]').click()
+        self.assertEqual(self.saved()['settings']['availability'],{})
+        self.page.locator('#end-1').fill('20:00')
+        self.page.locator('[data-action="save-availability"]').click()
+        self.assertEqual(self.saved()['settings']['availability']['1'],{'from':'18:00','to':'20:00'})
+        self.page.locator('[data-action="availability-clear"][data-day="1"]').click()
+        self.page.locator('[data-action="save-availability"]').click()
+        self.assertEqual(self.saved()['settings']['availability'],{})
+        self.page.locator('#settings-connections').locator('..').locator('summary').click()
+        self.assertTrue(self.page.locator('#oauth-client-id').is_visible())
+        self.assertTrue(self.page.locator('[data-action="drive-auth"]').is_visible())
+        self.page.set_viewport_size({'width':320,'height':568})
+        self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
+
     def test_tasks_optional_deadline_edit_and_study_are_distinct(self):
         self.open();self.nav('tasks')
         self.page.locator('#app').get_by_role('button',name='＋ Nova tarefa',exact=True).click()

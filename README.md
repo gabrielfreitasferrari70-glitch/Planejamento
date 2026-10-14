@@ -65,6 +65,18 @@ Marcar a caixa conclui a tarefa, sem criar minutos de estudo ou flashcards.
 revise e salve o tempo realmente estudado. Os registros continuam locais e são
 preservados nas exportações de backup.
 
+## Planejador e configurações
+
+O planejador mostra sete dias e permite selecionar os blocos sugeridos antes de
+salvá-los na agenda. Os horários livres podem ser ajustados na própria tela;
+reservas existentes aparecem separadamente e podem ser retiradas sem excluir a
+tarefa. Tarefas sem encaixe explicam o motivo e oferecem edição. Antes de salvar,
+o planejador recalcula para evitar aplicar uma sugestão desatualizada.
+
+Configurações concentra disponibilidade, meta semanal, lembretes de estudo,
+cronograma e backups. A importação antiga e as conexões opcionais Google ficam
+recolhidas, preservando suas autorizações e ações de backup manual.
+
 ## Revisões do MedReview
 
 Em **Revisões → Conectar MedReview**, entre com a mesma conta administradora de
