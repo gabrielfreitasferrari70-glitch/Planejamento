@@ -17,3 +17,12 @@ html[data-theme=dark] .cal-event.sheet-coded,html[data-theme=dark] .cal-event.sh
 .event-content .teacher-name{color:var(--muted);font-size:11px}
 .professor-detail{font-size:13px!important;color:var(--text)!important;margin:16px 0 12px!important}
 @media(max-width:650px){.sheet-legend{gap:8px 12px}.legend-key{font-size:9px}}
+/* Mantém todas as seções acessíveis em janelas de pouca altura. */
+.sidebar{height:100dvh;min-height:0}
+.sidebar .brand,.sidebar .side-bottom{flex-shrink:0}
+.sidebar #nav{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.info-strip{flex-wrap:wrap}
+.info-strip>span:nth-child(2){flex:1;min-width:180px}
+@media(max-width:1180px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.mobile-nav button{flex:1;min-width:0}.info-strip>span:nth-child(2){min-width:0;flex-basis:80%}}
+@media(max-width:380px){.availability{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.availability>strong{grid-column:1/-1}.availability-head>span:first-child{display:none}.availability .field{min-width:0}}
