@@ -23,8 +23,9 @@
 <div class="side-bottom"><div><i class="indicator"></i> Área independente</div><small>UFMT • Fuso de Cuiabá<br>Fonte acadêmica somente leitura</small></div>
 </aside>
 <div class="main-container">
-<header class="header"><div><div class="breadcrumb">CENTRAL ACADÊMICA <span>/</span> <span id="breadcrumb">VISÃO GERAL</span></div><h1 id="heading">Visão geral</h1><p id="subtitle" class="muted">Tudo o que importa, em um só lugar.</p></div><div class="header-actions"><button id="app-install-launch" class="btn app-install-launch" data-action="app-install" aria-label="Instalar aplicativo">↓ <span>Instalar app</span></button><button class="btn btn-ghost search-launch" data-action="search" aria-label="Buscar">⌕ <span>Buscar</span> <kbd>⌘ K</kbd></button><button class="btn btn-ghost theme" data-action="theme" aria-label="Alterar tema">◐</button><button class="btn btn-primary" data-action="create" data-type="task">＋ <span>Nova tarefa</span></button></div></header>
+<header class="header"><div><div class="breadcrumb">CENTRAL ACADÊMICA <span>/</span> <span id="breadcrumb">VISÃO GERAL</span></div><h1 id="heading">Visão geral</h1><p id="subtitle" class="muted">Tudo o que importa, em um só lugar.</p></div><div class="header-actions"><button id="account-launch" class="btn hidden" data-action="account-open">Entrar</button><button id="app-install-launch" class="btn app-install-launch" data-action="app-install" aria-label="Instalar aplicativo">↓ <span>Instalar app</span></button><button class="btn btn-ghost search-launch" data-action="search" aria-label="Buscar">⌕ <span>Buscar</span> <kbd>⌘ K</kbd></button><button class="btn btn-ghost theme" data-action="theme" aria-label="Alterar tema">◐</button><button class="btn btn-primary" data-action="create" data-type="task">＋ <span>Nova tarefa</span></button></div></header>
 <div id="source-alert" class="info-strip">Lendo cronograma acadêmico...</div>
+<div id="account-status" class="app-notice hidden" role="status"></div>
 <div id="app-offline" class="app-notice hidden" role="status">Sem internet · tarefas e cronograma continuam disponíveis. MedReview e Drive voltam com a conexão.</div>
 <div id="app-update" class="app-notice hidden" role="status">Nova versão disponível. <button class="btn btn-small" data-action="app-update">Atualizar aplicativo</button></div>
 <main id="app" tabindex="-1"></main>
@@ -42,5 +43,8 @@
 <script src="./medreview-data.js" defer></script>
 <script src="./medreview.js" defer></script>
 <script src="./pwa.js" defer></script>
+<script src="./planning-config.js" defer></script>
+<script src="./cloud-data.js" defer></script>
+<script src="./account-sync.js" defer></script>
 </body>
 </html>

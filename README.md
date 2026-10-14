@@ -5,6 +5,50 @@ Os registros pessoais ficam no navegador, separados por endereço do site.
 O backup no Google Drive e a leitura do Google Sheets são opcionais e precisam
 de autorização explícita na interface.
 
+## Login e sincronização da conta
+
+O código de login e sincronização usa o projeto Supabase
+`eupkdyhngmrsbvmaondp`, informado pelo usuário. A ativação depende da migração
+`supabase/migrations/001_planejamento_sync.sql` e da chave pública de cliente em
+`planning-config.js`. Enquanto a chave estiver vazia, a edição publicada mantém
+o funcionamento local anterior; não existe sincronização ativa nesse estado.
+
+Para configurar pelo Codex, adicione `SUPABASE_ACCESS_TOKEN` como segredo do
+ambiente com destino exclusivo `api.supabase.com`. Nunca envie por chat, registre
+no Git nem use esse token na aplicação. Após ativar a configuração do ambiente:
+
+```bash
+python3 scripts/configure_supabase_sync.py
+```
+
+O script aplica somente a tabela dedicada de planejamento, confere RLS e grants,
+configura o redirecionamento do login para o site existente e salva **somente a
+chave pública `anon`**. Não modifica flashcards, tabelas do MedReview nem buckets.
+Confirmação de e-mail e demais regras de autenticação do projeto são preservadas.
+Revise/teste o resultado antes de publicar a configuração real de cliente.
+
+Use a mesma **conta do Planejamento** em todos os dispositivos. O login do
+MedReview é separado, pois ele usa outro projeto Supabase. Registros anteriores
+ao login são preservados; o usuário escolhe trazê-los à conta, com combinação por
+identificador. Os rascunhos offline ficam separados por projeto e conta e são
+enviados quando a conexão volta. Sair oculta os dados da conta e desconecta o
+MedReview neste dispositivo.
+
+Cada conta só pode ler sua linha pela política RLS. Gravações usam uma função
+transacional que determina o dono pelo JWT autenticado, verifica a revisão e
+recusa sobrescrever uma revisão antiga. A combinação entre dispositivos conserva
+novos registros independentes, exclusões e mudanças em campos diferentes. Se o
+mesmo campo for alterado de formas diferentes, o usuário escolhe qual manter;
+alterações não relacionadas continuam preservadas. Tokens nunca fazem parte dos
+registros sincronizados, backups ou cache do service worker.
+
+A suíte de navegador simula duas sessões autenticadas sem acessar dados reais.
+Os testes SQL foram executados em PostgreSQL 17 isolado: acesso anônimo e escrita
+direta negados, isolamento por usuário, revisão antiga recusada e rollback dos
+registros de teste. Para repetir, use um PostgreSQL descartável, execute
+`tests/sql/bootstrap.sql`, a migração e `tests/sql/isolation.sql`; o bootstrap
+simula apenas a identidade do Supabase e não deve ser aplicado ao projeto real.
+
 ## Aplicativo para celular e iPad
 
 O site é um PWA instalável, com manifesto, ícones de aplicativo e versão para
@@ -151,7 +195,7 @@ atual já fornece ambos. Em outras máquinas, instale Playwright e seu navegador
 antes de executar os testes. `CHROMIUM_PATH` pode indicar um Chromium existente.
 
 ```bash
-node --test tests/medreview-data.test.cjs
+node --test tests/medreview-data.test.cjs tests/cloud-data.test.cjs
 python3 -m unittest discover -s tests -v
 ```
 

@@ -179,6 +179,6 @@
       const {data:auth}=await client.auth.getSession();if(auth.session)await acceptSession(auth.session);
     }catch(error){fail(error.message)}
   }
-  window.MedReviewConnection={get status(){return state.status},get summary(){return state.summary},sync};
+  window.MedReviewConnection={get status(){return state.status},get summary(){return state.summary},sync,disconnect(){clearSession();return client?.auth.signOut({scope:'local'})}};
   initialize();render();
 })();
