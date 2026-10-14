@@ -19,6 +19,11 @@ isoladas: use o checkout existente, sem criar outro worktree.
 
 ## Cronograma
 
+**Semana** é a agenda de sete dias, com cronograma acadêmico, compromissos,
+tarefas planejadas e revisões pessoais. **Cronograma** consulta a planilha do
+semestre por mês e tipo de atividade; os grupos mensais permitem consultar
+as datas e abrir os detalhes de cada bloco. Os filtros não alteram a agenda.
+
 `academic.json` contém 193 blocos extraídos da planilha UC2 do semestre
 2026/2: 18 semanas, de 17 de agosto a 19 de dezembro, com aulas, tutorias,
 avaliações, feriados, acolhimento e horários livres. As sete provas e os dois
