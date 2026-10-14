@@ -1,5 +1,6 @@
 begin;
-insert into auth.users values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+insert into auth.users(id) values('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+update public.profiles set approved=true where id in ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
 set local role authenticated;
 set local request.jwt.claim.sub='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 do $$ declare p jsonb:='{"tasks":[],"sessions":[],"reviews":[],"materials":[],"events":[],"notes":[],"replacement":[],"mistakes":[],"settings":{},"examScopes":{},"integration":{}}'; result jsonb;

@@ -11,12 +11,27 @@ O projeto real foi configurado: migração aplicada, acesso anônimo negado,
 isolamento por conta e proteção contra revisões antigas conferidos no Supabase.
 Os registros dos testes SQL foram revertidos por rollback. O cadastro por e-mail
 está habilitado. Na configuração atual do Supabase, a confirmação é automática:
-no primeiro acesso, informe nome, e-mail e senha para criar a conta. O nome fica
-no perfil da conta e aparece também nos outros dispositivos; não concede permissões.
+no primeiro acesso, informe nome, e-mail e senha para criar a conta. Isso não
+libera o acesso: toda conta precisa da aprovação manual do administrador.
+
+No [painel do Supabase](https://supabase.com/dashboard/project/eupkdyhngmrsbvmaondp/editor),
+abra **Table Editor → profiles**, encontre a pessoa pelo nome/e-mail e altere
+**approved** de `false` para `true`. A pessoa clica em **Verificar aprovação**
+ou entra novamente. Desmarcar a coluna bloqueia o acesso novamente. Contas
+existentes também começam pendentes, incluindo a do proprietário; nenhum e-mail
+ou dado enviado no cadastro concede aprovação automática. Registros existentes
+são preservados. A tabela contém `id`, `name`, `email`, `approved` e `created_at`.
+
+O app verifica a aprovação antes de mostrar ou sincronizar os registros. O banco
+nega leitura e gravação a contas pendentes, e o usuário só pode consultar seu
+próprio perfil; não pode alterar a coluna de aprovação. O uso offline exige uma
+aprovação previamente verificada neste dispositivo. Uma revogação feita no
+Supabase será percebida quando o dispositivo voltar a conectar.
 
 O código de login e sincronização usa o projeto Supabase
-`eupkdyhngmrsbvmaondp`, informado pelo usuário. A ativação depende da migração
-`supabase/migrations/001_planejamento_sync.sql` e da chave pública de cliente em
+`eupkdyhngmrsbvmaondp`, informado pelo usuário. A ativação depende das migrações
+`supabase/migrations/001_planejamento_sync.sql` e
+`supabase/migrations/002_account_approval.sql` e da chave pública de cliente em
 `planning-config.js`. Enquanto a chave estiver vazia, a edição publicada mantém
 o funcionamento local anterior; não existe sincronização ativa nesse estado.
 
@@ -28,7 +43,7 @@ no Git nem use esse token na aplicação. Após ativar a configuração do ambie
 python3 scripts/configure_supabase_sync.py
 ```
 
-O script aplica somente a tabela dedicada de planejamento, confere RLS e grants,
+O script aplica as tabelas de planejamento e perfis, confere RLS e grants,
 configura o redirecionamento do login para o site existente e salva **somente a
 chave pública `anon`**. Não modifica flashcards, tabelas do MedReview nem buckets.
 Confirmação de e-mail e demais regras de autenticação do projeto são preservadas.
@@ -53,7 +68,8 @@ A suíte de navegador simula duas sessões autenticadas sem acessar dados reais.
 Os testes SQL foram executados em PostgreSQL 17 isolado: acesso anônimo e escrita
 direta negados, isolamento por usuário, revisão antiga recusada e rollback dos
 registros de teste. Para repetir, use um PostgreSQL descartável, execute
-`tests/sql/bootstrap.sql`, a migração e `tests/sql/isolation.sql`; o bootstrap
+`tests/sql/bootstrap.sql`, as migrações em ordem, `tests/sql/isolation.sql`
+e `tests/sql/approval.sql`; o bootstrap
 simula apenas a identidade do Supabase e não deve ser aplicado ao projeto real.
 
 ## Aplicativo para celular e iPad

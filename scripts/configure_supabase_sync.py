@@ -35,7 +35,8 @@ for key in keys:
         except (ValueError,IndexError):continue
         if role=='anon':public=candidate;break
 if public is None:raise SystemExit('Não foi encontrada uma chave pública anon. Nenhuma chave administrativa será usada no app.')
-management('/database/query','POST',{'query':(ROOT/'supabase/migrations/001_planejamento_sync.sql').read_text()})
+for migration in sorted((ROOT/'supabase/migrations').glob('*.sql')):
+    management('/database/query','POST',{'query':migration.read_text()})
 check=management('/database/query','POST',{'query':"select c.relrowsecurity as rls_enabled,has_table_privilege('anon','public.planejamento_documents','SELECT') as anonymous_read,has_table_privilege('authenticated','public.planejamento_documents','UPDATE') as direct_write,has_function_privilege('authenticated','public.planejamento_write(bigint,jsonb)','EXECUTE') as authenticated_rpc from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname='planejamento_documents';"})
 row=check[0] if isinstance(check,list) and check else {}
 if not row.get('rls_enabled') or row.get('anonymous_read') or row.get('direct_write') or not row.get('authenticated_rpc'):

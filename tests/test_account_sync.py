@@ -24,7 +24,7 @@ class AccountSyncTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.browser.close();cls.playwright.stop();cls.server.shutdown();cls.server.server_close();cls.thread.join()
-    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[]
+    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[];self.approvals={};self.document_reads=0;self.profile_missing=False
     def tearDown(self):
         for context in self.contexts:context.close()
         self.assertEqual(self.errors,[])
@@ -43,12 +43,16 @@ class AccountSyncTests(unittest.TestCase):
                 self.signups.append(request.post_data_json)
                 if self.signup_error:
                     route.fulfill(status=400,content_type='application/json',body=json.dumps({'error_code':self.signup_error,'msg':'internal diagnostic must not be shown'}));return
-                user['user_metadata']=request.post_data_json['data']
+                user['user_metadata']=request.post_data_json['data'];self.approvals[owner]=False
                 result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
             elif path=='/auth/v1/token':result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
             elif path=='/auth/v1/user':result=user
             elif path=='/auth/v1/logout':route.fulfill(status=204,body='');return
+            elif path=='/rest/v1/profiles':
+                self.assertEqual(request.method,'GET');self.assertEqual(params.get('id'),['eq.'+owner]);self.assertEqual(request.headers['authorization'],'Bearer '+token)
+                result=[] if self.profile_missing else [{'id':owner,'name':user['user_metadata'].get('full_name',''),'approved':self.approvals.get(owner,True)}]
             elif path=='/rest/v1/planejamento_documents':
+                self.document_reads+=1
                 self.assertEqual(request.method,'GET');self.assertEqual(params.get('user_id'),['eq.'+owner]);self.assertEqual(request.headers['authorization'],'Bearer '+token)
                 row=self.database.get(owner);result=[{'schema_version':1,**row}] if row else []
             elif path=='/rest/v1/rpc/planejamento_write':
@@ -80,6 +84,16 @@ class AccountSyncTests(unittest.TestCase):
         name='Gabriel <img src=x onerror=alert(1)>'
         page.locator('[name="fullName"]').fill('  '+name+'  ')
         page.locator('button[value="signup"]').click()
+        page.wait_for_function("PlanningAccount.status==='awaiting-approval'")
+        self.assertIsNone(page.evaluate('PlanningAccount.user'))
+        self.assertEqual(self.document_reads,0)
+        self.assertEqual(self.writes,0)
+        self.assertIn(name,page.locator('#app').inner_text())
+        self.assertEqual(page.locator('#app img').count(),1)
+        page.reload(wait_until='networkidle')
+        page.wait_for_function("PlanningAccount.status==='awaiting-approval'")
+        self.approvals['aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa']=True
+        page.locator('[data-action="account-check-approval"]').click()
         page.wait_for_function("PlanningAccount.user!==null && PlanningAccount.status==='synced'")
         self.assertEqual(self.signups[0]['data'],{'full_name':name})
         self.assertEqual(page.evaluate('PlanningAccount.user.user_metadata.full_name'),name)
@@ -104,6 +118,36 @@ class AccountSyncTests(unittest.TestCase):
             self.assertNotIn('internal diagnostic',page.locator('#account-form-status').inner_text())
             self.assertIsNone(page.evaluate('PlanningAccount.user'))
             self.assertFalse(page.locator('button[value="signup"]').is_disabled())
+
+    def test_revocation_hides_records_preserves_draft_and_requires_approval_again(self):
+        owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        _,page=self.device()
+        page.evaluate("data.tasks.push({id:'private',title:'Registro privado',done:false});save()")
+        self.wait_cloud(page,1)
+        self.approvals[owner]=False
+        reads=self.document_reads
+        page.evaluate('PlanningAccount.sync()')
+        page.wait_for_function("PlanningAccount.status==='awaiting-approval'")
+        self.assertIsNone(page.evaluate('PlanningAccount.user'))
+        self.assertNotIn('Registro privado',page.locator('#app').inner_text())
+        self.assertEqual(self.document_reads,reads)
+        self.assertEqual(self.database[owner]['payload']['tasks'][0]['title'],'Registro privado')
+        self.approvals[owner]=True
+        page.locator('[data-action="account-check-approval"]').click()
+        self.wait_cloud(page,1)
+        self.assertEqual(page.evaluate('data.tasks[0].title'),'Registro privado')
+
+    def test_missing_profile_blocks_access_instead_of_approving_by_default(self):
+        self.profile_missing=True
+        _,page=self.device(auto_login=False)
+        page.locator('[name="email"]').fill('fixture@example.invalid')
+        page.locator('[name="password"]').fill('fixture-password')
+        page.locator('button[value="login"]').click()
+        page.wait_for_function("PlanningAccount.status==='awaiting-approval'")
+        self.assertEqual(self.document_reads,0)
+        self.assertIsNone(page.evaluate('PlanningAccount.user'))
+        page.locator('[data-action="account-logout"]').click()
+        page.wait_for_function("document.querySelector('#account-login-form')!==null")
 
     def wait_cloud(self,page,count):
         page.wait_for_function("PlanningAccount.status==='synced' && data.tasks.length === "+str(count))
