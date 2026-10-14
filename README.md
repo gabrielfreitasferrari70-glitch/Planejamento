@@ -1,6 +1,6 @@
 # Planejamento Medicina
 
-Site estático para organizar tarefas, estudos, revisões e compromissos.
+Aplicativo com interface estática e funções na Vercel para organizar tarefas, estudos, revisões e compromissos.
 Os registros pessoais ficam no navegador, separados por endereço do site.
 O backup no Google Drive e a leitura do Google Sheets são opcionais e precisam
 de autorização explícita na interface.
@@ -107,7 +107,7 @@ não é oferecida pelo navegador. Guarde um backup antes de instalar ou trocar d
 dispositivo; a instalação não cria sincronização automática de registros locais.
 
 Após o primeiro carregamento completo, o aplicativo, a agenda e o cronograma
-incluído abrem offline. Tarefas, sessões, anotações e configurações continuam
+salvo na conta abrem offline. Tarefas, sessões, anotações e configurações continuam
 salvas no dispositivo. MedReview, Google, PDF original e links de materiais
 precisam de internet. O histórico privado do MedReview não é armazenado no cache
 do service worker; a sessão é validada novamente no backend quando online.
@@ -127,7 +127,11 @@ metadados padrão, mas não foi testada em um iPhone ou iPad físico neste ambie
 
 ## Desenvolvimento
 
-Não há etapa de compilação. O SDK Supabase está incluído em `vendor/`. Com Python 3:
+A interface não exige compilação. O SDK Supabase está incluído em `vendor/`.
+As funções em `api/` são publicadas pela Vercel; `requirements.txt` instala os
+leitores PDF/Excel. O servidor abaixo serve apenas a interface local. Para
+exercitar a importação, execute os testes Python ou use `vercel dev` com as
+variáveis públicas de conexão configuradas. Com Python 3:
 
 ```bash
 cd /workspace/Planejamento
@@ -267,3 +271,12 @@ integração estiver ativa; confirme o resultado na Vercel e no site antes de
 considerar a versão publicada. Preserve a proteção de acesso existente.
 
 Para testar a importação: `python -m unittest discover -s tests -p test_schedule_parser.py -v`.
+
+A integração WhatsApp trazida pela atualização paralela do repositório também
+é individual. Número e preferência de envio pertencem à conta; a chave pessoal
+do CallMeBot fica no armazenamento local separado pelo usuário e não entra no
+backup. A configuração já fornecida do proprietário fica nas variáveis
+criptografadas `PLANNING_OWNER_ID`, `PLANNING_OWNER_WHATSAPP_PHONE` e
+`PLANNING_OWNER_WHATSAPP_KEY` da Vercel. O endpoint verifica identidade e
+aprovação; outras contas nunca herdam essas credenciais. Testes de envio usam
+apenas respostas simuladas, sem mensagens reais.

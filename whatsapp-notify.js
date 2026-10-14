@@ -125,7 +125,7 @@
       '<strong>Avisos e resumos diários no seu celular</strong>' +
       '<p>Envie resumos da sua rotina acadêmica, revisões pendentes e provas diretamente para o WhatsApp pela sua conta CallMeBot.</p>' +
       '</div></div>' +
-      '<label class="field-label">Seu WhatsApp (DDI + DDD + Número)<input id="wa-phone" class="field" value="' + esc(cfg.phone) + '" placeholder="Ex.: 5565999882979"></label>' +
+      '<label class="field-label">Seu WhatsApp (DDI + DDD + Número)<input id="wa-phone" class="field" value="' + esc(cfg.phone) + '" placeholder="Ex.: 5511999999999"></label>' +
       '<label class="field-label">Chave API (APIKey do CallMeBot)<input id="wa-key" type="password" autocomplete="off" class="field" value="' + esc(cfg.apiKey) + '" placeholder="Sua chave CallMeBot"></label>' +
       '<label class="field-label" style="display:flex;align-items:center;gap:8px;margin:10px 0 16px;cursor:pointer">' +
       '<input type="checkbox" id="wa-autodaily" ' + (cfg.autoDaily ? 'checked' : '') + ' style="width:17px;height:17px"> ' +
