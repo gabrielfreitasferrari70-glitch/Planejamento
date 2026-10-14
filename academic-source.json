@@ -1,0 +1,53 @@
+{
+  "semester": "2026/2",
+  "filename": "00 - 08.09 Planilha UC2 (2026-2).pdf",
+  "sourceUrl": "./data/uc2-2026-2.pdf",
+  "sha256": "6fb8786a9dbbd7d688ce79c042d75529d67c7f9963b04c380540e92f06b42e76",
+  "pages": 19,
+  "weeks": 18,
+  "start": "2026-08-17",
+  "end": "2026-12-19",
+  "events": 193,
+  "rawCells": 378,
+  "uniqueCells": 376,
+  "counts": {
+    "welcome": 5,
+    "class": 79,
+    "free": 53,
+    "community": 15,
+    "tutorial": 22,
+    "break": 10,
+    "exam": 9
+  },
+  "legend": [
+    {
+      "color": "#FFC000",
+      "name": "Tutorias"
+    },
+    {
+      "color": "#FFFFFF",
+      "name": "Aulas"
+    },
+    {
+      "color": "#FBFF44",
+      "name": "Avaliações"
+    },
+    {
+      "color": "#FC5C4B",
+      "name": "Feriados"
+    },
+    {
+      "color": "#8DB4E1",
+      "name": "Interação Comunitária"
+    },
+    {
+      "color": "#D7E3BB",
+      "name": "Horário livre"
+    },
+    {
+      "color": "#76923B",
+      "name": "Acolhimento"
+    }
+  ],
+  "note": "Página 19 repete a página 18. Blocos consecutivos idênticos foram unidos."
+}

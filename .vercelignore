@@ -2,3 +2,4 @@ tests/
 README.md
 __pycache__/
 *.pyc
+scripts/

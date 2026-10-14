@@ -19,12 +19,29 @@ isoladas: use o checkout existente, sem criar outro worktree.
 
 ## Cronograma
 
-`academic.json` começa vazio porque o cronograma original não foi enviado.
-O site informa essa ausência. Em **Configurações**, importe o CSV exportado da
-planilha para guardar o cronograma neste navegador. O CSV aceita a grade semanal
-com datas `dd/mm/aaaa` nos cabeçalhos e horários `08:00-09:00` na primeira coluna.
-Também é possível conectar o Google Sheets com um OAuth Client ID Web próprio.
-A planilha original é acessada somente para leitura.
+`academic.json` contém 193 blocos extraídos da planilha UC2 do semestre
+2026/2: 18 semanas, de 17 de agosto a 19 de dezembro, com aulas, tutorias,
+avaliações, feriados, acolhimento e horários livres. As sete provas e os dois
+seminários avaliativos aparecem no radar. Datas, horários, professores e cores
+foram preservados. Blocos consecutivos idênticos foram unidos; a página 19,
+que repete a página 18, não duplica eventos.
+
+O documento original está em `data/uc2-2026-2.pdf` e pode ser aberto pelas
+Configurações do site. `academic-source.json` registra a origem, contagens e
+SHA-256 do PDF. Para refazer a extração, com PyMuPDF instalado:
+
+```bash
+python3 scripts/import_semester_pdf.py 'arquivo-do-semestre.pdf' --output .
+```
+
+O extrator reconhece a grade deste documento e interrompe a execução se a
+estrutura esperada mudar. Revise o resultado antes de usar outro PDF.
+
+Em **Configurações**, você também pode importar um CSV para guardar uma cópia
+própria do cronograma neste navegador. O CSV aceita a grade semanal com datas
+`dd/mm/aaaa` nos cabeçalhos e horários `08:00-09:00` na primeira coluna. A opção
+**Usar cronograma incluído no site** restaura o semestre desta edição, mantendo
+os demais registros pessoais. A conexão opcional Google Sheets é somente leitura.
 
 Não coloque dados pessoais ou credenciais no repositório. Faça backup antes de
 trocar de dispositivo ou endereço de hospedagem. O site não inclui login;

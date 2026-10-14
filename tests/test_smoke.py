@@ -47,6 +47,9 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.set_default_timeout(5000)
         self.errors = []
         self.page.on('pageerror', lambda error: self.errors.append(str(error)))
+        # Empty-state checks use a fixture; the semester test loads real assets.
+        self.page.route('**/academic.json', lambda route: route.fulfill(
+            content_type='application/json', body='[]'))
 
     def tearDown(self):
         self.context.close()
@@ -68,7 +71,7 @@ class SiteSmokeTests(unittest.TestCase):
                      'favicon.svg', 'academic.json']:
             response = self.context.request.get(self.url + name)
             self.assertEqual(response.status, 200, name)
-        self.assertEqual(self.context.request.get(self.url + 'academic.json').json(), [])
+        self.assertIsInstance(self.context.request.get(self.url + 'academic.json').json(), list)
         self.assertIn('Nenhum cronograma importado', self.page.locator('#source-alert').inner_text())
         self.page.locator('#source-alert button').click()
         self.assertEqual(self.page.locator('#heading').inner_text(), 'Configurações')
@@ -113,6 +116,54 @@ class SiteSmokeTests(unittest.TestCase):
         self.open()
         self.assertIn('Não foi possível carregar o cronograma', self.page.locator('#source-alert').inner_text())
         self.assertEqual(self.page.evaluate('academicEvents().length'), 0)
+
+    def test_semester_source_and_calendar(self):
+        import hashlib
+        from datetime import date
+
+        self.page.unroute('**/academic.json')
+        self.open()
+        records = self.context.request.get(self.url+'academic.json').json()
+        source = self.context.request.get(self.url+'academic-source.json').json()
+        self.assertEqual(source['semester'], '2026/2')
+        self.assertEqual(source['weeks'], 18)
+        self.assertEqual(len(records), 193)
+        self.assertEqual(source['events'], len(records))
+        self.assertEqual(len(set(x['id'] for x in records)), len(records))
+        for record in records:
+            self.assertEqual(date.fromisoformat(record['date']).isoformat(), record['date'])
+            self.assertLess(record['from'], record['to'])
+        exams = [x for x in records if x['type']=='exam']
+        self.assertEqual(len(exams), 9)  # Seven exams plus two yellow seminar blocks.
+        final = [x for x in exams if x['title']=='PROVA FINAL']
+        self.assertEqual(len(final), 1)
+        self.assertEqual(final[0]['date'], '2026-12-14')
+        self.assertEqual(final[0]['sourcePages'], [18, 19])
+        pdf = self.context.request.get(self.url+'data/uc2-2026-2.pdf')
+        self.assertEqual(pdf.status, 200)
+        self.assertEqual(hashlib.sha256(pdf.body()).hexdigest(), source['sha256'])
+        self.assertIn('193 blocos', self.page.locator('#source-alert').inner_text())
+        self.assertIn('Semestre 2026/2', self.page.locator('#source-alert').inner_text())
+        self.page.evaluate("weekOffset=Math.round((Date.parse('2026-08-17T12:00:00Z')-Date.parse(weekDates()[0]+'T12:00:00Z'))/604800000)")
+        self.nav('calendar')
+        self.assertTrue(self.page.locator('.cal-event').filter(has_text='ACOLHIMENTO').count())
+        self.assertTrue(self.page.locator('.cal-event.free').count())
+        self.assertIn('Horário livre', self.page.locator('#app').inner_text())
+        self.nav('settings')
+        self.assertTrue(self.page.get_by_role('link', name='Ver planilha do semestre (PDF) ↗').is_visible())
+
+    def test_free_period_does_not_block_the_planner(self):
+        self.open()
+        result = self.page.evaluate("""() => {
+          const day=dayAdd(today(),1),weekday=new Date(day+'T12:00:00Z').getUTCDay();
+          data.settings.availability={[weekday]:{from:'07:30',to:'11:30'}};
+          data.tasks=[{id:'test',title:'Estudo',estimate:'60',priority:'1',date:day,done:false}];
+          seed=[{id:'free',title:'Livre para Estudo',type:'free',date:day,from:'07:30',to:'11:30'}];
+          const free=suggest().suggestions.length;
+          seed[0].type='class';
+          return {free,busy:suggest().suggestions.length};
+        }""")
+        self.assertEqual(result, {'free': 1, 'busy': 0})
 
     def test_csv_import_persistence_and_reset(self):
         self.open()

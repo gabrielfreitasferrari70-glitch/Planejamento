@@ -1,1 +1,2898 @@
-[]
+[
+  {
+    "date": "2026-08-17",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ACOLHIMENTO - RECEPÇÃO DOS CALOUROS",
+    "subject": "UC2",
+    "type": "welcome",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#76923B",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-c7809dee0c6e3d6c"
+  },
+  {
+    "date": "2026-08-17",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "ACOLHIMENTO - RECEPÇÃO DOS CALOUROS",
+    "subject": "UC2",
+    "type": "welcome",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#76923B",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-b6858e6db18bbdfd"
+  },
+  {
+    "date": "2026-08-18",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ACOLHIMENTO - RECEPÇÃO DOS CALOUROS",
+    "subject": "UC2",
+    "type": "welcome",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#76923B",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-9f574777f3ef7629"
+  },
+  {
+    "date": "2026-08-18",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "ACOLHIMENTO - RECEPÇÃO DOS CALOUROS",
+    "subject": "UC2",
+    "type": "welcome",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#76923B",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-c971c65cf2f2bbf2"
+  },
+  {
+    "date": "2026-08-19",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ACOLHIMENTO - RECEPÇÃO DOS CALOUROS",
+    "subject": "UC2",
+    "type": "welcome",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#76923B",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-b1f5da1a4d740458"
+  },
+  {
+    "date": "2026-08-19",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: ORGANIZAÇÃO GERAL DO SISTEMA CARDIOVASCULAR",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-76c7ec4e95148d49"
+  },
+  {
+    "date": "2026-08-20",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Anatomia: morfologia externa do coração",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-dd1b9332ff0b704a"
+  },
+  {
+    "date": "2026-08-20",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: morfologia interna do coração",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-3a94f485cfaab4a6"
+  },
+  {
+    "date": "2026-08-21",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Anatomia: aula prática",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-d6192904f420671a"
+  },
+  {
+    "date": "2026-08-21",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "EMBRIOLOGIA: SISTEMA CARDIOVASCULAR",
+    "subject": "EMBRIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Larissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-83abbe138079b0b3"
+  },
+  {
+    "date": "2026-08-22",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      1
+    ],
+    "id": "uc2-2026-2-99346ea3d23df65b"
+  },
+  {
+    "date": "2026-08-24",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-fb2dd1f7cbb764a8"
+  },
+  {
+    "date": "2026-08-24",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA: CÉLULAS DO SANGUE",
+    "subject": "HISTOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-63aac76d89b57a36"
+  },
+  {
+    "date": "2026-08-25",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Anatomia: artérias e veias I",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-fa9db6b6ba185c33"
+  },
+  {
+    "date": "2026-08-25",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "BIOQUÍMICA: TRANSPORTE DE GASES E HEMOGLOBINA",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-c2d6e949b9edc0b8"
+  },
+  {
+    "date": "2026-08-26",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-8f5d8aeef1234bde"
+  },
+  {
+    "date": "2026-08-26",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: artérias e veias II",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-d3c4ba7f90842732"
+  },
+  {
+    "date": "2026-08-27",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "FISIOLOGIA- ELETROCARDIOGRAMA",
+    "subject": "UC2",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-308d4dcb135670fb"
+  },
+  {
+    "date": "2026-08-27",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "METODOLOGIA CIENTÍFICA:ÉTICA EM PESQUISA, TCLE,AGÊNCIAS DE FOMENTO",
+    "subject": "METODOLOGIA CIENTÍFICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Renata",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-de91e92323737e5f"
+  },
+  {
+    "date": "2026-08-28",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- ABRE 1",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-bf1181b70f6d37f5"
+  },
+  {
+    "date": "2026-08-28",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "BIOQUÍMICA: REGULAÇÃO DO EQUILÍBRIO ÁCIDO BÁSICO",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-28b97b5df0210443"
+  },
+  {
+    "date": "2026-08-29",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      2
+    ],
+    "id": "uc2-2026-2-761617422971e483"
+  },
+  {
+    "date": "2026-08-31",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-f1580880235fe91d"
+  },
+  {
+    "date": "2026-08-31",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: CICLO CARDÍACO, PULSO E PRESSÃO ARTERIAL, DC/RV, ADAPTAÇÃO",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-0319627ada0ef243"
+  },
+  {
+    "date": "2026-09-01",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 1, ABRE 2",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-c98688ab109ebd3c"
+  },
+  {
+    "date": "2026-09-01",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "MEDIDAS EM MEDICINA BASEADA EM EVIDÊNCIAS",
+    "subject": "UC2",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fabricio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-e987c6f3e35dff0a"
+  },
+  {
+    "date": "2026-09-02",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-8f588df04f9c6748"
+  },
+  {
+    "date": "2026-09-02",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: REGISTRO NÃO INVASIVO DE PRESSÃO ARTERIAL - PRÁTICA",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profs Eliangela e Fabricio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-2e9d70613d1695fd"
+  },
+  {
+    "date": "2026-09-03",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-856d48b3377fe153"
+  },
+  {
+    "date": "2026-09-03",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "METODOLOGIA CIENTÍFICA: ORGANIZAÇÃO DE REFERÊNCIAS, ELABORAÇÃO DE RESUMOS E CONFECÇÃO DE POSTER",
+    "subject": "METODOLOGIA CIENTÍFICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Renata",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-f15e49c8334c08b9"
+  },
+  {
+    "date": "2026-09-04",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 2, ABRE 3",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-a45315f601aed11c"
+  },
+  {
+    "date": "2026-09-04",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: SISTEMA HEMATOPOIÉTICO, HOMEOSTASIA",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-8d7a1e2da222fcbb"
+  },
+  {
+    "date": "2026-09-05",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      3
+    ],
+    "id": "uc2-2026-2-cbb057a88abb79fb"
+  },
+  {
+    "date": "2026-09-07",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Feriado (Independência do Brasil)",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-437579019bd1ea45"
+  },
+  {
+    "date": "2026-09-07",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Feriado (Independência do Brasil)",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-561b2ae7ccf62076"
+  },
+  {
+    "date": "2026-09-08",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Anatomia: vasos linfáticos",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-150aef83e21f0365"
+  },
+  {
+    "date": "2026-09-08",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-75e1a523c3492538"
+  },
+  {
+    "date": "2026-09-09",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-402de88763410036"
+  },
+  {
+    "date": "2026-09-09",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: Introdução à fisio respiratória e Mecânica respiratória",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-6e21a49b86bfe329"
+  },
+  {
+    "date": "2026-09-10",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Anatomia: aula prática",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-e8fd72b8b209accc"
+  },
+  {
+    "date": "2026-09-10",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-d5f42b0c9d678a74"
+  },
+  {
+    "date": "2026-09-11",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 3, ABRE 4",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-8f4b643b2015e135"
+  },
+  {
+    "date": "2026-09-11",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "METODOLOGIA CIENTÍFICA:ÉTICA EM PESQUISA, TCLE,AGÊNCIAS DE FOMENTO",
+    "subject": "METODOLOGIA CIENTÍFICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Renata",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-f3a2d8884c35f77d"
+  },
+  {
+    "date": "2026-09-12",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      4
+    ],
+    "id": "uc2-2026-2-bbb52c155d721c3f"
+  },
+  {
+    "date": "2026-09-14",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-42e4eec37e43a0d5"
+  },
+  {
+    "date": "2026-09-14",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Prova Prática de Anatomia Circulatório",
+    "subject": "Anatomia",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "Flávio e Denício",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-cad9dfb45f70da9f"
+  },
+  {
+    "date": "2026-09-15",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D5E2BB",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-c35b91945be7f02d"
+  },
+  {
+    "date": "2026-09-15",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: DIFUSÃO GASOSA E RELAÇÃO V/Q",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-76b0b955991bcba5"
+  },
+  {
+    "date": "2026-09-16",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-b8c68bf640600c98"
+  },
+  {
+    "date": "2026-09-16",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: vias aéreas superiores I",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-34987c63da137f3a"
+  },
+  {
+    "date": "2026-09-17",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Anatomia: vias aéreas superiores II",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-d320584be0ca5f41"
+  },
+  {
+    "date": "2026-09-17",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-ed9a0b203a4fca8f"
+  },
+  {
+    "date": "2026-09-18",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 4, ABRE 5",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-e5895efd54d90dd4"
+  },
+  {
+    "date": "2026-09-18",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-2341ab726bdf4979"
+  },
+  {
+    "date": "2026-09-19",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      5
+    ],
+    "id": "uc2-2026-2-277f52390bb45a84"
+  },
+  {
+    "date": "2026-09-21",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-4e7420bc4c4d8152"
+  },
+  {
+    "date": "2026-09-21",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: vias aéreas superiores (Prática)",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profs. Denício e Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-b792aa7773381666"
+  },
+  {
+    "date": "2026-09-22",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 5, ABRE 6",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-549be44c910a813d"
+  },
+  {
+    "date": "2026-09-22",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA: VIAS AÉREAS SUPERIORES E INFERIORES",
+    "subject": "HISTOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-9bee00591aedb934"
+  },
+  {
+    "date": "2026-09-23",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-418e90c53bd5be07"
+  },
+  {
+    "date": "2026-09-23",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-6dcb7567a0ce5864"
+  },
+  {
+    "date": "2026-09-24",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-005ba0df97b557fc"
+  },
+  {
+    "date": "2026-09-24",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "EMBRIOLOGIA: SISTEMA RESPIRATÓRIO",
+    "subject": "EMBRIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Larissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-839abe3aca535fd6"
+  },
+  {
+    "date": "2026-09-25",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 6, ABRE 7",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-ac26ac6d7a6df83e"
+  },
+  {
+    "date": "2026-09-25",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: vias aéreas inferiores I",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profs. Denício e Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-c536a2edee9f64bd"
+  },
+  {
+    "date": "2026-09-26",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      6
+    ],
+    "id": "uc2-2026-2-19ea29269f561833"
+  },
+  {
+    "date": "2026-09-28",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-1963ca976615184a"
+  },
+  {
+    "date": "2026-09-28",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-fd7fef655348f4e0"
+  },
+  {
+    "date": "2026-09-29",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 7, ABRE 8",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-ab856b350b248fbc"
+  },
+  {
+    "date": "2026-09-29",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: vias aéreas inferiores II",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profs. Denício e Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-582b944a2b79e003"
+  },
+  {
+    "date": "2026-09-30",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-b479d27ff3693fb3"
+  },
+  {
+    "date": "2026-09-30",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: ESPIROMETRIA- PRÁTICA",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Samuel",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-b75195504f871686"
+  },
+  {
+    "date": "2026-10-01",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-f8e03f0c34e6e698"
+  },
+  {
+    "date": "2026-10-01",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: vias aéreas inferiores (Prática)",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profs. Denício e Flávio",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-4085b2178d1f466d"
+  },
+  {
+    "date": "2026-10-02",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 8, ABRE 9",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-226207aa195d464a"
+  },
+  {
+    "date": "2026-10-02",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-2cad43c9e2ad882e"
+  },
+  {
+    "date": "2026-10-03",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      7
+    ],
+    "id": "uc2-2026-2-5354882a19c013a3"
+  },
+  {
+    "date": "2026-10-05",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-9f9cd29655d9ebf9"
+  },
+  {
+    "date": "2026-10-05",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-951e24d393676ead"
+  },
+  {
+    "date": "2026-10-06",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 9, ABRE 10",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-ec3348a4e005bd46"
+  },
+  {
+    "date": "2026-10-06",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Prova Prática de Anatomia Respiratório",
+    "subject": "Anatomia",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "Profs. Denício e Flávio",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-c2210fec7e9c82bb"
+  },
+  {
+    "date": "2026-10-07",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-62d5929593b3966c"
+  },
+  {
+    "date": "2026-10-07",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-336053bd2ed8e590"
+  },
+  {
+    "date": "2026-10-08",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D5E2BB",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-dd34da3bdbdc04da"
+  },
+  {
+    "date": "2026-10-08",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-631e09ed28fd7ee8"
+  },
+  {
+    "date": "2026-10-09",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "SEMINÁRIOS 1º MÓDULO",
+    "subject": "UC2",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFFF00",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-e60ab8955271f464"
+  },
+  {
+    "date": "2026-10-09",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-fa56a49ee014d0e9"
+  },
+  {
+    "date": "2026-10-10",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      8
+    ],
+    "id": "uc2-2026-2-ca08635dbb97b595"
+  },
+  {
+    "date": "2026-10-12",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Feriado (Padroeira do Brasil)",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-13220d31d9217caf"
+  },
+  {
+    "date": "2026-10-12",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Feriado (Padroeira do Brasil)",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-aea072c1882e7b4d"
+  },
+  {
+    "date": "2026-10-13",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "AVALIAÇÃO 1º MÓDULO",
+    "subject": "UC2",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-004ee6a6909cb269"
+  },
+  {
+    "date": "2026-10-13",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA: SISTEMA URINÁRIO",
+    "subject": "HISTOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-61f1366d416e3402"
+  },
+  {
+    "date": "2026-10-14",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-137b60d4b81dcb99"
+  },
+  {
+    "date": "2026-10-14",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "ANATOMIA: SISTEMA URINÁRIO",
+    "subject": "ANATOMIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-67cd6d977f96c353"
+  },
+  {
+    "date": "2026-10-15",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "FISIOLOGIA: INTRODUÇÃO À FISIO RENAL, FILTRAÇÃO GLOMERULAR",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-50b282ded44b7a69"
+  },
+  {
+    "date": "2026-10-15",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "EMBRIOLOGIA: SISTEMA UROGENITAL I",
+    "subject": "EMBRIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Larissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-523058ff68ea32f1"
+  },
+  {
+    "date": "2026-10-16",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANATOMIA: VASCULARIZAÇÃO DO SISTEMA URINÁRIO",
+    "subject": "ANATOMIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-221439ddad12f5ce"
+  },
+  {
+    "date": "2026-10-16",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "BIOQUÍMICA: FORMAÇÃO DE SAIS BILIARES",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-90cffe4ba3df4298"
+  },
+  {
+    "date": "2026-10-17",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      9
+    ],
+    "id": "uc2-2026-2-4c7bade02ba2e795"
+  },
+  {
+    "date": "2026-10-19",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-9fbccf8745d717fe"
+  },
+  {
+    "date": "2026-10-19",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-dbb31c71d6d2b931"
+  },
+  {
+    "date": "2026-10-20",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D5E2BB",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-82869aa38d2a8373"
+  },
+  {
+    "date": "2026-10-20",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "ANATOMIA: SISTEMA URINÁRIO (Prática)",
+    "subject": "ANATOMIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-d7f0115792edc497"
+  },
+  {
+    "date": "2026-10-21",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-b3566cf0005e31d7"
+  },
+  {
+    "date": "2026-10-21",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA:REABSORÇÃO E SECREÇÃO TUBULAR, CLEARANCE RENAL, CONCENTRAÇÃO E DILUIÇÃO DA URINA",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-f6025449f44d4a33"
+  },
+  {
+    "date": "2026-10-22",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-c26b0710c530f014"
+  },
+  {
+    "date": "2026-10-22",
+    "from": "13:30",
+    "to": "15:30",
+    "title": "FISIOLOGIA:REABSORÇÃO E SECREÇÃO TUBULAR, CLEARANCE RENAL, CONCENTRAÇÃO E DILUIÇÃO DA URINA",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-dcd75252aec1e82b"
+  },
+  {
+    "date": "2026-10-22",
+    "from": "15:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-1c800acb0159bd7e"
+  },
+  {
+    "date": "2026-10-23",
+    "from": "07:30",
+    "to": "09:30",
+    "title": "TUTORIA- FECHA 10 ABRE 11",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-44ea0312fa98bb46"
+  },
+  {
+    "date": "2026-10-23",
+    "from": "09:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 10, ABRE 11",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-f487501d08b18fa1"
+  },
+  {
+    "date": "2026-10-23",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "EMBRIOLOGIA: SISTEMA UROGENITAL II",
+    "subject": "EMBRIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Larissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-1995bca269860b64"
+  },
+  {
+    "date": "2026-10-24",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      10
+    ],
+    "id": "uc2-2026-2-5991d7983b22fcf5"
+  },
+  {
+    "date": "2026-10-26",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-bb15a8eac4ca2ed4"
+  },
+  {
+    "date": "2026-10-26",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA DO APARELHO REPRODUTOR I",
+    "subject": "UC2",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-74e9e01ef0630d66"
+  },
+  {
+    "date": "2026-10-27",
+    "from": "07:30",
+    "to": "09:30",
+    "title": "TUTORIA- FECHA 11 ABRE 12",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-fa1215baaf76af67"
+  },
+  {
+    "date": "2026-10-27",
+    "from": "09:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 11, ABRE 12",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-ae99a7894d466d35"
+  },
+  {
+    "date": "2026-10-27",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "ANATOMIA DO SISTEMA GENITAL FEMININO",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-8f8cc12f34831dad"
+  },
+  {
+    "date": "2026-10-28",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Dia do servidor público",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-1e03b7c99a4ec732"
+  },
+  {
+    "date": "2026-10-28",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Dia do servidor público",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-3c3309ac1903c435"
+  },
+  {
+    "date": "2026-10-29",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "BIOQUÍMICA: METABOLISMO DA AMÔNIA E CICLO DA URÉIA",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-fcd617f22a5716fc"
+  },
+  {
+    "date": "2026-10-29",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "ANATOMIA DO SISTEMA GENITAL FEMININO (Prática)",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-580b19f9b5d82935"
+  },
+  {
+    "date": "2026-10-30",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANATOMIA DO SISTEMA GENITAL MASCULINO",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-791b1fe78a4c3733"
+  },
+  {
+    "date": "2026-10-30",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "EMBRIOLOGIA: SISTEMA DIGESTÓRIO",
+    "subject": "EMBRIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Larissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-87202a525794b6cf"
+  },
+  {
+    "date": "2026-10-31",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      11
+    ],
+    "id": "uc2-2026-2-7a2343cbf2071c59"
+  },
+  {
+    "date": "2026-11-02",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Feriado",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-0f31e9f4d81b691a"
+  },
+  {
+    "date": "2026-11-02",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Feriado",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-b1a495c342de277c"
+  },
+  {
+    "date": "2026-11-03",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 12, ABRE 13",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-ede029399bf0afc1"
+  },
+  {
+    "date": "2026-11-03",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "ANATOMIA DO SISTEMA GENITAL MASCULINO (Prática)",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-8aa2687387015550"
+  },
+  {
+    "date": "2026-11-04",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-9aff49cc19a2173e"
+  },
+  {
+    "date": "2026-11-04",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-4df7961d5c589afd"
+  },
+  {
+    "date": "2026-11-05",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-d5267d6a0576dea2"
+  },
+  {
+    "date": "2026-11-05",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA DO APARELHO REPRODUTOR II",
+    "subject": "UC2",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-bbfcf5c97c91bdd4"
+  },
+  {
+    "date": "2026-11-06",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 13, ABRE 14",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-040c0d27dee78c54"
+  },
+  {
+    "date": "2026-11-06",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Prova Prática de Anatomia - Sistema urinário e aparelho reprodutor",
+    "subject": "Anatomia",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "Denício e Clarissa",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-f6f472a2594bc934"
+  },
+  {
+    "date": "2026-11-07",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      12
+    ],
+    "id": "uc2-2026-2-cbdb0192727cc138"
+  },
+  {
+    "date": "2026-11-09",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-19f064a7b5957fcd"
+  },
+  {
+    "date": "2026-11-09",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "INTRODUÇÃO À FISIO DIGESTIVA, CAVIDADE ORAL E ESÔFAGO, FISIO",
+    "subject": "UC2",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-e58b7ae750baff37"
+  },
+  {
+    "date": "2026-11-10",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-41161ec29f0d4109"
+  },
+  {
+    "date": "2026-11-10",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: cavidade da boca e glândulas salivares",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Clarissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-4396f6a015d94e40"
+  },
+  {
+    "date": "2026-11-11",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-398e644c12f3f2df"
+  },
+  {
+    "date": "2026-11-11",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "BIOQUÍMICA: METABOLISMO DE LIPOPROTEÍNAS",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-ed878fb291cd953e"
+  },
+  {
+    "date": "2026-11-12",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "FISIOLOGIA: FISIO HEPÁTICA E PANCREÁTICA, MOTILIDADE",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-a0f2f6973ac98798"
+  },
+  {
+    "date": "2026-11-12",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA: BOCA, FARINGE, ESÔFAGO E GLÂNDULAS ANEXAS",
+    "subject": "HISTOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-8861532de1366641"
+  },
+  {
+    "date": "2026-11-13",
+    "from": "07:30",
+    "to": "09:30",
+    "title": "TUTORIA- FECHA 14 ABRE 15",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-626f2c7e9b0215e3"
+  },
+  {
+    "date": "2026-11-13",
+    "from": "09:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 14, ABRE 15",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-f0318b4706fdcc0a"
+  },
+  {
+    "date": "2026-11-13",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: faringe, esôfago e estômago",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Clarissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-da48b5b48fff3eac"
+  },
+  {
+    "date": "2026-11-14",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      13
+    ],
+    "id": "uc2-2026-2-8d5b7afbfbb9df29"
+  },
+  {
+    "date": "2026-11-16",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-897796dfd6a33599"
+  },
+  {
+    "date": "2026-11-16",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: intestinos e peritônio",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Clarissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-dec026712b411fcf"
+  },
+  {
+    "date": "2026-11-17",
+    "from": "07:30",
+    "to": "09:30",
+    "title": "TUTORIA- FECHA 15 ABRE 16",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-49d8e22b3745ef76"
+  },
+  {
+    "date": "2026-11-17",
+    "from": "09:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 15, ABRE 16",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-899ef54ea1fb7366"
+  },
+  {
+    "date": "2026-11-17",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "BIOQUÍMICA: LIPOGÊNESE",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-269aae2a2f4b5807"
+  },
+  {
+    "date": "2026-11-18",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-c845c67f839e702b"
+  },
+  {
+    "date": "2026-11-18",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: vascularização do sistema digestório",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Clarissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-247a74db088c0413"
+  },
+  {
+    "date": "2026-11-19",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-c8916e1093194451"
+  },
+  {
+    "date": "2026-11-19",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "FISIOLOGIA: FISIO HEPÁTICA E PANCREÁTICA, MOTILIDADE",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-a06b17d7d4183f5f"
+  },
+  {
+    "date": "2026-11-20",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Feriado",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-dd482ce72049c5c0"
+  },
+  {
+    "date": "2026-11-20",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Feriado",
+    "subject": "UC2",
+    "type": "break",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-6548beae99f64a36"
+  },
+  {
+    "date": "2026-11-21",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      14
+    ],
+    "id": "uc2-2026-2-f7f3964af8fe28d1"
+  },
+  {
+    "date": "2026-11-23",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-72dd3bb1a3ed3aad"
+  },
+  {
+    "date": "2026-11-23",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "BIOQUÍMICA: REGULAÇÃO HORMONAL DO METABOLISMO II",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-89391c074fbd3a18"
+  },
+  {
+    "date": "2026-11-24",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "BIOQUÍMICA: REGULAÇÃO HORMONAL DO METABOLISMO I",
+    "subject": "BIOQUÍMICA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Claudia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-4ee39e3d70a9bed4"
+  },
+  {
+    "date": "2026-11-24",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA: ESTÔMAGO, INTESTINO E GLÂNDULAS ANEXAS",
+    "subject": "HISTOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-8060c8e15b6b9baa"
+  },
+  {
+    "date": "2026-11-25",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-c2fb9e476db33859"
+  },
+  {
+    "date": "2026-11-25",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: sistema porta hepático",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Clarissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-61e6a74c405f861b"
+  },
+  {
+    "date": "2026-11-26",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "FISIOLOGIA: DIGESTÃO E ABSORÇÃO, nutrientes e vitaminas",
+    "subject": "FISIOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Prof. Fernando",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-8c39f0ae070907ca"
+  },
+  {
+    "date": "2026-11-26",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "HISTOLOGIA: FÍGADO",
+    "subject": "HISTOLOGIA",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Olívia",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-939eae57c0a73dba"
+  },
+  {
+    "date": "2026-11-27",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 16 ABRE 17",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-c19900e78e676a6d"
+  },
+  {
+    "date": "2026-11-27",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Anatomia: fígado e pâncreas",
+    "subject": "Anatomia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "Profa. Clarissa",
+    "sheetColor": "#FFFFFF",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-3ccd48d2d8fbf850"
+  },
+  {
+    "date": "2026-11-28",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      15
+    ],
+    "id": "uc2-2026-2-448c4149f5480cab"
+  },
+  {
+    "date": "2026-11-30",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-3e0ee517ab1b5b2a"
+  },
+  {
+    "date": "2026-11-30",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-1042781572869400"
+  },
+  {
+    "date": "2026-12-01",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "TUTORIA- FECHA 17",
+    "subject": "UC2",
+    "type": "tutorial",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FFC000",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-17166cc2c008dc82"
+  },
+  {
+    "date": "2026-12-01",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Prova Prática de Anatomia - Sistema digestório",
+    "subject": "Anatomia",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "Clarissa e Denício",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-435eed0ea08fa6e5"
+  },
+  {
+    "date": "2026-12-02",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-df4b48213b784ba6"
+  },
+  {
+    "date": "2026-12-02",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-a2151ccb72bf25fb"
+  },
+  {
+    "date": "2026-12-03",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-38ded4f5db3c9d5b"
+  },
+  {
+    "date": "2026-12-03",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-4f936f1494da16c3"
+  },
+  {
+    "date": "2026-12-04",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "SEMINÁRIOS 2º MÓDULO",
+    "subject": "UC2",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-fc39d78e4ef744fe"
+  },
+  {
+    "date": "2026-12-04",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-75bbfc1fd5de9e58"
+  },
+  {
+    "date": "2026-12-05",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      16
+    ],
+    "id": "uc2-2026-2-632bfa5badb7717d"
+  },
+  {
+    "date": "2026-12-07",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "ANTROPOLOGIA",
+    "subject": "Antropologia",
+    "type": "class",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FCE9D9",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-b4a776c056a89a19"
+  },
+  {
+    "date": "2026-12-07",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-02b0d941693e3f8e"
+  },
+  {
+    "date": "2026-12-08",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "AVALIAÇÃO 2º MÓDULO",
+    "subject": "UC2",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-31821fe472b0de16"
+  },
+  {
+    "date": "2026-12-08",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-954dee0c77b82907"
+  },
+  {
+    "date": "2026-12-09",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Interação Comunitária",
+    "subject": "Interação Comunitária",
+    "type": "community",
+    "origin": "pdf",
+    "professor": "Prof. Neudson",
+    "sheetColor": "#8DB4E1",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-d7723cc156080a9f"
+  },
+  {
+    "date": "2026-12-09",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-acaa7ce9ce829dcf"
+  },
+  {
+    "date": "2026-12-10",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-f311a9c3e1846c5e"
+  },
+  {
+    "date": "2026-12-10",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-05adce2f68972c82"
+  },
+  {
+    "date": "2026-12-11",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-a58a5a65e85f44ec"
+  },
+  {
+    "date": "2026-12-11",
+    "from": "13:30",
+    "to": "17:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-330605edcd27023b"
+  },
+  {
+    "date": "2026-12-12",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "Livre para Estudo",
+    "subject": "UC2",
+    "type": "free",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#D7E3BB",
+    "sourcePages": [
+      17
+    ],
+    "id": "uc2-2026-2-c1aed40b69479d5b"
+  },
+  {
+    "date": "2026-12-14",
+    "from": "07:30",
+    "to": "11:30",
+    "title": "PROVA FINAL",
+    "subject": "UC2",
+    "type": "exam",
+    "origin": "pdf",
+    "professor": "",
+    "sheetColor": "#FBFF44",
+    "sourcePages": [
+      18,
+      19
+    ],
+    "id": "uc2-2026-2-dbd0e75463b81e75"
+  }
+]
