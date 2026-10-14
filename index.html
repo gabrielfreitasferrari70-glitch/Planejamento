@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="theme-color" content="#161f31"/>
+<meta name="description" content="Central privada de organização e planejamento acadêmico de Medicina."/>
+<link rel="icon" href="./favicon.svg" type="image/svg+xml"/>
+<link rel="stylesheet" href="./styles.css"/>
+<link rel="stylesheet" href="./insights.css"/>
+<title>Planejamento Medicina · Central Acadêmica</title>
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar" aria-label="Navegação principal">
+<div class="brand"><div class="brand-icon">✚</div><div><strong>Planejamento</strong><span>MEDICINA</span></div></div>
+<nav id="nav"></nav>
+<div class="side-bottom"><div><i class="indicator"></i> Área independente</div><small>UFMT • Fuso de Cuiabá<br>Fonte acadêmica somente leitura</small></div>
+</aside>
+<div class="main-container">
+<header class="header"><div><div class="breadcrumb">CENTRAL ACADÊMICA <span>/</span> <span id="breadcrumb">VISÃO GERAL</span></div><h1 id="heading">Visão geral</h1><p id="subtitle" class="muted">Tudo o que importa, em um só lugar.</p></div><div class="header-actions"><button class="btn btn-ghost search-launch" data-action="search" aria-label="Buscar">⌕ <span>Buscar</span> <kbd>⌘ K</kbd></button><button class="btn btn-ghost theme" data-action="theme" aria-label="Alterar tema">◐</button><button class="btn btn-primary" data-action="create" data-type="task">＋ <span>Nova tarefa</span></button></div></header>
+<div id="source-alert" class="info-strip">Lendo cronograma acadêmico...</div>
+<main id="app" tabindex="-1"></main>
+<footer>Planejamento Medicina • Site independente • Dados pessoais guardados apenas no navegador nesta versão • Nenhum projeto original modificado.</footer>
+</div>
+</div>
+<nav class="mobile-nav" id="mobile-nav" aria-label="Navegação no celular"></nav>
+<div id="modal" class="modal-overlay hidden"></div>
+<div id="toast" class="toast hidden" role="status"></div>
+<script src="./app.js" defer></script><script src="./legacy-import.js" defer></script>
+<script src="./insights.js" defer></script>
+<script src="./cloud-drive.js" defer></script>
+</body>
+</html>
