@@ -17,6 +17,7 @@
     result.settings={availability:clone(settings.availability||{}),goal:settings.goal??12,intervals:settings.intervals??'',theme:settings.theme||'light'};
     if(settings.academicSource!==undefined){if(!object(settings.academicSource))throw Error('Fonte acadêmica inválida.');result.settings.academicSource=clone(settings.academicSource)}
     if(settings.materialsUrl!==undefined)result.settings.materialsUrl=String(settings.materialsUrl);
+    for(const key of ['whatsappPhone','whatsappAutoDaily','whatsappLastSentDate'])if(settings[key]!==undefined)result.settings[key]=clone(settings[key]);
     result.examScopes=clone(source.examScopes||{});if(!object(result.examScopes))throw Error('Conteúdos de provas inválidos.');
     result.integration={};for(const key of ['clientId','lastSync','driveRestoredAt','sheetUrl','sheetRange'])if(source.integration?.[key]!==undefined)result.integration[key]=clone(source.integration[key]);
     return result;
