@@ -7,8 +7,8 @@
   render=function(){previousRender();if(page==='settings')$('app').insertAdjacentHTML('afterbegin',appPanel());updateNotices()};
   const previousGoto=goto;
   const valid=id=>MENU.some(item=>item[0]===id);
-  goto=function(id){if(!valid(id))return;if(location.hash!=='#'+id)history.pushState({page:id},'',location.pathname+location.search+'#'+id);previousGoto(id)};
-  function restorePage(){const id=location.hash.slice(1);if(valid(id))previousGoto(id);else previousGoto('dashboard')}
+  goto=function(id){if(id==='dashboard')id='today';if(!valid(id))return;if(location.hash!=='#'+id)history.pushState({page:id},'',location.pathname+location.search+'#'+id);previousGoto(id)};
+  function restorePage(){const id=location.hash.slice(1);if(valid(id))previousGoto(id);else previousGoto('today')}
   window.addEventListener('popstate',()=>{closeModal();restorePage()});
   window.addEventListener('hashchange',()=>{if(location.hash.slice(1)!==page)restorePage()});
   function updateNotices(){

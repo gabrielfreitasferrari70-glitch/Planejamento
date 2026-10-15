@@ -120,6 +120,25 @@ Ao acrescentar um novo arquivo necessário offline, inclua-o em `ASSETS`.
 Não acrescente respostas privadas ou URLs de APIs à lista.
 
 A navegação suporta o botão Voltar e atalhos `/#today`, `/#tasks` e `/#reviews`.
+
+## Tela Hoje
+
+**Hoje** é a tela inicial (substitui Visão geral e Meu dia; links antigos `/#dashboard`
+abrem Hoje). No topo, **Agora/Próximo** mostra a aula em andamento ou a próxima, com
+tempo restante, e **O que fazer agora** escolhe um item: revisões e tarefas atrasadas
+primeiro (as mais antigas antes), depois horários planejados para hoje, depois prazos de
+hoje. **Iniciar foco** abre o Foco já com disciplina e assunto. **Para hoje** lista os
+demais itens em uma linha, com caixa para concluir. **Linha do dia** apaga o que já passou
+e destaca o que está acontecendo. Estatísticas, meta semanal, radar de provas e
+aprendizado ficam recolhidos em **Mais do seu dia**. A tela se atualiza a cada minuto,
+exceto enquanto você digita.
+
+## Aparência
+
+O tema segue o claro/escuro do aparelho até você escolher um (botão do cabeçalho ou
+**Configurações → Aparência**). As cores do cronograma vêm da planilha, mas os tons são
+suavizados para cada tema. Ícones: Lucide (ISC, `vendor/lucide-LICENSE`), embutidos no
+`index.html`. Fonte: Inter variável recortada para latim (`vendor/fonts`, SIL OFL).
 O layout adapta agenda, formulários, menus e alvos de toque a celular e tablet,
 com áreas seguras e altura dos formulários ajustada à janela visível.
 Os testes cobrem esses tamanhos em Chromium; a instalação no Safari/iOS usa
@@ -213,7 +232,7 @@ O total diário conta respostas registradas em `mr_reviews`, sem duplicar IDs.
 Responder ao mesmo cartão duas vezes conta duas revisões. Cartões distintos são
 mostrados separadamente. Dias seguem o fuso `America/Cuiaba`; clicar no total abre
 baralhos, caminhos de pastas, quantidades, percentuais e avaliações de dificuldade.
-O painel inicial também mostra as revisões de flashcards realizadas hoje.
+A tela Hoje também mostra, em "Mais do seu dia", as revisões de flashcards realizadas hoje.
 A tela de revisões inclui atividade dos últimos 7 ou 14 dias, média por dia ativo,
 maior volume diário e os cinco baralhos mais revisados no período. O detalhe do
 dia mostra participação por baralho e avaliações de dificuldade, sem tratá-las

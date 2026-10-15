@@ -85,7 +85,7 @@ class SiteSmokeTests(unittest.TestCase):
     def test_all_desktop_sections_at_small_height(self):
         self.open()
         menu = self.page.evaluate('MENU.map(x=>[x[0],x[2]])')
-        self.assertEqual(len(menu), 15)
+        self.assertEqual(len(menu), 14)
         for target, title in menu:
             self.nav(target)
             self.assertEqual(self.page.locator('#heading').inner_text(), title)
@@ -229,7 +229,7 @@ class SiteSmokeTests(unittest.TestCase):
         for width,height in [(390,844),(768,1024),(1024,768)]:
             with self.subTest(width=width,height=height):
                 self.page.set_viewport_size({'width':width,'height':height});self.open()
-                for target in ['dashboard','week','calendar','tasks','planner','settings','materials','reviews']:
+                for target in ['today','week','calendar','tasks','planner','settings','materials','reviews']:
                     if width<=650:
                         self.page.locator('#mobile-nav [data-action="more-menu"]').click()
                         self.page.locator(f'#modal [data-page="{target}"]').click()
@@ -258,7 +258,10 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.evaluate("goto('settings')")
         self.page.go_back()
         self.assertEqual(self.page.locator('#heading').inner_text(),'Tarefas')
-        self.page.locator('[data-action="app-install"]').first.click()
+        # On phones the install shortcut lives in the "Mais" menu, keeping the header compact.
+        self.assertFalse(self.page.locator('header [data-action="app-install"]').is_visible())
+        self.page.locator('#mobile-nav [data-action="more-menu"]').click()
+        self.page.locator('#modal [data-action="app-install"]').click()
         self.assertTrue(self.page.get_by_role('dialog').is_visible())
         self.page.keyboard.press('Escape')
         self.page.evaluate("data.settings.materialsUrl='https://drive.google.com/drive/folders/test-materials-folder';data.replacement=seed;save()")
@@ -528,6 +531,57 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.wait_for_function('data.sessions.length === 1')
         self.assertEqual(len(self.saved()['reviews']), 2)
         self.assertTrue(self.saved()['tasks'][0]['done'])
+
+
+    def test_today_screen_orders_the_queue_and_starts_focus(self):
+        self.open()
+        self.assertEqual(self.page.locator('#heading').inner_text(), 'Hoje')
+        self.page.evaluate("""() => {
+          const t=today(), d=n=>dayAdd(t,n);
+          data.tasks=[
+            {id:'later',title:'Tarefa sem prazo',subject:'Anatomia',priority:'3',done:false},
+            {id:'due-today',title:'Entregar relatório',subject:'Tutoria',priority:'1',date:t,done:false},
+            {id:'late-task',title:'Lista atrasada',subject:'Bioquímica',priority:'1',date:d(-1),estimate:'50',done:false}];
+          data.reviews=[{id:'old-review',topic:'Néfron',subject:'Fisiologia',due:d(-3),done:false},
+                        {id:'future-review',topic:'Plexo',subject:'Anatomia',due:d(4),done:false}];
+          save(); goto('today');
+        }""")
+        queue = self.page.evaluate('todayQueue().map(x=>x.id)')
+        self.assertEqual(queue, ['old-review', 'late-task', 'due-today'])
+        hero = self.page.locator('.today-next').inner_text()
+        self.assertIn('Revisar: Néfron', hero)
+        self.assertIn('atrasada há 3 dias', hero)
+        self.assertEqual(self.page.locator('.today-list .today-item').count(), 2)
+        self.assertIn('Atrasada · 1 dia', self.page.locator('.today-list').inner_text())
+        self.assertNotIn('Plexo', self.page.locator('.today-list').inner_text())
+        self.page.locator('.today-list [data-id="late-task"]').click()
+        self.assertTrue(next(x for x in self.saved()['tasks'] if x['id']=='late-task')['done'])
+        self.page.locator('.today-next [data-action="focus-start"]').click()
+        self.assertEqual(self.page.locator('#heading').inner_text(), 'Foco')
+        self.assertEqual(self.page.locator('#focus-subject').input_value(), 'Fisiologia')
+        self.assertEqual(self.page.locator('#focus-topic').input_value(), 'Néfron')
+
+    def test_today_empty_account_and_legacy_dashboard_link(self):
+        self.page.goto(self.url + '#dashboard', wait_until='networkidle')
+        self.assertEqual(self.page.locator('#heading').inner_text(), 'Hoje')
+        self.assertIn('Nada pendente para hoje', self.page.locator('.today-next').inner_text())
+        self.assertIn('Seu cronograma ainda não foi importado', self.page.locator('.today-now').inner_text())
+        self.page.locator('.today-more > summary').click()
+        self.assertTrue(self.page.locator('#today-more-panels').get_by_text('Radar das próximas provas').is_visible())
+        self.page.evaluate('render()')
+        self.assertTrue(self.page.locator('#today-more').evaluate('el => el.open'))
+
+    def test_theme_follows_system_until_chosen(self):
+        self.page.emulate_media(color_scheme='dark')
+        self.open()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.page.emulate_media(color_scheme='light')
+        self.page.wait_for_function("document.documentElement.dataset.theme==='light'")
+        self.page.locator('header [data-action="theme"]').click()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.page.emulate_media(color_scheme='light')
+        self.page.reload(wait_until='networkidle')
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
 
 
 if __name__ == '__main__':

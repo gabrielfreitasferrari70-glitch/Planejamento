@@ -162,3 +162,62 @@ kbd{font:inherit;font-size:10px;font-weight:650;padding:1px 5px;border:1px solid
 .panel p,.source-box p,.modal-card p{font-size:13px}.tiny,.event-content small,.task small,.stat-hint,.insight-row small,.radar-details small,.mini-text,.task-dates{font-size:12px}.cal-event{font-size:11px}
 @media(max-width:650px){.panel p,.source-box p,.modal-card p,.header p{font-size:14px}.tiny,.event-content small,.task small,.stat-hint,.insight-row small,.radar-details small,.mini-text,.task-dates{font-size:13px}.legend-key{font-size:12px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Hoje: agora/próximo, o que fazer agora, lista compacta e linha do dia. */
+.today-hero{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.6fr);border-radius:16px;overflow:hidden;background:#26375c;color:#fff;margin-bottom:18px;box-shadow:0 14px 28px #101e3922}
+html[data-theme=dark] .today-hero{background:#22345a;box-shadow:none;border:1px solid #33456b}
+.today-now{padding:24px 26px;background:#1c2a48;border-right:1px solid #ffffff14;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+html[data-theme=dark] .today-now{background:#1a2846}
+.today-next{padding:24px 28px}
+.today-label{display:block;font-size:12px;font-weight:650;color:#b7c4e6;letter-spacing:.1px}
+.today-now-title{font-size:18px;font-weight:720;line-height:1.35;margin:0;color:#fff;overflow-wrap:anywhere}
+.today-now-meta{font-size:13px;color:#c8d3ee;margin:0}
+.today-now .btn{margin-top:8px}
+.today-next h2{font-size:26px;letter-spacing:-.5px;line-height:1.22;margin:8px 0 8px;color:#fff;text-wrap:balance;overflow-wrap:anywhere}
+.today-next-meta{font-size:13px;color:#c8d3ee;margin:0 0 6px}
+.today-next .pill-row{margin-top:14px}
+.btn-light{background:#eef2ff;color:#22335e;border-color:#eef2ff}.btn-light:hover{background:#fff;color:#22335e}
+.btn-on-dark{background:#ffffff14;color:#fff;border-color:#ffffff30}.btn-on-dark:hover{background:#ffffff26;color:#fff}
+.today-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(300px,1fr);grid-template-areas:"line list" "line note";gap:0 18px;align-items:start}
+.today-line{grid-area:line}.today-list{grid-area:list}.today-note{grid-area:note}
+.today-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}.today-item:last-child{border-bottom:0}
+.today-item input{accent-color:var(--accent);width:18px;height:18px;flex-shrink:0;margin:0}
+.today-item-text{flex:1;min-width:0}.today-item-text strong{display:block;font-size:13.5px;font-weight:650;overflow-wrap:anywhere}.today-item-text small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.today-when{font-size:12px;font-weight:650;color:var(--muted);white-space:nowrap}.today-when.late{color:#b34d58}html[data-theme=dark] .today-when.late{color:#f0a6af}
+.event.is-past{opacity:.55}
+.event.is-now .event-time{color:var(--accent)}.event.is-now .event-time::after{content:'agora';display:block;font-size:11px;font-weight:750;margin-top:2px}
+.event.is-now .event-content{background:var(--accentbg);border-radius:0 9px 9px 0;padding:9px 12px}
+.today-studied{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:14px;padding:14px 16px;border-radius:12px;background:var(--bg);border:1px solid var(--border)}
+.today-studied strong{display:block;font-size:13px}.today-studied small{display:block;color:var(--muted);font-size:12px;margin-top:3px;overflow-wrap:anywhere}.today-studied .btn{flex-shrink:0}
+.empty-state{display:flex;flex-direction:column;align-items:center;gap:6px}.empty-state .ico{width:22px;height:22px;color:var(--accent);margin-bottom:2px}.empty-state strong{color:var(--text);font-size:13px}.empty-state span{font-size:12px}.empty-state .btn{margin-top:8px}
+.today-more{border:1px solid var(--border);border-radius:15px;background:var(--card);margin-bottom:18px;box-shadow:var(--shadow)}
+.today-more>summary{cursor:pointer;padding:17px 22px;display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;list-style:none;font-weight:720;font-size:14px}
+.today-more>summary::-webkit-details-marker{display:none}
+.today-more>summary::before{content:'';width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);align-self:center;margin-right:4px;transition:transform .15s ease}
+.today-more[open]>summary::before{transform:rotate(45deg)}
+.today-more>summary small{font-weight:400;color:var(--muted);font-size:12px}
+.today-more-body{padding:0 22px 6px}
+.today-more-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px}.today-more-panels .panel{box-shadow:none;min-width:0}
+.quick-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.quick-actions .btn{flex:1;min-height:44px}
+@media(max-width:1180px){.today-grid{grid-template-columns:1fr;grid-template-areas:"list" "line" "note"}}
+@media(max-width:920px){.today-hero{grid-template-columns:1fr}.today-now{border-right:0;border-bottom:1px solid #ffffff14}.today-more-panels{grid-template-columns:1fr}}
+@media(max-width:650px){
+ .today-now{padding:16px 18px}.today-next{padding:18px}.today-next h2{font-size:22px}.today-now-title{font-size:16px}
+ .today-next .pill-row .btn{flex:1}
+ .today-studied{flex-direction:column;align-items:stretch}
+ .today-more>summary{padding:16px}.today-more-body{padding:0 12px 4px}
+ .today-item-text strong{font-size:14px}
+ .header{flex-wrap:nowrap;align-items:flex-start;gap:10px;margin-bottom:16px}
+ .header>div:first-child{width:auto;flex:1;min-width:0}
+ .header h1{font-size:24px}.header p{font-size:13px;margin-top:4px}
+ .header-actions{width:auto;flex-wrap:nowrap;gap:6px;flex-shrink:0}
+ .header-actions .app-install-launch,.header-actions .theme{display:none}
+ .header-actions .btn span{display:none}
+ .header-actions .btn{min-width:44px;padding:0 11px}
+ .header-actions .btn-primary{margin-left:0}
+}
+.today-more-panels{align-items:start}
+.modal-card .quick-nav{grid-template-columns:repeat(2,minmax(0,1fr))}
+.modal-card .quick-nav-item{display:flex;align-items:center;gap:10px;min-height:52px;padding:12px}
+.modal-card .quick-nav-item span{margin:0;display:grid;place-items:center}
+:root{color-scheme:light}html[data-theme=dark]{color-scheme:dark}
