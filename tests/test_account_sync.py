@@ -29,7 +29,7 @@ class AccountSyncTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.browser.close();cls.playwright.stop();cls.server.shutdown();cls.server.server_close();cls.thread.join()
-    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[];self.approvals={};self.document_reads=0;self.profile_missing=False;self.recoveries=[];self.password_updates=[];self.versions={};self.simulate_401=False;self.simulate_network_error=False
+    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[];self.approvals={};self.document_reads=0;self.profile_missing=False;self.logins=[];self.recoveries=[];self.password_updates=[];self.versions={};self.simulate_401=False;self.simulate_network_error=False
     def tearDown(self):
         for context in self.contexts:context.close()
         self.assertEqual(self.errors,[])
@@ -59,7 +59,8 @@ class AccountSyncTests(unittest.TestCase):
             elif path=='/auth/v1/recover':
                 self.recoveries.append(request.post_data_json)
                 result={}
-            elif path=='/auth/v1/token':result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
+            elif path=='/auth/v1/token':
+                self.logins.append(request.post_data_json);result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
             elif path=='/auth/v1/user':
                 if request.method=='PUT':
                     self.password_updates.append(request.post_data_json)
@@ -149,7 +150,7 @@ class AccountSyncTests(unittest.TestCase):
         _,page=self.device(auto_login=False)
         page.locator('[name="fullName"]').fill('Gabriel')
         page.locator('[name="email"]').fill('fixture@example.invalid')
-        for code,expected in [('signup_disabled','temporariamente indisponível'),('weak_password','pelo menos 10 caracteres'),('over_email_send_rate_limit','limite de envio de e-mails')]:
+        for code,expected in [('signup_disabled','temporariamente indisponível'),('weak_password','pelo menos 6 caracteres'),('over_email_send_rate_limit','limite de envio de e-mails')]:
             self.signup_error=code
             page.locator('[name="password"]').fill('fixture-password')
             page.locator('button[value="signup"]').click()
@@ -340,10 +341,32 @@ class AccountSyncTests(unittest.TestCase):
         self.deny_write=False;page.evaluate('PlanningAccount.sync()');self.wait_cloud(page,1)
         self.assertEqual(self.writes,1)
 
+    def test_existing_account_can_login_with_six_characters(self):
+        _,page=self.device(auto_login=False)
+        page.locator('[name="email"]').fill('fixture@example.invalid')
+        page.locator('[name="password"]').fill('seisA6')
+        page.locator('button[value="login"]').click()
+        page.wait_for_function("PlanningAccount.user!==null && PlanningAccount.status==='synced'")
+        self.assertEqual(self.logins[-1]['password'],'seisA6')
+        self.assertEqual(self.signups,[])
+
+    def test_signup_accepts_six_and_rejects_five_characters(self):
+        _,page=self.device(auto_login=False)
+        page.locator('[name="fullName"]').fill('Teste')
+        page.locator('[name="email"]').fill('fixture@example.invalid')
+        page.locator('[name="password"]').fill('cinco')
+        page.locator('button[value="signup"]').click()
+        self.assertFalse(page.locator('[name="password"]').evaluate('el=>el.checkValidity()'))
+        self.assertEqual(self.signups,[])
+        page.locator('[name="password"]').fill('seisA6')
+        page.locator('button[value="signup"]').click()
+        page.wait_for_function("PlanningAccount.status==='awaiting-approval'")
+        self.assertEqual(self.signups[-1]['password'],'seisA6')
+
     def test_password_recovery_and_minlength_validation(self):
         _,page=self.device(auto_login=False)
-        self.assertEqual(page.locator('[name="password"]').get_attribute('minlength'),'10')
-        self.assertIn('mínimo de 10 caracteres',page.locator('#account-login-form').inner_text())
+        self.assertEqual(page.locator('[name="password"]').get_attribute('minlength'),'6')
+        self.assertIn('mínimo de 6 caracteres',page.locator('#account-login-form').inner_text())
         page.locator('[data-action="account-forgot"]').click()
         self.assertTrue(page.locator('#account-forgot-form').is_visible())
         page.locator('#account-forgot-form [name="email"]').fill('usuario@example.invalid')
@@ -361,20 +384,20 @@ class AccountSyncTests(unittest.TestCase):
         self.assertTrue(page.locator('#source-alert').evaluate("el => el.classList.contains('hidden')"))
         self.assertEqual(self.document_reads,0)
 
-        self.assertEqual(page.locator('#account-reset-password-form [name="newPassword"]').get_attribute('minlength'),'10')
-        self.assertEqual(page.locator('#account-reset-password-form [name="confirmPassword"]').get_attribute('minlength'),'10')
+        self.assertEqual(page.locator('#account-reset-password-form [name="newPassword"]').get_attribute('minlength'),'6')
+        self.assertEqual(page.locator('#account-reset-password-form [name="confirmPassword"]').get_attribute('minlength'),'6')
 
-        page.locator('#account-reset-password-form [name="newPassword"]').fill('novasenha1234')
+        page.locator('#account-reset-password-form [name="newPassword"]').fill('novaS6')
         page.locator('#account-reset-password-form [name="confirmPassword"]').fill('outrasenha1234')
         page.locator('#account-reset-password-form button[type="submit"]').click()
         self.assertIn('não coincidem',page.locator('#account-reset-status').inner_text())
         self.assertEqual(len(self.password_updates),0)
 
-        page.locator('#account-reset-password-form [name="newPassword"]').fill('novasenha1234')
-        page.locator('#account-reset-password-form [name="confirmPassword"]').fill('novasenha1234')
+        page.locator('#account-reset-password-form [name="newPassword"]').fill('novaS6')
+        page.locator('#account-reset-password-form [name="confirmPassword"]').fill('novaS6')
         page.locator('#account-reset-password-form button[type="submit"]').click()
         page.wait_for_function("PlanningAccount.user !== null && PlanningAccount.status === 'synced'")
-        self.assertEqual(self.password_updates[0]['password'],'novasenha1234')
+        self.assertEqual(self.password_updates[0]['password'],'novaS6')
         self.assertGreater(self.document_reads,0)
         self.assertFalse(page.locator('#source-alert').evaluate("el => el.classList.contains('hidden')"))
 
