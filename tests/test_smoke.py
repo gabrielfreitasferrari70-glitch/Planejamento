@@ -177,7 +177,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.semester-event').count(), 4)
         self.page.locator('.semester-event').filter(has_text='PROVA FINAL').click()
         self.assertTrue(self.page.get_by_role('dialog').is_visible())
-        self.assertIn('PROVA FINAL', self.page.locator('#modal').inner_text())
+        self.assertIn('prova final', self.page.locator('#modal').inner_text().lower())
         self.page.keyboard.press('Escape')
         self.page.locator('#semester-type').select_option('welcome')
         self.assertIn('Nenhuma atividade corresponde aos filtros', self.page.locator('#app').inner_text())
@@ -204,6 +204,8 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.semester-event').count(), 4)
         self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
         self.page.locator('#mobile-nav [data-page="week"]').click()
+        # Phones show one day at a time; pick the day of the planned task.
+        self.page.locator('[data-action="week-day"]').nth(2).click()
         self.assertIn('Minha tarefa pessoal', self.page.locator('#app').inner_text())
 
     def test_free_period_does_not_block_the_planner(self):
@@ -653,6 +655,40 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.keyboard.press('Escape')
         self.page.set_viewport_size({'width': 320, 'height': 568})
         self.nav('tasks') if self.page.locator('#nav').is_visible() else self.page.evaluate("goto('tasks')")
+        self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
+
+
+    def test_week_time_grid_slots_and_display_titles(self):
+        self.open()
+        self.assertEqual(self.page.evaluate("displayTitle('ANATOMIA: VASCULARIZAÇÃO DO SISTEMA URINÁRIO')"), 'Anatomia: Vascularização do sistema urinário')
+        self.assertEqual(self.page.evaluate("displayTitle('EMBRIOLOGIA: SISTEMA UROGENITAL I')"), 'Embriologia: Sistema urogenital I')
+        self.assertEqual(self.page.evaluate("displayTitle('AVALIAÇÃO UC2 - SUS')"), 'Avaliação UC2 - SUS')
+        self.assertEqual(self.page.evaluate("displayTitle('Já em formato normal')"), 'Já em formato normal')
+        self.page.evaluate("""() => {const d=weekDates()[1];
+          data.events=[{id:'a',type:'class',title:'ANATOMIA: RIM',date:d,from:'08:00',to:'10:00'},
+                       {id:'b',type:'class',title:'Tutoria paralela',date:d,from:'09:00',to:'11:00'},
+                       {id:'c',type:'class',title:'Sem horário',date:d}];save();goto('week')}""")
+        a = self.page.locator('.cal-block[data-id="a"]').bounding_box()
+        b = self.page.locator('.cal-block[data-id="b"]').bounding_box()
+        self.assertAlmostEqual(b['y'] - a['y'], 48, delta=2)
+        self.assertGreater(b['x'], a['x'] + 10)
+        self.assertIn('Anatomia: Rim', self.page.locator('.cal-block[data-id="a"]').inner_text())
+        self.assertEqual(self.page.locator('.cal-allday .cal-chip[data-id="c"]').count(), 1)
+        self.assertEqual(self.page.locator('.cal-day').count(), 7)
+        body = self.page.locator('.cal-day').nth(3).locator('.cal-day-body')
+        box = body.bounding_box()
+        start = int(body.get_attribute('data-start'))
+        body.click(position={'x': box['width'] / 2, 'y': 48 * (14 - start) + 10})
+        form = self.page.locator('#record-form')
+        self.assertEqual(form.locator('[name="from"]').input_value(), '14:00')
+        self.assertEqual(form.locator('[name="to"]').input_value(), '15:00')
+        self.assertEqual(form.locator('[name="date"]').input_value(), self.page.evaluate('weekDates()[3]'))
+        self.page.keyboard.press('Escape')
+        self.page.set_viewport_size({'width': 390, 'height': 844})
+        self.page.evaluate("render()")
+        self.assertEqual(self.page.locator('.time-grid .cal-day:visible').count(), 1)
+        self.page.locator('[data-action="week-day"]').nth(1).click()
+        self.assertTrue(self.page.locator('.cal-block[data-id="a"]').is_visible())
         self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
 
 

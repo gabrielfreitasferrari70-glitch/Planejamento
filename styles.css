@@ -272,3 +272,49 @@ textarea.field{resize:vertical;min-height:72px;font-family:inherit}
  .row-menu>summary{width:44px;height:44px}
  .row-menu-item{min-height:44px;font-size:14px}
 }
+/* Semana como agenda: grade de horários. */
+.week-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.week-head .pill-row{margin:0}
+.week-tabs{display:none}
+.calendar-scroller.has-grid{overflow:visible}
+.calendar.time-grid{display:grid;grid-template-columns:52px repeat(7,minmax(0,1fr));gap:0;min-width:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card)}
+.time-grid .cal-day,.time-grid .cal-gutter{display:flex;flex-direction:column;min-width:0;min-height:0;padding:0;margin:0;border:0;border-left:1px solid var(--border);border-radius:0;background:transparent}
+.time-grid .cal-gutter{border-left:0}
+.time-grid .cal-day-head{height:48px;flex:0 0 48px;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:11px;font-weight:650;color:var(--muted);text-transform:capitalize;border-bottom:1px solid var(--border)}
+.time-grid .cal-day-head span{font-size:17px;font-weight:750;color:var(--text);width:30px;height:30px;display:grid;place-items:center;border-radius:50%}
+.time-grid .cal-day.today .cal-day-head{color:var(--accent)}
+.time-grid .cal-day.today .cal-day-head span{background:var(--accent);color:#fff}
+html[data-theme=dark] .time-grid .cal-day.today .cal-day-head span{color:#111a28}
+.time-grid .cal-allday{border-bottom:1px solid var(--border);padding:4px 3px;display:flex;flex-direction:column;gap:3px;box-sizing:border-box}
+.time-grid .cal-allday:empty{padding:0}
+.time-grid .cal-chip{margin:0;padding:3px 6px;font-size:10.5px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.cal-gutter-body{position:relative}
+.cal-gutter-body span{position:absolute;right:7px;font-size:10.5px;font-weight:600;color:var(--muted);transform:translateY(3px);font-variant-numeric:tabular-nums}
+.cal-day-body{position:relative;cursor:copy;background-image:repeating-linear-gradient(to bottom,var(--border) 0,var(--border) 1px,transparent 1px,transparent 48px)}
+.time-grid .cal-day.today .cal-day-body{background-color:color-mix(in srgb,var(--accentbg) 55%,transparent)}
+.time-grid .cal-block{position:absolute;margin:0;padding:4px 6px;display:flex;flex-direction:column;gap:1px;overflow:hidden;font-size:11px;line-height:1.28;border-radius:7px;cursor:pointer;z-index:1;box-shadow:0 1px 2px rgba(16,30,57,.06)}
+.time-grid .cal-block:hover,.time-grid .cal-block:focus-visible{z-index:4}
+.cal-time{font-size:10.5px;font-weight:700;opacity:.8;font-variant-numeric:tabular-nums}
+.cal-title{font-weight:650;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.time-grid .cal-block.is-short{flex-direction:row;gap:5px;align-items:center;white-space:nowrap}
+.time-grid .cal-block.is-short .cal-title{-webkit-line-clamp:1;display:block;text-overflow:ellipsis;white-space:nowrap}
+.time-grid .cal-block .teacher-name{margin-top:2px;font-size:10.5px}
+.cal-now{position:absolute;left:0;right:0;height:2px;background:#d9475a;z-index:3;pointer-events:none}
+.cal-now::before{content:'';position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:#d9475a}
+.week-list{margin-top:16px;border-top:1px solid var(--border);padding-top:6px}
+.week-list>summary{cursor:pointer;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:650;color:var(--accent);padding:8px 0;list-style:none}
+.week-list>summary::-webkit-details-marker{display:none}
+@media(min-width:651px) and (max-width:1024px){.calendar.time-grid{grid-template-columns:44px repeat(7,minmax(0,1fr))}.time-grid .cal-block{padding:3px 4px;font-size:10px}.time-grid .cal-block .cal-time{display:none}}
+@media(max-width:650px){
+ .week-tabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:0 0 12px}
+ .week-tabs button{border:1px solid var(--border);background:var(--card);color:var(--muted);border-radius:12px;padding:6px 0;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+ .week-tabs button small{font-size:11px;text-transform:capitalize}.week-tabs button strong{font-size:16px;color:var(--text)}
+ .week-tabs button.is-today strong{color:var(--accent)}
+ .week-tabs button.active{background:var(--accent);border-color:var(--accent)}.week-tabs button.active small,.week-tabs button.active strong{color:#fff}
+ html[data-theme=dark] .week-tabs button.active small,html[data-theme=dark] .week-tabs button.active strong{color:#111a28}
+ .calendar.time-grid{grid-template-columns:46px minmax(0,1fr)}
+ .time-grid .cal-day:not(.is-selected){display:none}
+ .time-grid .cal-day-head{display:none}
+ .time-grid .cal-block{font-size:13px;padding:6px 8px}.cal-time{font-size:12px}
+ .time-grid .cal-chip{font-size:12px;padding:5px 8px}
+}
