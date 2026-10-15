@@ -334,7 +334,7 @@ class SiteSmokeTests(unittest.TestCase):
 
     def test_tasks_optional_deadline_edit_and_study_are_distinct(self):
         self.open();self.nav('tasks')
-        self.page.locator('#app').get_by_role('button',name='＋ Nova tarefa',exact=True).click()
+        self.page.locator('#app').get_by_role('button',name='Nova tarefa',exact=True).click()
         form=self.page.locator('#record-form')
         self.assertEqual(form.locator('[name="date"]').input_value(),'')
         form.locator('[name="title"]').fill('Resolver 20 questões')
@@ -343,8 +343,11 @@ class SiteSmokeTests(unittest.TestCase):
         form.locator('[name="priority"]').select_option('3')
         form.locator('button[type="submit"]').click()
         task_id=self.saved()['tasks'][0]['id']
-        self.assertIn('Sem prazo definido',self.page.locator('.task-card').inner_text())
+        self.assertIn('Sem prazo',self.page.locator('.task-card').inner_text())
+        self.assertIn('40 min',self.page.locator('.task-card').inner_text())
+        self.assertIn('Alta',self.page.locator('.task-card').inner_text())
         self.page.evaluate("data.tasks[0].scheduled=dayAdd(today(),1);data.tasks[0].start='18:00';data.tasks[0].end='18:40';save();render()")
+        self.page.locator('.task-card .row-menu > summary').click()
         self.page.locator('[data-action="task-edit"]').click()
         self.assertEqual(form.locator('[name="priority"]').input_value(),'3')
         form.locator('[name="title"]').fill('Resolver e corrigir 20 questões')
@@ -353,9 +356,11 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(record['id'],task_id)
         self.assertEqual(record['start'],'18:00')
         self.assertEqual(len(self.saved()['tasks']),1)
+        self.page.locator('.task-card .row-menu > summary').click()
         self.page.locator('[data-action="task-week"]').click()
         self.assertTrue(self.page.locator('.cal-event').filter(has_text='Resolver e corrigir 20 questões').is_visible())
         self.nav('tasks')
+        self.page.locator('.task-card .row-menu > summary').click()
         self.page.locator('[data-action="task-study"]').click()
         self.assertEqual(form.locator('[name="topic"]').input_value(),'Resolver e corrigir 20 questões')
         self.assertEqual(form.locator('[name="minutes"]').input_value(),'40')
@@ -590,6 +595,66 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'light')
         # Account sync keeps settings.theme, so the choice survives synchronisation.
         self.assertEqual(self.saved()['settings']['theme'], 'light')
+
+    def test_tasks_repeat_subtasks_undo_filters_and_search(self):
+        self.open(); self.nav('tasks')
+        self.page.locator('#app').get_by_role('button', name='Nova tarefa', exact=True).click()
+        form = self.page.locator('#record-form')
+        form.locator('[name="title"]').fill('Questões de Fisiologia')
+        form.locator('[name="date"]').fill(self.page.evaluate('today()'))
+        form.locator('[name="repeat"]').select_option('daily')
+        form.locator('[name="subtasks"]').fill('Separar a lista\nResolver 20 questões\n\nCorrigir')
+        form.locator('button[type="submit"]').click()
+        task = self.saved()['tasks'][0]
+        self.assertEqual(task['repeat'], 'daily')
+        self.assertEqual([x['title'] for x in task['subtasks']], ['Separar a lista', 'Resolver 20 questões', 'Corrigir'])
+        self.assertIn('0/3 subtarefas', self.page.locator('.task-card').inner_text())
+        self.page.locator('.subtasks > summary').click()
+        self.page.locator('.subtasks input').first.check()
+        self.assertTrue(self.saved()['tasks'][0]['subtasks'][0]['done'])
+        self.assertTrue(self.page.locator('.subtasks').evaluate('el => el.open'))
+        # Completing a repeating task creates the next occurrence; "Desfazer" removes it again.
+        self.page.locator('.task-card [data-action="toggle"]').first.click()
+        tasks = self.saved()['tasks']
+        self.assertEqual(len(tasks), 2)
+        nxt = [x for x in tasks if not x['done']][0]
+        self.assertEqual(nxt['date'], self.page.evaluate('dayAdd(today(),1)'))
+        self.assertFalse(any(x['done'] for x in nxt['subtasks']))
+        self.page.locator('#toast [data-action="toast-action"]').click()
+        self.assertEqual(len(self.saved()['tasks']), 1)
+        self.assertFalse(self.saved()['tasks'][0]['done'])
+        # Toggling twice must not create duplicate occurrences.
+        self.page.locator('.task-card [data-action="toggle"]').first.click()
+        self.page.locator('[data-action="task-filter"][data-filter="all"]').click()
+        self.page.locator('.task-completed [data-action="toggle"]').click()
+        self.page.locator('.task-card:not(.task-completed) [data-action="toggle"]').first.click()
+        self.assertLessEqual(len(self.saved()['tasks']), 3)
+        # Delete with undo.
+        count = len(self.saved()['tasks'])
+        self.page.locator('.task-card .row-menu > summary').first.click()
+        self.page.locator('[data-action="task-delete"]').first.click()
+        self.assertEqual(len(self.saved()['tasks']), count - 1)
+        self.page.locator('#toast [data-action="toast-action"]').click()
+        self.assertEqual(len(self.saved()['tasks']), count)
+        # Quick filters.
+        self.page.evaluate("data.tasks.push({id:'late',title:'Atrasada antiga',date:dayAdd(today(),-2),priority:'3',done:false},{id:'free',title:'Sem data',priority:'1',done:false});save();render()")
+        self.page.locator('[data-action="task-filter"][data-filter="late"]').click()
+        self.assertIn('Atrasada antiga', self.page.locator('#app').inner_text())
+        self.assertNotIn('Sem data', self.page.locator('.panel').inner_text())
+        self.page.locator('[data-action="task-filter"][data-filter="nodate"]').click()
+        self.assertIn('Sem data', self.page.locator('.panel').inner_text())
+        # Search reaches reviews and mistakes, ignoring accents.
+        self.page.evaluate("data.reviews.push({id:'rv',topic:'Néfron',subject:'Fisiologia',due:today(),done:false});data.mistakes.push({id:'mk',subject:'Bioquímica',topic:'Glicólise',cause:'Conceito',date:today(),resolved:false});save()")
+        self.page.locator('header [data-action="search"]').click()
+        self.page.locator('#search-input').fill('nefron')
+        self.assertIn('Revisar: Néfron', self.page.locator('#search-results').inner_text())
+        self.page.locator('#search-input').fill('glicolise')
+        self.assertIn('Glicólise', self.page.locator('#search-results').inner_text())
+        self.page.keyboard.press('Escape')
+        self.page.set_viewport_size({'width': 320, 'height': 568})
+        self.nav('tasks') if self.page.locator('#nav').is_visible() else self.page.evaluate("goto('tasks')")
+        self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

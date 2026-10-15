@@ -221,3 +221,54 @@ html[data-theme=dark] .today-now{background:#1a2846}
 .modal-card .quick-nav-item{display:flex;align-items:center;gap:10px;min-height:52px;padding:12px}
 .modal-card .quick-nav-item span{margin:0;display:grid;place-items:center}
 :root{color-scheme:light}html[data-theme=dark]{color-scheme:dark}
+/* Tarefas compactas: linha única, chips, menu de ações, subtarefas e filtros. */
+.task-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+.task-toolbar>.pill-row{margin:0}
+.task-filters{display:flex;flex-wrap:wrap;gap:6px;min-width:0;max-width:100%}
+.task-filters button{display:inline-flex;align-items:center;gap:6px}
+.filter-count{font-size:11px;font-weight:700;color:var(--muted);background:var(--bg);border-radius:6px;padding:0 6px}
+.task-filters button.active .filter-count{color:var(--accent);background:var(--card)}
+.task-group+.task-group{margin-top:18px}
+.task-group h3{font-size:12px;font-weight:700;color:var(--muted);margin:0 0 4px;display:flex;align-items:center;gap:4px}
+.task-card.task-row{display:flex;align-items:flex-start;gap:12px;padding:12px 4px 12px 2px;margin:0;background:transparent;border:0;border-bottom:1px solid var(--border);border-radius:0}
+.task-card.task-row:last-child{border-bottom:0}
+.task-row .task-toggle{accent-color:var(--accent);width:19px;height:19px;flex-shrink:0;margin:2px 0 0}
+.task-main{flex:1;min-width:0}
+.task-title{display:block;font-size:14px;font-weight:650;line-height:1.4;overflow-wrap:anywhere}
+.task-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:650;color:var(--muted);border:1px solid var(--border);border-radius:7px;padding:2px 7px;white-space:nowrap}
+.chip .ico{width:12px;height:12px}
+.chip-late{color:#b34d58;border-color:#efc9ce;background:#fdf3f4}html[data-theme=dark] .chip-late{color:#f0a6af;border-color:#6b3a42;background:#3a2328}
+.chip-today{color:var(--accent);border-color:var(--accentbg);background:var(--accentbg)}
+.chip-accent{color:var(--accent)}
+.chip-muted{border-style:dashed}
+.task-row.task-completed .task-chips{opacity:.7}
+.row-menu{position:relative;flex-shrink:0}
+.row-menu>summary{list-style:none;cursor:pointer;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;color:var(--muted)}
+.row-menu>summary::-webkit-details-marker{display:none}
+.row-menu>summary:hover,.row-menu[open]>summary{background:var(--bg);color:var(--text)}
+.row-menu>summary .ico{width:18px;height:18px}
+.row-menu-list{position:absolute;right:0;top:38px;z-index:30;min-width:200px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:6px;box-shadow:0 14px 34px rgba(16,30,57,.16);display:flex;flex-direction:column}
+.row-menu-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border:0;border-radius:8px;padding:9px 10px;font-size:13px;font-weight:600;color:var(--text)}
+.row-menu-item:hover{background:var(--accentbg)}.row-menu-item .ico{width:16px;height:16px;color:var(--muted)}
+.row-menu-item.danger{color:#b34d58}.row-menu-item.danger .ico{color:currentColor}html[data-theme=dark] .row-menu-item.danger{color:#f0a6af}
+.subtasks{margin-top:8px}
+.subtasks>summary{cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;color:var(--accent);list-style:none}
+.subtasks>summary::-webkit-details-marker{display:none}.subtasks>summary .ico{width:14px;height:14px}
+.subtasks ul{list-style:none;margin:6px 0 0;padding:0 0 0 2px}
+.subtasks li label{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;cursor:pointer}
+.subtasks li input{accent-color:var(--accent);width:16px;height:16px;margin:0}
+.field-wide{grid-column:1/-1}
+textarea.field{resize:vertical;min-height:72px;font-family:inherit}
+.toast{display:flex;align-items:center;gap:14px}
+.toast-action{background:transparent;border:0;color:#b9c6ff;font-weight:750;font-size:12px;padding:4px 2px;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:650px){
+ .task-toolbar{flex-direction:column;align-items:stretch}
+ .task-filters{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+ .task-filters::-webkit-scrollbar{display:none}
+ .task-filters button{flex-shrink:0}
+ .task-toolbar>.pill-row .btn{flex:1}
+ .task-title{font-size:15px}.chip{font-size:12px}
+ .row-menu>summary{width:44px;height:44px}
+ .row-menu-item{min-height:44px;font-size:14px}
+}
