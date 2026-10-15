@@ -692,5 +692,65 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
 
 
+    def test_study_cycle_reviews_recovery_mistakes_and_consistency(self):
+        self.open()
+        # Automatic reviews off: registering a session offers a single review.
+        self.nav('studies')
+        self.page.get_by_role('button', name='＋ Nova sessão', exact=True).click()
+        for name, value in [('subject', 'Fisiologia'), ('topic', 'Néfron'), ('minutes', '40')]:
+            self.page.locator(f'#record-form [name="{name}"]').fill(value)
+        self.page.locator('#record-form button[type="submit"]').click()
+        self.page.locator('#toast [data-action="toast-action"]').click()
+        reviews = self.saved()['reviews']
+        self.assertEqual(len(reviews), 1)
+        self.assertEqual(reviews[0]['due'], self.page.evaluate('dayAdd(today(),7)'))
+        # Presets fill the interval field.
+        self.nav('settings')
+        self.page.locator('[data-action="interval-preset"]').first.click()
+        self.assertEqual(self.page.locator('#intervals').input_value(), '1, 7, 30')
+        # Recovering late reviews respects the daily limit and can be undone.
+        self.page.evaluate("""() => {const t=today();data.reviews=[];for(let i=0;i<5;i++)data.reviews.push({id:'late'+i,topic:'Tema '+i,subject:'Anatomia',due:dayAdd(t,-(i+1)),done:false});
+          data.reviews.push({id:'busy',topic:'Já hoje',subject:'X',due:t,done:false});data.settings.reviewsPerDay=2;save();goto('today')}""")
+        self.assertIn('5 revisões atrasadas', self.page.locator('.today-list').inner_text())
+        self.page.locator('.today-list [data-action="recover-open"]').click()
+        self.assertEqual(self.page.locator('.recover-row').count(), 5)
+        self.page.locator('[data-action="recover-apply"]').click()
+        dues = sorted(x['due'] for x in self.saved()['reviews'] if x['id'].startswith('late'))
+        t = self.page.evaluate('today()')
+        self.assertEqual(dues.count(t), 1)
+        self.assertTrue(all(dues.count(d) <= 2 for d in set(dues)))
+        self.assertTrue(all(d >= t for d in dues))
+        self.page.locator('#toast [data-action="toast-action"]').click()
+        self.assertTrue(all(x['due'] < t for x in self.saved()['reviews'] if x['id'].startswith('late')))
+        # A mistake becomes a review for tomorrow, without duplicates.
+        self.page.evaluate("data.reviews=[];data.mistakes=[{id:'m1',subject:'Bioquímica',topic:'Glicólise',cause:'Conceito',date:today(),resolved:false},{id:'m2',subject:'Bioquímica',topic:'Glicólise',cause:'Atenção',date:today(),resolved:true}];save();goto('mistakes')")
+        self.page.locator('[data-action="mistake-review"]').first.click()
+        self.page.locator('[data-action="mistake-review"]').first.click()
+        self.assertEqual(len(self.saved()['reviews']), 1)
+        self.assertEqual(self.saved()['reviews'][0]['due'], self.page.evaluate('dayAdd(today(),1)'))
+        # Desempenho: streak and topics with more mistakes.
+        self.page.evaluate("data.sessions=[0,1,2].map(i=>({id:'s'+i,date:dayAdd(today(),-i),subject:'X',topic:'Y',minutes:30}));save();goto('reports')")
+        self.assertIn('3 dias', self.page.locator('.consistency-kpis').inner_text())
+        self.assertEqual(self.page.locator('.heatmap .heat-cell:not(.is-future)').count() >= 85, True)
+        self.assertIn('Bioquímica · Glicólise', self.page.locator('#app').inner_text())
+        self.assertIn('2 erros registrados', self.page.locator('#app').inner_text())
+
+    def test_radar_distributes_pending_topics_until_the_exam(self):
+        self.open()
+        self.page.evaluate("""() => {const d=dayAdd(today(),9);data.events=[{id:'exam1',type:'exam',title:'Prova de Fisiologia',date:d,subject:'Fisiologia'}];
+          data.examScopes={[d+'|prova de fisiologia']:[{topic:'Néfron',subject:'Fisiologia'},{topic:'Clearance',subject:'Fisiologia'},{topic:'Equilíbrio ácido-base',subject:'Fisiologia'}]};
+          data.sessions=[];save();goto('radar')}""")
+        self.page.locator('[data-action="radar-plan"]').click()
+        self.assertEqual(self.page.locator('.recover-row').count(), 3)
+        self.page.locator('[data-action="radar-plan-apply"]').click()
+        tasks = self.saved()['tasks']
+        self.assertEqual(len(tasks), 3)
+        exam_day = self.page.evaluate('dayAdd(today(),9)')
+        self.assertTrue(all(self.page.evaluate('today()') < x['date'] < exam_day for x in tasks))
+        self.assertEqual(len({x['date'] for x in tasks}), 3)
+        self.page.locator('[data-action="radar-plan"]').click()
+        self.assertIn('Nenhum conteúdo pendente', self.page.locator('#modal').inner_text())
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
