@@ -33,7 +33,7 @@ class AccountSyncTests(unittest.TestCase):
     def tearDown(self):
         for context in self.contexts:context.close()
         self.assertEqual(self.errors,[])
-    def device(self,owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legacy=None,mobile=False,auto_login=True,global_storage=None,fixture_email="fixture@example.invalid"):
+    def device(self,owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',legacy=None,mobile=False,auto_login=True,global_storage=None,fixture_email="fixture@example.invalid",recovery_url=False):
         context=self.browser.new_context(timezone_id='America/Cuiaba',service_workers='block',viewport={'width':390 if mobile else 1280,'height':844 if mobile else 720},has_touch=mobile,is_mobile=mobile);self.contexts.append(context)
         if global_storage:
             for key,value in global_storage.items():context.add_init_script('localStorage.setItem('+json.dumps(key)+','+json.dumps(json.dumps(value))+')')
@@ -80,8 +80,9 @@ class AccountSyncTests(unittest.TestCase):
             route.fulfill(status=200,content_type='application/json',body=json.dumps(result))
         context.route(remote+'/**',transport)
         page.route_web_socket(remote.replace('https://','wss://')+'/**',lambda socket:socket.on_message(lambda message:None))
-        page.goto(self.url,wait_until='networkidle')
-        if not auto_login:return context,page
+        target_url = f"{self.url}#access_token={token}&refresh_token=fixture-refresh&expires_in=3600&token_type=bearer&type=recovery" if recovery_url else self.url
+        page.goto(target_url,wait_until='networkidle')
+        if not auto_login or recovery_url:return context,page
         page.locator('#account-login-form [name="email"]').fill('fixture@example.invalid')
         page.locator('#account-login-form [name="password"]').fill('fixture-password')
         page.locator('#account-login-form button[value="login"]').click()
@@ -326,3 +327,38 @@ class AccountSyncTests(unittest.TestCase):
         self.assertEqual(self.recoveries[0]['email'],'usuario@example.invalid')
         page.locator('[data-action="account-cancel-forgot"]').click()
         self.assertTrue(page.locator('#account-login-form').is_visible())
+
+    def test_recovery_mode_url_shows_reset_form_and_defers_sync_until_password_saved(self):
+        _,page=self.device(recovery_url=True)
+        self.assertTrue(page.locator('#account-reset-password-form').is_visible())
+        self.assertFalse(page.locator('#account-login-form').is_visible())
+        self.assertIsNone(page.evaluate('PlanningAccount.user'))
+        self.assertTrue(page.locator('#source-alert').evaluate("el => el.classList.contains('hidden')"))
+        self.assertEqual(self.document_reads,0)
+
+        self.assertEqual(page.locator('#account-reset-password-form [name="newPassword"]').get_attribute('minlength'),'10')
+        self.assertEqual(page.locator('#account-reset-password-form [name="confirmPassword"]').get_attribute('minlength'),'10')
+
+        page.locator('#account-reset-password-form [name="newPassword"]').fill('novasenha1234')
+        page.locator('#account-reset-password-form [name="confirmPassword"]').fill('outrasenha1234')
+        page.locator('#account-reset-password-form button[type="submit"]').click()
+        self.assertIn('não coincidem',page.locator('#account-reset-status').inner_text())
+        self.assertEqual(len(self.password_updates),0)
+
+        page.locator('#account-reset-password-form [name="newPassword"]').fill('novasenha1234')
+        page.locator('#account-reset-password-form [name="confirmPassword"]').fill('novasenha1234')
+        page.locator('#account-reset-password-form button[type="submit"]').click()
+        page.wait_for_function("PlanningAccount.user !== null && PlanningAccount.status === 'synced'")
+        self.assertEqual(self.password_updates[0]['password'],'novasenha1234')
+        self.assertGreater(self.document_reads,0)
+        self.assertFalse(page.locator('#source-alert').evaluate("el => el.classList.contains('hidden')"))
+
+    def test_recovery_mode_cancel_returns_to_login(self):
+        _,page=self.device(recovery_url=True)
+        self.assertTrue(page.locator('#account-reset-password-form').is_visible())
+        self.assertEqual(self.document_reads,0)
+        page.locator('[data-action="account-cancel-recovery"]').click()
+        page.wait_for_function("PlanningAccount.user === null && document.querySelector('#account-login-form') !== null")
+        self.assertTrue(page.locator('#account-login-form').is_visible())
+        self.assertEqual(self.document_reads,0)
+

@@ -18,12 +18,12 @@
   function persist(){if(!state.user)return;try{localStorage.setItem(cacheKey(),JSON.stringify({schemaVersion:1,verifiedOwner:state.user.id,approved:true,email:state.user.email||'',fullName:state.user.user_metadata?.full_name||'',base:state.base,draft:model.snapshot(data),revision:state.revision,syncedAt:state.syncedAt,migrated:state.migrated}))}catch{state.status='error';state.message='Não foi possível guardar as alterações neste dispositivo. Exporte um backup antes de fechar.'}}
   function editing(){return formDirty||Boolean(document.activeElement?.closest('#app input,#app textarea,#app select,#modal input,#modal textarea,#modal select'))}
   function status(){
-    const el=$('account-status'),button=$('account-launch');if(button){button.classList.remove('hidden');button.textContent=state.user?'Minha conta':'Entrar'}
-    for(const action of ['create','search','theme'])document.querySelectorAll('.header [data-action="'+action+'"]').forEach(button=>button.disabled=!state.user);
+    const el=$('account-status'),button=$('account-launch');if(button){button.classList.remove('hidden');button.textContent=state.user&&!state.recoveryMode?'Minha conta':'Entrar'}
+    for(const action of ['create','search','theme'])document.querySelectorAll('.header [data-action="'+action+'"]').forEach(button=>button.disabled=!state.user||state.recoveryMode);
     if(!el)return;el.classList.remove('hidden');
-    const dirty=state.user&&!model.equal(state.base,model.snapshot(data));
-    const label=!state.user?state.message||'Entre para sincronizar seus registros.':state.status==='conflict'?'Há alterações diferentes em dois dispositivos. Escolha qual manter.':state.status==='error'?state.message:!navigator.onLine?'Sem internet · alterações guardadas neste dispositivo.':state.status==='syncing'?'Sincronizando seus registros...':dirty?'Alterações guardadas neste dispositivo · aguardando envio.':state.syncedAt?'Sincronizado · '+new Date(state.syncedAt).toLocaleTimeString('pt-BR',{timeZone:ZONE,hour:'2-digit',minute:'2-digit'}):'Conta conectada · lendo registros...';
-    el.innerHTML='<span>'+esc(label)+'</span>'+(state.user?btn(state.status==='conflict'?'Resolver alterações':'Sincronizar agora',state.status==='conflict'?'account-conflicts':'account-sync'):'');
+    const dirty=state.user&&!state.recoveryMode&&!model.equal(state.base,model.snapshot(data));
+    const label=!state.user||state.recoveryMode?state.message||(state.recoveryMode?'Defina sua nova senha para continuar.':'Entre para sincronizar seus registros.'):state.status==='conflict'?'Há alterações diferentes em dois dispositivos. Escolha qual manter.':state.status==='error'?state.message:!navigator.onLine?'Sem internet · alterações guardadas neste dispositivo.':state.status==='syncing'?'Sincronizando seus registros...':dirty?'Alterações guardadas neste dispositivo · aguardando envio.':state.syncedAt?'Sincronizado · '+new Date(state.syncedAt).toLocaleTimeString('pt-BR',{timeZone:ZONE,hour:'2-digit',minute:'2-digit'}):'Conta conectada · lendo registros...';
+    el.innerHTML='<span>'+esc(label)+'</span>'+(state.user&&!state.recoveryMode?btn(state.status==='conflict'?'Resolver alterações':'Sincronizar agora',state.status==='conflict'?'account-conflicts':'account-sync'):'');
   }
   function loginView(){
     if(state.pendingUser)return '<section class="panel account-welcome"><img src="/icons/app-192-v2.png" width="64" height="64" alt=""><span class="mr-eyebrow">Cadastro recebido</span><h2>Aguardando aprovação</h2><p><strong>'+esc(state.pendingUser.user_metadata?.full_name||'Sua conta')+'</strong><br><span class="tiny">'+esc(state.pendingUser.email||'')+'</span></p><p class="muted">Sua conta foi criada. O administrador precisa liberar seu acesso antes de você usar o Planejamento.</p><p class="tiny" role="status">'+esc(state.message)+'</p><div class="pill-row">'+btn('Verificar aprovação','account-check-approval','','btn btn-primary')+btn('Sair','account-logout')+'</div></section>';
@@ -33,15 +33,15 @@
   }
   function accountPanel(){return panel('Sua conta e sincronização','<p><strong>'+esc(state.user.user_metadata?.full_name||'Sua conta')+'</strong><br><span class="tiny">'+esc(state.user.email||'')+'</span></p><p class="tiny">Entre com esta conta no Mac, celular e iPad. Os registros são sincronizados quando há internet. Alterações offline aguardam envio neste dispositivo.</p><div class="pill-row">'+btn('Sincronizar agora','account-sync','','btn btn-primary')+btn('Sair da conta','account-logout')+'</div>')}
   function migrationPanel(){if(state.migrated||!canLegacy())return '';if(legacyError)return panel('Preservamos seus registros anteriores','<p class="tiny">Os registros locais precisam de revisão antes da importação: '+esc(legacyError)+'</p>'+btn('Baixar cópia dos registros anteriores','account-legacy-backup'));return panel('Trazer registros deste dispositivo','<p class="tiny">Encontramos registros e ajustes anteriores ao login ('+count(legacy)+' registros). Você pode acrescentá-los à sua conta, mantendo os identificadores para não duplicar os mesmos registros.</p><div class="pill-row">'+btn('Trazer meus registros','account-migrate','','btn btn-primary')+btn('Baixar cópia local','account-legacy-backup')+btn('Não trazer neste dispositivo','account-skip-migration')+'</div>')}
-  render=function(){if(personalAccount())academicSource=data.settings.academicSource||null;if(!state.user){nav();$('app').innerHTML=loginView();renderAcademicStatus()}else {previousRender();const migration=migrationPanel();if(migration)$('app').insertAdjacentHTML('afterbegin',migration);if(page==='settings')$('app').insertAdjacentHTML('afterbegin',accountPanel())}document.body.classList.remove('account-boot');status()};
+  render=function(){if(personalAccount())academicSource=data.settings.academicSource||null;if(!state.user||state.recoveryMode){nav();$('app').innerHTML=loginView();renderAcademicStatus()}else {previousRender();const migration=migrationPanel();if(migration)$('app').insertAdjacentHTML('afterbegin',migration);if(page==='settings')$('app').insertAdjacentHTML('afterbegin',accountPanel())}document.body.classList.remove('account-boot');status()};
   goto=function(target){formDirty=false;previousGoto(target);if(queuedRemote){queuedRemote=false;sync()}};
-  save=function(){if(!state.user){notify('Entre na sua conta para salvar registros.');return}formDirty=false;state.status=state.conflicts?'conflict':navigator.onLine?'pending':'offline';persist();status();if(timer)clearTimeout(timer);timer=setTimeout(()=>sync(),450)};
+  save=function(){if(!state.user||state.recoveryMode){notify('Entre na sua conta para salvar registros.');return}formDirty=false;state.status=state.conflicts?'conflict':navigator.onLine?'pending':'offline';persist();status();if(timer)clearTimeout(timer);timer=setTimeout(()=>sync(),450)};
   document.addEventListener('input',event=>{if(event.target.closest('#app,#modal')&&event.target.matches('input:not([type=checkbox]):not([type=file]),textarea,select'))formDirty=true});
   document.addEventListener('focusout',()=>{if(!formDirty&&queuedRemote)setTimeout(()=>{queuedRemote=false;sync()},0)});
   function setError(message){state.status='error';state.message=message;status()}
   async function read(owner,token){const {data:rows,error}=await client.from('planejamento_documents').select('revision,schema_version,payload').eq('user_id',owner).limit(1).setHeader('Authorization','Bearer '+token);if(error)throw Error('Não foi possível ler seus registros. Confira a conexão e a configuração do banco.');const row=rows?.[0];if(!row)return {revision:0,payload:model.empty()};if(!Number.isSafeInteger(Number(row.revision))||Number(row.revision)<1)throw Error('Revisão da conta inválida. Seus registros locais foram preservados.');if(row.schema_version!==1)throw Error('Atualize o aplicativo para abrir estes registros.');return {revision:Number(row.revision),payload:model.snapshot(row.payload)}}
   async function sync(preference){
-    if(!state.user)return;if(migrationConflict){state.status='conflict';status();return}if(!navigator.onLine){state.status='offline';persist();status();return}if(editing()){queuedRemote=true;status();return}if(flight)return flight;
+    if(!state.user||state.recoveryMode)return;if(migrationConflict){state.status='conflict';status();return}if(!navigator.onLine){state.status='offline';persist();status();return}if(editing()){queuedRemote=true;status();return}if(flight)return flight;
     const owner=state.user.id,token=state.accessToken,current=generation;if(!token){setError('Conecte sua conta novamente para sincronizar.');return}
     state.status='syncing';status();
     const task=(async()=>{
@@ -105,6 +105,13 @@
     if(!user?.id)return;
     if(navigator.onLine){let profile;try{profile=await approval(user.id,session.access_token)}catch(error){if(current===generation)awaitApproval(user,error.message);return}if(current!==generation)return;if(profile?.approved!==true){awaitApproval(user);return}if(profile.name)user={...user,user_metadata:{...user.user_metadata,full_name:profile.name}}}
     const {data:latestSession}=await client.auth.getSession();if(current!==generation||latestSession.session?.access_token!==session.access_token)return;
+    state.accessToken=session.access_token;
+    if(state.recoveryMode){
+      state.user=null;
+      state.status='recovery';
+      render();
+      return;
+    }
     if(state.user?.id!==user.id){
       let cache=null;try{cache=JSON.parse(localStorage.getItem(prefix+user.id))}catch{}
       if(!navigator.onLine&&(!cache||cache.verifiedOwner!==user.id||cache.approved!==true)){reset();state.message='Conecte-se à internet para entrar neste dispositivo pela primeira vez.';render();return}
@@ -114,14 +121,6 @@
       else data=model.empty();persist();render();
     }
     state.accessToken=session.access_token;
-    if(user.id==='ab049488-5127-4db2-b093-c397e8ea17b1'){
-      let changed=false;
-      if(!data.settings)data.settings={};
-      if(!data.settings.materialsUrl){data.settings.materialsUrl='https://drive.google.com/drive/folders/1Ew9MsEW8f0SmbEvVotxqbaekZZGTcNlt';changed=true}
-      if(!data.integration)data.integration={};
-      if(!data.integration.sheetUrl){data.integration.sheetUrl='https://docs.google.com/spreadsheets/d/1PDVHG1mTUghB9_3vQimgcOnnhd7K9RiiQGV4ZybDhm8/edit';changed=true}
-      if(changed){persist();save()}
-    }
     if(!channel){channel=client.channel('planejamento-own-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'planejamento_documents',filter:'user_id=eq.'+user.id},()=>sync()).subscribe()}
     await sync();
   }
@@ -172,6 +171,8 @@
       const {data:res,error}=await client.auth.updateUser({password:newPassword});
       if(error){output.textContent=authError(error,'update_password');return}
       state.recoveryMode=false;
+      formDirty=false;
+      if(document.activeElement?.blur)document.activeElement.blur();
       if(window.history.replaceState)window.history.replaceState(null,'',window.location.pathname);
       notify('Senha atualizada com sucesso!');
       const {data:auth}=await client.auth.getSession();
@@ -189,19 +190,19 @@
   });
   document.addEventListener('click',event=>{const button=event.target.closest('[data-action]');if(!button)return;switch(button.dataset.action){
     case'account-check-approval':checkApproval();break;case'account-open':showAccount();break;case'account-sync':sync();break;case'account-logout':logout();break;case'account-conflicts':showConflicts();break;
-    case'account-forgot':state.forgotMode=true;render();break;case'account-cancel-forgot':state.forgotMode=false;render();break;case'account-cancel-recovery':state.recoveryMode=false;if(window.history.replaceState)window.history.replaceState(null,'',window.location.pathname);render();break;
+    case'account-forgot':state.forgotMode=true;render();break;case'account-cancel-forgot':state.forgotMode=false;render();break;case'account-cancel-recovery':state.recoveryMode=false;if(window.history.replaceState)window.history.replaceState(null,'',window.location.pathname);logout();break;
     case'account-legacy-backup':{if(!canLegacy())break;const current=data;data=originalLegacy;backup();data=current;break}
     case'account-skip-migration':state.migrated=true;persist();render();break;
     case'account-migrate':{if(!canLegacy())break;const result=model.merge(model.empty(),legacy,model.snapshot(data));if(result.conflicts.length){migrationConflict=true;state.conflicts={migration:true};state.status='conflict';showConflicts();status();break}if(!bindLegacy())break;data=result.payload;state.migrated=true;save();render();break}
     case'account-conflict-local':case'account-conflict-remote':closeModal();formDirty=false;{const preference=button.dataset.action.endsWith('remote')?'remote':'local';if(migrationConflict){if(!bindLegacy())break;data=model.merge(model.empty(),legacy,model.snapshot(data),preference).payload;state.migrated=true;migrationConflict=false;state.conflicts=null;save();render()}else sync(preference)}break;
   }});
   client.auth.onAuthStateChange((event,session)=>{
-    if(event==='PASSWORD_RECOVERY'){state.recoveryMode=true;render()}
+    if(event==='PASSWORD_RECOVERY'){state.recoveryMode=true;if(session)acceptSession(session);else render()}
     else if(event==='SIGNED_OUT'){if(resumeOffline())return;reset();state.message='Entre para sincronizar seus registros.';render()}
     else if(['SIGNED_IN','TOKEN_REFRESHED'].includes(event))setTimeout(()=>acceptSession(session),0)
   });
   const refresh=()=>{if(document.visibilityState==='visible'){if(state.user)sync();else if(state.pendingUser&&navigator.onLine)checkApproval()}};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);setInterval(refresh,30000);
   window.addEventListener('offline',()=>{state.status='offline';status()});window.addEventListener('online',async()=>{try{const {data:auth}=await client.auth.getSession();if(auth.session)await acceptSession(auth.session)}catch{setError('Não foi possível retomar a conta. Suas alterações locais continuam guardadas.')}});
-  window.PlanningAccount={enabled:true,async sendWhatsApp(text,phone,apikey){if(!state.user||!state.accessToken)throw Error('Entre novamente para enviar seu resumo.');const owner=state.user.id;const response=await fetch('/api/send-whatsapp',{method:'POST',headers:{'Authorization':'Bearer '+state.accessToken,'Content-Type':'application/json'},body:JSON.stringify({text,phone,apikey})});const result=await response.json();if(state.user?.id!==owner)throw Error('A conta mudou durante o envio.');if(!response.ok||!result.success)throw Error(result.error||'Não foi possível enviar o resumo.');return true},async analyzeSchedule(file){if(!state.user||!state.accessToken)throw Error('Entre novamente na sua conta para importar.');const owner=state.user.id,token=state.accessToken;const response=await fetch('/api/import-schedule',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file});let result;try{result=await response.json()}catch{throw Error('A importação está temporariamente indisponível. Tente novamente.')}if(state.user?.id!==owner)throw Error('A conta mudou durante a importação. Tente novamente.');if(!response.ok)throw Error(result.error||'Não foi possível analisar a planilha.');return {...result,owner}},get status(){return state.status},get user(){return state.user},sync,logout};
+  window.PlanningAccount={enabled:true,async sendWhatsApp(text,phone,apikey){if(!state.user||!state.accessToken)throw Error('Entre novamente para enviar seu resumo.');const owner=state.user.id;const response=await fetch('/api/send-whatsapp',{method:'POST',headers:{'Authorization':'Bearer '+state.accessToken,'Content-Type':'application/json'},body:JSON.stringify({text,phone,apikey})});const result=await response.json();if(state.user?.id!==owner)throw Error('A conta mudou durante o envio.');if(!response.ok||!result.success)throw Error(result.error||'Não foi possível enviar o resumo.');return true},async analyzeSchedule(file){if(!state.user||!state.accessToken)throw Error('Entre novamente na sua conta para importar.');const owner=state.user.id,token=state.accessToken;const response=await fetch('/api/import-schedule',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file});let result;try{result=await response.json()}catch{throw Error('A importação está temporariamente indisponível. Tente novamente.')}if(state.user?.id!==owner)throw Error('A conta mudou durante a importação. Tente novamente.');if(!response.ok)throw Error(result.error||'Não foi possível analisar a planilha.');return {...result,owner}},get status(){return state.status},get user(){return state.recoveryMode?null:state.user},sync,logout};
   state.message='Entre para sincronizar seus registros.';if(!resumeOffline())render();client.auth.getSession().then(({data:auth})=>acceptSession(auth.session)).catch(()=>{state.message='Não foi possível iniciar sua conta. Atualize a página.';render()});
 })();
