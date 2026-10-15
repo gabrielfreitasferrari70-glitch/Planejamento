@@ -147,6 +147,9 @@ class SiteSmokeTests(unittest.TestCase):
         pdf = self.context.request.get(self.url+'data/uc2-2026-2.pdf')
         self.assertEqual(pdf.status, 200)
         self.assertEqual(hashlib.sha256(pdf.body()).hexdigest(), source['sha256'])
+        # The schedule strip stays on Cronograma; elsewhere it only appears when action is needed.
+        self.assertTrue(self.page.locator('#source-alert').evaluate("el => el.classList.contains('hidden')"))
+        self.nav('calendar')
         self.assertIn('193 blocos', self.page.locator('#source-alert').inner_text())
         self.assertIn('Semestre 2026/2', self.page.locator('#source-alert').inner_text())
         self.page.evaluate("weekOffset=Math.round((Date.parse('2026-08-17T12:00:00Z')-Date.parse(weekDates()[0]+'T12:00:00Z'))/604800000)")
@@ -270,7 +273,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.semester-event').count(),193)
         self.page.evaluate("goto('materials')")
         self.assertEqual(self.page.locator('.materials-drive-link').get_attribute('href'),'https://drive.google.com/drive/folders/test-materials-folder')
-        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v3');return (await cache.keys()).map(req=>req.url)}")
+        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v4');return (await cache.keys()).map(req=>req.url)}")
         self.assertTrue(all(url.startswith(self.url) for url in cached))
         self.assertFalse(any('mr_reviews' in url or '/auth/' in url or '.pdf' in url for url in cached))
         self.context.set_offline(False)

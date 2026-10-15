@@ -14,7 +14,7 @@
   function updateNotices(){
     const offline=$('app-offline');if(offline)offline.classList.toggle('hidden',navigator.onLine);
     const install=$('app-install-launch');if(install)install.classList.toggle('hidden',standalone());
-    const theme=$('app-theme-color');if(theme)theme.content=data.settings.theme==='dark'?'#111a28':'#f6f7fa';
+    const theme=$('app-theme-color');if(theme)theme.content=(typeof effectiveTheme==='function'?effectiveTheme():data.settings.theme)==='dark'?'#111a28':'#f6f7fa';
   }
   function installHelp(){
     const ios=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
