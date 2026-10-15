@@ -571,18 +571,25 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.evaluate('render()')
         self.assertTrue(self.page.locator('#today-more').evaluate('el => el.open'))
 
-    def test_theme_follows_system_until_chosen(self):
+    def test_theme_is_light_by_default_and_choice_persists(self):
         self.page.emulate_media(color_scheme='dark')
         self.open()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'light')
+        self.page.locator('header [data-action="theme"]').click()
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.page.reload(wait_until='networkidle')
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
+        self.nav('settings')
+        self.page.locator('[data-action="theme-mode"][data-mode="auto"]').click()
         self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
         self.page.emulate_media(color_scheme='light')
         self.page.wait_for_function("document.documentElement.dataset.theme==='light'")
-        self.page.locator('header [data-action="theme"]').click()
-        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
-        self.page.emulate_media(color_scheme='light')
+        self.page.locator('[data-action="theme-mode"][data-mode="light"]').click()
+        self.page.emulate_media(color_scheme='dark')
         self.page.reload(wait_until='networkidle')
-        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'dark')
-
+        self.assertEqual(self.page.locator('html').get_attribute('data-theme'), 'light')
+        # Account sync keeps settings.theme, so the choice survives synchronisation.
+        self.assertEqual(self.saved()['settings']['theme'], 'light')
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
