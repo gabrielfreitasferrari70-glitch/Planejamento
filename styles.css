@@ -346,3 +346,22 @@ html[data-theme=dark] .recover-hint{background:#3a2328;color:#f0a6af}
 .interval-presets{margin:-4px 0 14px}
 .error-actions{margin:0;flex-shrink:0}
 @media(max-width:650px){.consistency-kpis{grid-template-columns:1fr}.error-entry{flex-direction:column}.recover-row{flex-direction:column;align-items:flex-start;gap:4px}}
+/* Foco: anel de progresso, pausa, preferências e motivação. */
+.focus-clock{--p:0;border:0;position:relative;background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--accentbg) 0);width:240px;height:240px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;margin:22px auto}
+.focus-clock::before{content:'';position:absolute;inset:11px;border-radius:50%;background:var(--card)}
+.focus-clock>*{position:relative}
+.focus-clock.is-break{background:conic-gradient(var(--mint) calc(var(--p)*1%),color-mix(in srgb,var(--mint) 18%,var(--card)) 0)}
+.focus-clock small{max-width:170px;text-align:center;line-height:1.4}
+.focus-lengths,.focus-actions{justify-content:center}
+.focus-actions{margin-top:6px}
+.focus-task{display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--muted);margin:12px 0 0}
+.focus-task .ico{color:var(--accent)}
+.focus-done{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:12px;background:var(--accentbg);margin-bottom:6px}
+.focus-done strong{display:block;font-size:14px}.focus-done small{display:block;color:var(--muted);font-size:12px;margin-top:2px}.focus-done .pill-row{margin:0}
+.focus-prefs{display:flex;align-items:flex-end;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--border);text-align:left}
+.focus-prefs .field-label{min-width:160px}.focus-prefs .field{margin-bottom:0}
+.focus-sound{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;padding-bottom:10px;cursor:pointer}
+.focus-sound input{accent-color:var(--accent);width:17px;height:17px;margin:0}
+.today-motivation{display:flex;align-items:center;flex-wrap:wrap;gap:6px 14px;margin:10px 2px 0;font-size:12px;color:var(--muted)}
+.today-motivation .ico{width:15px;height:15px;color:var(--amber);margin-right:-8px}
+@media(max-width:650px){.focus-clock{width:210px;height:210px}.focus-actions .btn{flex:1 1 40%}.focus-prefs{justify-content:stretch}.focus-prefs>*{flex:1 1 100%}}

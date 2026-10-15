@@ -752,5 +752,43 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertIn('Nenhum conteúdo pendente', self.page.locator('#modal').inner_text())
 
 
+    def test_focus_timer_survives_reload_and_counts_task_time(self):
+        self.page.clock.install()
+        self.open()
+        self.page.evaluate("data.tasks=[{id:'ft',title:'Resumo de Fisiologia',subject:'Fisiologia',estimate:'50',priority:'2',date:today(),done:false}];save();goto('today')")
+        self.page.locator('.today-next [data-action="focus-start"]').click()
+        self.assertIn('Resumo de Fisiologia', self.page.locator('.focus-task').inner_text())
+        self.page.locator('[data-action="timer-length"][data-min="25"]').click()
+        self.page.locator('[data-action="timer-toggle"]').click()
+        self.page.clock.run_for(10 * 60 * 1000)
+        self.assertEqual(self.page.locator('#timer-display').inner_text(), '15:00')
+        self.assertIn('15:00', self.page.title())
+        # Reload in the middle of a block: the end time is kept.
+        self.page.reload(wait_until='networkidle')
+        self.page.evaluate("goto('focus')")
+        left = self.page.locator('#timer-display').inner_text()
+        minutes, seconds = map(int, left.split(':'))
+        self.assertTrue(14 * 60 + 45 <= minutes * 60 + seconds <= 15 * 60, left)
+        # The block ends while the app is "closed": on reopening, it offers to register.
+        self.page.goto('about:blank')
+        self.page.clock.run_for(16 * 60 * 1000)
+        self.page.goto(self.url, wait_until='networkidle')
+        self.assertIn('terminou enquanto o app estava fechado', self.page.locator('#toast').inner_text())
+        self.assertEqual(next(x for x in self.saved()['tasks'] if x['id'] == 'ft')['spent'], 25)
+        self.page.locator('#toast [data-action="toast-action"]').click()
+        form = self.page.locator('#record-form')
+        self.assertEqual(form.locator('[name="minutes"]').input_value(), '25')
+        self.assertEqual(form.locator('[name="subject"]').input_value(), 'Fisiologia')
+        self.page.keyboard.press('Escape')
+        self.page.evaluate("goto('tasks')")
+        self.assertIn('25 de 50 min', self.page.locator('.task-card').inner_text())
+        # Break and preferences persist in settings.
+        self.page.evaluate("goto('focus')")
+        self.page.locator('#focus-break').select_option('10')
+        self.page.locator('#focus-sound').check()
+        self.assertEqual(self.saved()['settings']['focusBreak'], 10)
+        self.assertTrue(self.saved()['settings']['focusSound'])
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
