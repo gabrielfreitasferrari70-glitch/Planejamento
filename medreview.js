@@ -183,61 +183,78 @@
     '</div>';
   }
 
+  let aulaFolder = null;
+  function classCardHTML(item) {
+    let badgeClass = 'review', badgeLabel = '🟢 Revisão', cardClass = 'status-review';
+    if (item.status === 'learn') {
+      badgeClass = 'learn'; badgeLabel = '🟡 Aprender'; cardClass = 'status-learn';
+    } else if (item.status === 'missed') {
+      badgeClass = 'missed'; badgeLabel = '🔴 Não vista'; cardClass = 'status-missed';
+    }
+    return '<div class="class-status-card ' + cardClass + '">' +
+      '<div class="pill-row between" style="margin-bottom:8px">' +
+        '<span class="status-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
+        '<small class="muted">Aula de ' + fmt(item.date) + '</small>' +
+      '</div>' +
+      '<h3 style="font-size:15px;margin:0 0 4px;font-weight:750">' + esc(item.topic) + '</h3>' +
+      '<p class="muted" style="font-size:12px;margin:0 0 14px">' +
+        esc(item.subject || 'UC2') + (item.professor ? ' · Prof. ' + esc(item.professor) : '') + ' · ' + (item.minutes || 90) + ' min' +
+      '</p>' +
+      '<div class="pill-row between" style="border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap;gap:10px">' +
+        '<button class="btn btn-mastered" data-action="mark-class-mastered" data-id="' + esc(item.id) + '">✓ Concluir (Dominei o assunto) 📘</button>' +
+        '<div class="pill-row">' +
+          '<span class="tiny muted">Mudar voto:</span>' +
+          '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="review" title="Mudar para Revisão (Verde)">🟢</button>' +
+          '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="learn" title="Mudar para Aprender (Amarelo)">🟡</button>' +
+          '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="missed" title="Mudar para Não Vista (Vermelho)">🔴</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   function aulasVotedView() {
     const list = getTrackedClasses();
     const active = list.filter(x => x.status !== 'mastered');
     const masteredCount = list.filter(x => x.status === 'mastered').length;
-
-    const countReview = active.filter(x => x.status === 'review').length;
-    const countLearn = active.filter(x => x.status === 'learn').length;
-    const countMissed = active.filter(x => x.status === 'missed').length;
+    const folders = [
+      ['review', '🟢 Em Revisão', 'Aulas assistidas'],
+      ['learn', '🟡 Precisa Aprender', 'Blocos para aprofundar'],
+      ['missed', '🔴 Não Vistas', 'Pendentes de reposição']
+    ];
+    const byStatus = key => active.filter(x => x.status === key).sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    if (aulaFolder && !folders.some(f => f[0] === aulaFolder)) aulaFolder = null;
 
     const statsHTML = '<div class="stats">' +
-      '<div class="stat"><div class="stat-top">🟢 Em Revisão</div><div class="stat-main">' + countReview + '</div><div class="stat-hint">Aulas assistidas</div></div>' +
-      '<div class="stat"><div class="stat-top">🟡 Precisa Aprender</div><div class="stat-main">' + countLearn + '</div><div class="stat-hint">Blocos para aprofundar</div></div>' +
-      '<div class="stat"><div class="stat-top">🔴 Não Vistas</div><div class="stat-main">' + countMissed + '</div><div class="stat-hint">Pendentes de reposição</div></div>' +
-      '<div class="stat"><div class="stat-top">🔵 Já Dominadas</div><div class="stat-main">' + masteredCount + '</div><div class="stat-hint">' + btn('Ver dominadas →','set-review-tab','data-tab="dominadas"','surface-link') + '</div></div>' +
+      folders.map(([key, label, hint]) => {
+        const n = byStatus(key).length;
+        return '<button type="button" class="stat stat-link' + (aulaFolder === key ? ' active' : '') + '" data-action="open-aula-folder" data-folder="' + key + '" aria-pressed="' + (aulaFolder === key) + '">' +
+          '<div class="stat-top">' + label + '</div><div class="stat-main">' + n + '</div><div class="stat-hint">' + (aulaFolder === key ? 'Fechar pasta ↑' : n ? 'Abrir pasta ↓' : hint) + '</div></button>';
+      }).join('') +
+      '<button type="button" class="stat stat-link" data-action="set-review-tab" data-tab="dominadas"><div class="stat-top">🔵 Já Dominadas</div><div class="stat-main">' + masteredCount + '</div><div class="stat-hint">Ver dominadas →</div></button>' +
     '</div>';
 
-    let contentHTML = '';
-    if (active.length === 0) {
-      contentHTML = empty('Nenhuma aula pendente de revisão ou estudo no momento. Realize o Fechamento do Dia para registrar suas aulas ou confira os conteúdos concluídos na aba Conteúdos Dominados.');
-    } else {
-      contentHTML = active.map(item => {
-        let badgeClass = 'review', badgeLabel = '🟢 Revisão', cardClass = 'status-review';
-        if (item.status === 'learn') {
-          badgeClass = 'learn'; badgeLabel = '🟡 Aprender'; cardClass = 'status-learn';
-        } else if (item.status === 'missed') {
-          badgeClass = 'missed'; badgeLabel = '🔴 Não vista'; cardClass = 'status-missed';
-        }
-
-        return '<div class="class-status-card ' + cardClass + '">' +
-          '<div class="pill-row between" style="margin-bottom:8px">' +
-            '<span class="status-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
-            '<small class="muted">Aula de ' + fmt(item.date) + '</small>' +
-          '</div>' +
-          '<h3 style="font-size:15px;margin:0 0 4px;font-weight:750">' + esc(item.topic) + '</h3>' +
-          '<p class="muted" style="font-size:12px;margin:0 0 14px">' +
-            esc(item.subject || 'UC2') + (item.professor ? ' · Prof. ' + esc(item.professor) : '') + ' · ' + (item.minutes || 90) + ' min' +
-          '</p>' +
-          '<div class="pill-row between" style="border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap;gap:10px">' +
-            '<button class="btn btn-mastered" data-action="mark-class-mastered" data-id="' + esc(item.id) + '">✓ Concluir (Dominei o assunto) 📘</button>' +
-            '<div class="pill-row">' +
-              '<span class="tiny muted">Mudar voto:</span>' +
-              '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="review" title="Mudar para Revisão (Verde)">🟢</button>' +
-              '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="learn" title="Mudar para Aprender (Amarelo)">🟡</button>' +
-              '<button class="btn btn-small" data-action="set-class-status" data-id="' + esc(item.id) + '" data-status="missed" title="Mudar para Não Vista (Vermelho)">🔴</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>';
-      }).join('');
+    let folderHTML = '';
+    if (aulaFolder) {
+      const f = folders.find(x => x[0] === aulaFolder), rows = byStatus(aulaFolder);
+      folderHTML = panel('Pasta ' + f[1] + ' · ' + rows.length,
+        rows.length ? rows.map(classCardHTML).join('') : empty('Nenhuma aula nesta pasta.'),
+        btn('Fechar','open-aula-folder','data-folder="' + aulaFolder + '"'));
     }
 
-    const panelVoted = panel('Aulas Avaliadas nos Fechamentos · ' + active.length,
-      '<p class="muted" style="margin-bottom:14px">Aqui estão as aulas do seu cronograma com o status exato que você votou. Ao dominar o conteúdo, clique no botão azul <b>"Concluir"</b> para movê-lo para a aba Conteúdos Dominados.</p>' +
+    const lastDate = active.reduce((m, x) => (x.date && x.date > m ? x.date : m), '');
+    const dayItems = active.filter(x => x.date === lastDate);
+    let contentHTML;
+    if (!active.length) {
+      contentHTML = empty('Nenhuma aula pendente de revisão ou estudo no momento. Realize o Fechamento do Dia para registrar suas aulas ou confira os conteúdos concluídos na aba Conteúdos Dominados.');
+    } else {
+      contentHTML = dayItems.map(classCardHTML).join('');
+    }
+    const archived = active.length - dayItems.length;
+    const panelVoted = panel('Aulas do dia' + (lastDate ? ' · ' + fmt(lastDate) : '') + ' · ' + dayItems.length,
+      '<p class="muted" style="margin-bottom:14px">Só as aulas do último fechamento ficam em destaque. Quando você avaliar um novo dia, as anteriores sobem para as pastas acima (Revisão, Aprender, Não vistas)' + (archived ? ' — ' + archived + ' já guardada' + (archived === 1 ? '' : 's') + ' lá' : '') + '. Ao dominar o conteúdo, clique em <b>"Concluir"</b> para movê-lo para Conteúdos Dominados.</p>' +
       contentHTML
     );
-    return statsHTML + panelVoted;
+    return statsHTML + folderHTML + panelVoted;
   }
 
   function masteredClassesView() {
@@ -405,6 +422,10 @@
       case'set-review-tab':
         activeReviewTab=button.dataset.tab;
         window.AccountFeatureData?.setReviewTab(activeReviewTab)
+        render();
+        break;
+      case'open-aula-folder':
+        aulaFolder = aulaFolder === button.dataset.folder ? null : button.dataset.folder;
         render();
         break;
       case'mark-class-mastered':

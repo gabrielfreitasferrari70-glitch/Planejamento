@@ -54,6 +54,8 @@ html[data-theme=dark] .cal-event.sheet-coded,html[data-theme=dark] .cal-event.sh
 
 .stat-link{text-align:left;color:var(--text);font:inherit}
 .stat-link:hover{border-color:var(--accent);background:var(--accentbg)}
+.stat-link.active{border-color:var(--accent);background:var(--accentbg)}
+button.stat.stat-link{cursor:pointer;width:100%}
 .medreview-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
 .medreview-period{max-width:260px}
 .medreview-day{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:15px 12px;border:0;border-bottom:1px solid var(--border);background:var(--card);color:var(--text);text-align:left}
