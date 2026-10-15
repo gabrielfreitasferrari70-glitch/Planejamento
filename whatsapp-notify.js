@@ -138,7 +138,7 @@
         const timeStr = item.from ? `[${item.from}${item.to ? ' - ' + item.to : ''}] ` : '';
         const prof = item.professor ? ` · ${esc(item.professor)}` : '';
         return `
-          <div class="closing-card" data-closing-class="${idx}" data-title="${esc(item.title)}" data-subject="${esc(item.subject || 'UC2')}" data-from="${esc(item.from || '')}" data-to="${esc(item.to || '')}">
+          <div class="closing-card" data-closing-class="${idx}" data-event-id="${esc(item.id)}" data-event-type="${esc(item.type)}" data-title="${esc(item.title)}" data-subject="${esc(item.subject || 'UC2')}" data-from="${esc(item.from || '')}" data-to="${esc(item.to || '')}">
             <strong>${timeStr}${esc(item.title)}</strong>
             <small class="muted" style="display:block;margin:3px 0 10px">${esc(item.subject || 'UC2')}${prof}</small>
             <div class="pill-row">
@@ -248,6 +248,9 @@
         window.ClassStatusTracker.saveTrackedClasses(trackerList);
       }
 
+      const followupFields = status === 'learn' ? {title: `Aprender / Aprofundar: ${title}`, date: dayAdd(dateStr, 2), estimate: 90} : status === 'missed' ? {title: `Repor aula não assistida: ${title}`, date: dayAdd(dateStr, 3), estimate: 60} : null;
+      const reusedTask = followupFields && window.PlanningClassTasks?.followup(data, {id: card.dataset.eventId, type: card.dataset.eventType, title, subject, date: dateStr}, followupFields);
+
       if (status === 'review') {
         // 1. Vista e direcionada para revisão:
 
@@ -279,26 +282,26 @@
           });
           reviewsCreated++;
         }
-      } else if (status === 'learn') {
+      } else if (status === 'learn' && !reusedTask) {
         // 2. Vista e necessidade de aprender:
         data.tasks.push({
           id: uid(),
           title: `Aprender / Aprofundar: ${title}`,
           subject,
           date: dayAdd(dateStr, 2),
-          priority: '3', // Alta
+          priority: window.PlanningClassTasks?.enabled(data) ? PlanningClassTasks.priorityFor({subject, title}) : '3',
           estimate: 90,
           done: false
         });
         tasksCreated++;
-      } else if (status === 'missed') {
+      } else if (status === 'missed' && !reusedTask) {
         // 3. Não vista:
         data.tasks.push({
           id: uid(),
           title: `Repor aula não assistida: ${title}`,
           subject,
           date: dayAdd(dateStr, 3),
-          priority: '2', // Média
+          priority: window.PlanningClassTasks?.enabled(data) ? PlanningClassTasks.priorityFor({subject, title}) : '2',
           estimate: 60,
           done: false
         });

@@ -452,3 +452,30 @@ class AccountSyncTests(unittest.TestCase):
         self.wait_cloud(page,1)
 
 
+    def test_lesson_tasks_sync_keep_deletions_and_do_not_leak_to_other_accounts(self):
+        owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        payload={k:[] for k in ['tasks','sessions','reviews','materials','events','notes','replacement','mistakes']}
+        payload.update(settings={'ligaAnatomia':1,'classTaskPolicy':{'enabled':True,'fromDate':'2026-10-15','extraEventIds':['yesterday']}},examScopes={},integration={})
+        payload['replacement']=[{'id':'yesterday','date':'2026-10-14','type':'class','subject':'ANATOMIA','title':'ANATOMIA: Sistema urinário'}, {'id':'new','date':'2026-10-15','type':'class','subject':'EMBRIOLOGIA','title':'EMBRIOLOGIA: Sistema urogenital'}]
+        self.database[owner]={'revision':1,'payload':payload}
+        _,mac=self.device();self.wait_cloud(mac,2)
+        # The closing flow must update the existing lesson task, even if saved twice.
+        for _ in range(2):
+            mac.locator('[data-action="open-day-closing"]').first.evaluate("el=>el.dataset.date='2026-10-15'")
+            mac.locator('[data-action="open-day-closing"]').first.click()
+            mac.locator('#modal [value="learn"]').first.check()
+            mac.locator('[data-action="save-day-closing"]').click()
+            self.wait_cloud(mac,2)
+            self.assertEqual(mac.evaluate("data.tasks.find(t=>t.classSourceId==='new').priority"),'1')
+        mac.locator('#nav [data-page="tasks"]').click()
+        self.assertIn('tarefas excluídas não voltam',mac.locator('#app').inner_text())
+        mac.locator('.row-menu > summary').first.click()
+        mac.locator('[data-action="task-delete"]').first.click()
+        self.wait_cloud(mac,1)
+        remaining=mac.evaluate('data.tasks[0].id')
+        mac.reload(wait_until='networkidle');self.wait_cloud(mac,1)
+        _,phone=self.device(mobile=True);self.wait_cloud(phone,1)
+        self.assertEqual(phone.evaluate('data.tasks[0].id'),remaining)
+        _,other=self.device(owner='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+        self.assertEqual(other.evaluate('data.tasks.length'),0)
+        self.assertIsNone(other.evaluate('data.settings.classTaskPolicy || null'))
