@@ -258,7 +258,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.locator('[data-action="app-install"]').first.click()
         self.assertTrue(self.page.get_by_role('dialog').is_visible())
         self.page.keyboard.press('Escape')
-        self.page.evaluate('data.replacement=seed;save()')
+        self.page.evaluate("data.settings.materialsUrl='https://drive.google.com/drive/folders/1Ew9MsEW8f0SmbEvVotxqbaekZZGTcNlt';data.replacement=seed;save()")
         self.context.set_offline(True)
         self.page.reload(wait_until='domcontentloaded')
         self.page.wait_for_function("academicEvents().length===193")

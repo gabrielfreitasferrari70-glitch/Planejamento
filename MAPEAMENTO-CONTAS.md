@@ -60,3 +60,13 @@ Os testes cobrem conta nova vazia, aprovação, separação do cronograma e do D
 As rotas de WhatsApp e cron são testadas com respostas simuladas, sem mensagens reais. A publicação é conferida no domínio existente da Vercel; requisições públicas de teste não fornecem o segredo de cron nem acionam envio.
 
 O agendamento depende da Vercel executar os crons e do CallMeBot aceitar a configuração fornecida. Os testes não representam uma entrega real no WhatsApp.
+
+## Decisões de Arquitetura e Segurança de Banco de Dados
+
+### Funções SECURITY DEFINER (Supabase Advisor 0029 aceito)
+As funções `public.planejamento_write` e `public.planejamento_is_approved` foram definidas intencionalmente como `SECURITY DEFINER` com `search_path = ''`:
+1. **`planejamento_is_approved`**: Precisa ler a tabela `public.profiles` de forma autoritativa e segura para verificar se o usuário autenticado (`auth.uid()`) possui `approved = true`, blindando a verificação de aprovação sem conceder privilégios de leitura ampla para clientes.
+2. **`planejamento_write`**: Realiza controle de concorrência atômico (compare-and-swap) e incremento de revisão em `public.planejamento_documents` garantindo integridade transacional exclusivamente para o `auth.uid()`, sem permitir escrita direta indiscriminada na tabela.
+
+O aviso do Supabase Advisor (alerta 0029 sobre funções SECURITY DEFINER) é conhecido e aceito como decisão consciente de arquitetura de segurança.
+

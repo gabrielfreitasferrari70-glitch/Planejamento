@@ -7,7 +7,7 @@
   let legacy=model.empty(),legacyError='';try{legacy=model.snapshot(data)}catch(error){legacyError=error.message}
   data=model.empty();
   const client=window.supabase.createClient(config.url,config.publishableKey,{auth:{storageKey:prefix+'auth',persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  const state={user:null,pendingUser:null,accessToken:null,base:model.empty(),revision:0,status:'loading',message:'Verificando sua conta...',syncedAt:null,migrated:false,conflicts:null};
+  const state={user:null,pendingUser:null,accessToken:null,base:model.empty(),revision:0,status:'loading',message:'Verificando sua conta...',syncedAt:null,migrated:false,conflicts:null,recoveryMode:(location.hash&&location.hash.includes('type=recovery'))||(location.search&&location.search.includes('type=recovery')),forgotMode:false};
   let generation=0,flight=null,timer=null,channel=null,formDirty=false,queuedRemote=false,migrationConflict=false;
   const previousRender=render,previousGoto=goto;
   const count=payload=>['tasks','sessions','reviews','materials','events','notes','mistakes','replacement'].reduce((sum,key)=>sum+payload[key].length,0);
@@ -25,7 +25,12 @@
     const label=!state.user?state.message||'Entre para sincronizar seus registros.':state.status==='conflict'?'Há alterações diferentes em dois dispositivos. Escolha qual manter.':state.status==='error'?state.message:!navigator.onLine?'Sem internet · alterações guardadas neste dispositivo.':state.status==='syncing'?'Sincronizando seus registros...':dirty?'Alterações guardadas neste dispositivo · aguardando envio.':state.syncedAt?'Sincronizado · '+new Date(state.syncedAt).toLocaleTimeString('pt-BR',{timeZone:ZONE,hour:'2-digit',minute:'2-digit'}):'Conta conectada · lendo registros...';
     el.innerHTML='<span>'+esc(label)+'</span>'+(state.user?btn(state.status==='conflict'?'Resolver alterações':'Sincronizar agora',state.status==='conflict'?'account-conflicts':'account-sync'):'');
   }
-  function loginView(){if(state.pendingUser)return '<section class="panel account-welcome"><img src="/icons/app-192-v2.png" width="64" height="64" alt=""><span class="mr-eyebrow">Cadastro recebido</span><h2>Aguardando aprovação</h2><p><strong>'+esc(state.pendingUser.user_metadata?.full_name||'Sua conta')+'</strong><br><span class="tiny">'+esc(state.pendingUser.email||'')+'</span></p><p class="muted">Sua conta foi criada. O administrador precisa liberar seu acesso antes de você usar o Planejamento.</p><p class="tiny" role="status">'+esc(state.message)+'</p><div class="pill-row">'+btn('Verificar aprovação','account-check-approval','','btn btn-primary')+btn('Sair','account-logout')+'</div></section>';return '<section class="panel account-welcome"><img src="/icons/app-192-v2.png" width="64" height="64" alt=""><span class="mr-eyebrow">Um planejamento em todos os dispositivos</span><h2>Entre no seu Planejamento</h2><p class="muted">Suas tarefas, estudos, agenda e configurações acompanham você no Mac, celular e iPad.</p><form id="account-login-form"><label class="field-label">Nome <span class="tiny">(para criar sua conta)</span><input class="field" type="text" name="fullName" autocomplete="name" maxlength="100" placeholder="Como você quer ser chamado?"></label><label class="field-label">E-mail<input class="field" type="email" name="email" autocomplete="username" required></label><label class="field-label">Senha<input class="field" type="password" name="password" autocomplete="current-password" minlength="6" required></label><p id="account-form-status" class="tiny" role="status"></p><div class="pill-row"><button type="submit" class="btn btn-primary" name="intent" value="login">Entrar</button><button type="submit" class="btn" name="intent" value="signup">Criar minha conta</button></div></form><p class="tiny">Use a mesma conta do Planejamento em todos os dispositivos. Sua conexão com o MedReview continua disponível na tela Revisões.</p>'+(canLegacy()?'<div class="account-legacy"><strong>Há registros salvos neste dispositivo</strong><p class="tiny">Depois de entrar, você poderá trazê-los para sua conta. Eles não serão apagados.</p>'+btn('Baixar cópia dos registros locais','account-legacy-backup')+'</div>':'')+'</section>'}
+  function loginView(){
+    if(state.pendingUser)return '<section class="panel account-welcome"><img src="/icons/app-192-v2.png" width="64" height="64" alt=""><span class="mr-eyebrow">Cadastro recebido</span><h2>Aguardando aprovação</h2><p><strong>'+esc(state.pendingUser.user_metadata?.full_name||'Sua conta')+'</strong><br><span class="tiny">'+esc(state.pendingUser.email||'')+'</span></p><p class="muted">Sua conta foi criada. O administrador precisa liberar seu acesso antes de você usar o Planejamento.</p><p class="tiny" role="status">'+esc(state.message)+'</p><div class="pill-row">'+btn('Verificar aprovação','account-check-approval','','btn btn-primary')+btn('Sair','account-logout')+'</div></section>';
+    if(state.recoveryMode)return '<section class="panel account-welcome"><img src="/icons/app-192-v2.png" width="64" height="64" alt=""><span class="mr-eyebrow">Recuperação de conta</span><h2>Definir nova senha</h2><p class="muted">Digite sua nova senha de acesso.</p><form id="account-reset-password-form"><label class="field-label">Nova senha <span class="tiny">(mínimo de 10 caracteres)</span><input class="field" type="password" name="newPassword" autocomplete="new-password" minlength="10" required></label><label class="field-label">Confirmar nova senha<input class="field" type="password" name="confirmPassword" autocomplete="new-password" minlength="10" required></label><p id="account-reset-status" class="tiny" role="status"></p><div class="pill-row"><button type="submit" class="btn btn-primary">Salvar nova senha</button><button type="button" class="btn" data-action="account-cancel-recovery">Voltar ao login</button></div></form></section>';
+    if(state.forgotMode)return '<section class="panel account-welcome"><img src="/icons/app-192-v2.png" width="64" height="64" alt=""><span class="mr-eyebrow">Recuperação de conta</span><h2>Esqueci minha senha</h2><p class="muted">Informe seu e-mail cadastrado para receber o link de recuperação de senha.</p><form id="account-forgot-form"><label class="field-label">E-mail<input class="field" type="email" name="email" autocomplete="username" required></label><p id="account-forgot-status" class="tiny" role="status"></p><div class="pill-row"><button type="submit" class="btn btn-primary">Enviar link de recuperação</button><button type="button" class="btn" data-action="account-cancel-forgot">Voltar ao login</button></div></form></section>';
+    return '<section class="panel account-welcome"><img src="/icons/app-192-v2.png" width="64" height="64" alt=""><span class="mr-eyebrow">Um planejamento em todos os dispositivos</span><h2>Entre no seu Planejamento</h2><p class="muted">Suas tarefas, estudos, agenda e configurações acompanham você no Mac, celular e iPad.</p><form id="account-login-form"><label class="field-label">Nome <span class="tiny">(para criar sua conta)</span><input class="field" type="text" name="fullName" autocomplete="name" maxlength="100" placeholder="Como você quer ser chamado?"></label><label class="field-label">E-mail<input class="field" type="email" name="email" autocomplete="username" required></label><label class="field-label">Senha <span class="tiny">(mínimo de 10 caracteres)</span><input class="field" type="password" name="password" autocomplete="current-password" minlength="10" required></label><p id="account-form-status" class="tiny" role="status"></p><div class="pill-row"><button type="submit" class="btn btn-primary" name="intent" value="login">Entrar</button><button type="submit" class="btn" name="intent" value="signup">Criar minha conta</button></div><div style="margin-top:14px;text-align:center"><button type="button" class="btn btn-ghost btn-small" data-action="account-forgot">Esqueci minha senha</button></div></form><p class="tiny">Use a mesma conta do Planejamento em todos os dispositivos. Sua conexão com o MedReview continua disponível na tela Revisões.</p>'+(canLegacy()?'<div class="account-legacy"><strong>Há registros salvos neste dispositivo</strong><p class="tiny">Depois de entrar, você poderá trazê-los para sua conta. Eles não serão apagados.</p>'+btn('Baixar cópia dos registros locais','account-legacy-backup')+'</div>':'')+'</section>';
+  }
   function accountPanel(){return panel('Sua conta e sincronização','<p><strong>'+esc(state.user.user_metadata?.full_name||'Sua conta')+'</strong><br><span class="tiny">'+esc(state.user.email||'')+'</span></p><p class="tiny">Entre com esta conta no Mac, celular e iPad. Os registros são sincronizados quando há internet. Alterações offline aguardam envio neste dispositivo.</p><div class="pill-row">'+btn('Sincronizar agora','account-sync','','btn btn-primary')+btn('Sair da conta','account-logout')+'</div>')}
   function migrationPanel(){if(state.migrated||!canLegacy())return '';if(legacyError)return panel('Preservamos seus registros anteriores','<p class="tiny">Os registros locais precisam de revisão antes da importação: '+esc(legacyError)+'</p>'+btn('Baixar cópia dos registros anteriores','account-legacy-backup'));return panel('Trazer registros deste dispositivo','<p class="tiny">Encontramos registros e ajustes anteriores ao login ('+count(legacy)+' registros). Você pode acrescentá-los à sua conta, mantendo os identificadores para não duplicar os mesmos registros.</p><div class="pill-row">'+btn('Trazer meus registros','account-migrate','','btn btn-primary')+btn('Baixar cópia local','account-legacy-backup')+btn('Não trazer neste dispositivo','account-skip-migration')+'</div>')}
   render=function(){if(personalAccount())academicSource=data.settings.academicSource||null;if(!state.user){nav();$('app').innerHTML=loginView();renderAcademicStatus()}else {previousRender();const migration=migrationPanel();if(migration)$('app').insertAdjacentHTML('afterbegin',migration);if(page==='settings')$('app').insertAdjacentHTML('afterbegin',accountPanel())}document.body.classList.remove('account-boot');status()};
@@ -109,6 +114,14 @@
       else data=model.empty();persist();render();
     }
     state.accessToken=session.access_token;
+    if(user.id==='ab049488-5127-4db2-b093-c397e8ea17b1'){
+      let changed=false;
+      if(!data.settings)data.settings={};
+      if(!data.settings.materialsUrl){data.settings.materialsUrl='https://drive.google.com/drive/folders/1Ew9MsEW8f0SmbEvVotxqbaekZZGTcNlt';changed=true}
+      if(!data.integration)data.integration={};
+      if(!data.integration.sheetUrl){data.integration.sheetUrl='https://docs.google.com/spreadsheets/d/1PDVHG1mTUghB9_3vQimgcOnnhd7K9RiiQGV4ZybDhm8/edit';changed=true}
+      if(changed){persist();save()}
+    }
     if(!channel){channel=client.channel('planejamento-own-'+user.id).on('postgres_changes',{event:'*',schema:'public',table:'planejamento_documents',filter:'user_id=eq.'+user.id},()=>sync()).subscribe()}
     await sync();
   }
@@ -118,14 +131,14 @@
       email_provider_disabled:'O acesso por e-mail está temporariamente indisponível. Tente novamente mais tarde.',
       over_email_send_rate_limit:'O limite de envio de e-mails foi atingido. Aguarde alguns minutos antes de tentar novamente.',
       over_request_rate_limit:'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.',
-      weak_password:'Use uma senha com pelo menos 6 caracteres. Evite senhas comuns ou fáceis de adivinhar.',
+      weak_password:'Use uma senha com pelo menos 10 caracteres. Evite senhas comuns ou fáceis de adivinhar.',
       email_address_invalid:'Confira se o endereço de e-mail está completo e correto.',
-      validation_failed:'Confira o e-mail e use uma senha com pelo menos 6 caracteres.',
+      validation_failed:'Confira o e-mail e use uma senha com pelo menos 10 caracteres.',
       user_already_exists:'Já existe uma conta com este e-mail. Use Entrar para acessá-la.',
       email_not_confirmed:'Confirme sua conta pelo link enviado ao seu e-mail antes de entrar.',
       invalid_credentials:'E-mail ou senha incorretos. Confira os dados e tente novamente.'
     };
-    return messages[error?.code]||(error?.status===429?'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.':error?.name==='AuthRetryableFetchError'?'Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.':intent==='signup'?'Não foi possível criar a conta agora. Tente novamente em alguns minutos.':'Não foi possível entrar agora. Tente novamente em alguns minutos.');
+    return messages[error?.code]||(error?.status===429?'Muitas tentativas seguidas. Aguarde alguns minutos e tente novamente.':error?.name==='AuthRetryableFetchError'?'Não foi possível conectar ao serviço. Verifique sua internet e tente novamente.':intent==='signup'?'Não foi possível criar a conta agora. Tente novamente em alguns minutos.':intent==='reset'?'Não foi possível enviar o link de recuperação. Tente novamente em alguns minutos.':intent==='update_password'?'Não foi possível salvar a nova senha. Tente novamente em alguns minutos.':'Não foi possível entrar agora. Tente novamente em alguns minutos.');
   }
   async function authenticate(event){
     event.preventDefault();const form=event.target,output=$('account-form-status');if(!navigator.onLine){output.textContent='Conecte-se à internet para entrar ou criar sua conta.';return}
@@ -138,18 +151,55 @@
       if(!result.data.session){output.textContent='Confira seu e-mail e confirme a conta para entrar.';return}await acceptSession(result.data.session);
     }catch(error){form.elements.password.value='';output.textContent=authError(error,intent)}finally{buttons.forEach(button=>button.disabled=false)}
   }
+  async function requestPasswordReset(event){
+    event.preventDefault();const form=event.target,output=$('account-forgot-status');if(!navigator.onLine){output.textContent='Conecte-se à internet para recuperar sua senha.';return}
+    const email=form.elements.email.value.trim(),button=form.querySelector('button[type="submit"]');
+    if(!email){output.textContent='Informe seu e-mail cadastrado.';return}
+    button.disabled=true;output.textContent='Enviando link de recuperação...';
+    try{
+      const {error}=await client.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+      if(error){output.textContent=authError(error,'reset');return}
+      output.textContent='Enviamos um link de recuperação para seu e-mail. Abra-o para definir sua nova senha.';
+    }catch(error){output.textContent=authError(error,'reset')}finally{button.disabled=false}
+  }
+  async function resetNewPassword(event){
+    event.preventDefault();const form=event.target,output=$('account-reset-status');if(!navigator.onLine){output.textContent='Conecte-se à internet para salvar sua nova senha.';return}
+    const newPassword=form.elements.newPassword.value,confirmPassword=form.elements.confirmPassword.value,button=form.querySelector('button[type="submit"]');
+    if(newPassword.length<10){output.textContent='A nova senha precisa ter pelo menos 10 caracteres.';return}
+    if(newPassword!==confirmPassword){output.textContent='As senhas não coincidem. Digite novamente.';return}
+    button.disabled=true;output.textContent='Salvando nova senha...';
+    try{
+      const {data:res,error}=await client.auth.updateUser({password:newPassword});
+      if(error){output.textContent=authError(error,'update_password');return}
+      state.recoveryMode=false;
+      if(window.history.replaceState)window.history.replaceState(null,'',window.location.pathname);
+      notify('Senha atualizada com sucesso!');
+      const {data:auth}=await client.auth.getSession();
+      if(auth.session)await acceptSession(auth.session);
+      else {state.message='Senha alterada com sucesso. Faça login com sua nova senha.';render()}
+    }catch(error){output.textContent=authError(error,'update_password')}finally{button.disabled=false}
+  }
   function showAccount(){if(!state.user){goto('settings');return}$('modal').innerHTML='<div class="modal-card" role="dialog" aria-modal="true"><button type="button" class="close" data-action="close" aria-label="Fechar">×</button>'+accountPanel()+'</div>';$('modal').classList.remove('hidden')}
   function showConflicts(){if(!state.conflicts)return;$('modal').innerHTML='<div class="modal-card" role="dialog" aria-modal="true"><button type="button" class="close" data-action="close" aria-label="Fechar">×</button><h2>Escolha quais alterações manter</h2><p>O mesmo campo foi alterado de formas diferentes neste dispositivo e na conta. As demais alterações serão combinadas.</p><p class="tiny">Baixe uma cópia antes de escolher, se quiser comparar depois.</p><div class="pill-row">'+btn('Baixar esta versão','backup')+btn('Manter alterações deste dispositivo','account-conflict-local','','btn btn-primary')+btn('Manter alterações da conta','account-conflict-remote')+'</div></div>';$('modal').classList.remove('hidden')}
   async function logout(){if(state.user)persist();try{localStorage.removeItem(prefix+'last-owner')}catch{}reset();window.MedReviewConnection?.disconnect?.();await client.auth.signOut({scope:'local'});state.status='disconnected';state.message='Você saiu da conta. Os dados da conta estão ocultos neste dispositivo.';render()}
-  document.addEventListener('submit',event=>{if(event.target.id==='account-login-form')authenticate(event)});
+  document.addEventListener('submit',event=>{
+    if(event.target.id==='account-login-form')authenticate(event);
+    else if(event.target.id==='account-forgot-form')requestPasswordReset(event);
+    else if(event.target.id==='account-reset-password-form')resetNewPassword(event);
+  });
   document.addEventListener('click',event=>{const button=event.target.closest('[data-action]');if(!button)return;switch(button.dataset.action){
     case'account-check-approval':checkApproval();break;case'account-open':showAccount();break;case'account-sync':sync();break;case'account-logout':logout();break;case'account-conflicts':showConflicts();break;
+    case'account-forgot':state.forgotMode=true;render();break;case'account-cancel-forgot':state.forgotMode=false;render();break;case'account-cancel-recovery':state.recoveryMode=false;if(window.history.replaceState)window.history.replaceState(null,'',window.location.pathname);render();break;
     case'account-legacy-backup':{if(!canLegacy())break;const current=data;data=originalLegacy;backup();data=current;break}
     case'account-skip-migration':state.migrated=true;persist();render();break;
     case'account-migrate':{if(!canLegacy())break;const result=model.merge(model.empty(),legacy,model.snapshot(data));if(result.conflicts.length){migrationConflict=true;state.conflicts={migration:true};state.status='conflict';showConflicts();status();break}if(!bindLegacy())break;data=result.payload;state.migrated=true;save();render();break}
     case'account-conflict-local':case'account-conflict-remote':closeModal();formDirty=false;{const preference=button.dataset.action.endsWith('remote')?'remote':'local';if(migrationConflict){if(!bindLegacy())break;data=model.merge(model.empty(),legacy,model.snapshot(data),preference).payload;state.migrated=true;migrationConflict=false;state.conflicts=null;save();render()}else sync(preference)}break;
   }});
-  client.auth.onAuthStateChange((event,session)=>{if(event==='SIGNED_OUT'){if(resumeOffline())return;reset();state.message='Entre para sincronizar seus registros.';render()}else if(['SIGNED_IN','TOKEN_REFRESHED','PASSWORD_RECOVERY'].includes(event))setTimeout(()=>acceptSession(session),0)});
+  client.auth.onAuthStateChange((event,session)=>{
+    if(event==='PASSWORD_RECOVERY'){state.recoveryMode=true;render()}
+    else if(event==='SIGNED_OUT'){if(resumeOffline())return;reset();state.message='Entre para sincronizar seus registros.';render()}
+    else if(['SIGNED_IN','TOKEN_REFRESHED'].includes(event))setTimeout(()=>acceptSession(session),0)
+  });
   const refresh=()=>{if(document.visibilityState==='visible'){if(state.user)sync();else if(state.pendingUser&&navigator.onLine)checkApproval()}};window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);setInterval(refresh,30000);
   window.addEventListener('offline',()=>{state.status='offline';status()});window.addEventListener('online',async()=>{try{const {data:auth}=await client.auth.getSession();if(auth.session)await acceptSession(auth.session)}catch{setError('Não foi possível retomar a conta. Suas alterações locais continuam guardadas.')}});
   window.PlanningAccount={enabled:true,async sendWhatsApp(text,phone,apikey){if(!state.user||!state.accessToken)throw Error('Entre novamente para enviar seu resumo.');const owner=state.user.id;const response=await fetch('/api/send-whatsapp',{method:'POST',headers:{'Authorization':'Bearer '+state.accessToken,'Content-Type':'application/json'},body:JSON.stringify({text,phone,apikey})});const result=await response.json();if(state.user?.id!==owner)throw Error('A conta mudou durante o envio.');if(!response.ok||!result.success)throw Error(result.error||'Não foi possível enviar o resumo.');return true},async analyzeSchedule(file){if(!state.user||!state.accessToken)throw Error('Entre novamente na sua conta para importar.');const owner=state.user.id,token=state.accessToken;const response=await fetch('/api/import-schedule',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/octet-stream','X-File-Name':encodeURIComponent(file.name)},body:file});let result;try{result=await response.json()}catch{throw Error('A importação está temporariamente indisponível. Tente novamente.')}if(state.user?.id!==owner)throw Error('A conta mudou durante a importação. Tente novamente.');if(!response.ok)throw Error(result.error||'Não foi possível analisar a planilha.');return {...result,owner}},get status(){return state.status},get user(){return state.user},sync,logout};

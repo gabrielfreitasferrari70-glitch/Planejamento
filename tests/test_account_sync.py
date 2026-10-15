@@ -2,6 +2,7 @@
 import base64
 import functools
 import json
+import os
 import shutil
 import threading
 import time
@@ -20,11 +21,15 @@ class AccountSyncTests(unittest.TestCase):
         cls.server=ThreadingHTTPServer(('127.0.0.1',0),functools.partial(QuietHandler,directory=str(Path(__file__).resolve().parents[1])))
         cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True);cls.thread.start()
         cls.url=f'http://127.0.0.1:{cls.server.server_port}/'
-        cls.playwright=sync_playwright().start();cls.browser=cls.playwright.chromium.launch(executable_path=shutil.which('chromium'))
+        cls.playwright=sync_playwright().start()
+        executable=os.environ.get('CHROMIUM_PATH') or shutil.which('chromium')
+        options={'headless':True}
+        if executable: options['executable_path']=executable
+        cls.browser=cls.playwright.chromium.launch(**options)
     @classmethod
     def tearDownClass(cls):
         cls.browser.close();cls.playwright.stop();cls.server.shutdown();cls.server.server_close();cls.thread.join()
-    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[];self.approvals={};self.document_reads=0;self.profile_missing=False
+    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[];self.approvals={};self.document_reads=0;self.profile_missing=False;self.recoveries=[];self.password_updates=[]
     def tearDown(self):
         for context in self.contexts:context.close()
         self.assertEqual(self.errors,[])
@@ -47,8 +52,14 @@ class AccountSyncTests(unittest.TestCase):
                     route.fulfill(status=400,content_type='application/json',body=json.dumps({'error_code':self.signup_error,'msg':'internal diagnostic must not be shown'}));return
                 user['user_metadata']=request.post_data_json['data'];self.approvals[owner]=False
                 result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
+            elif path=='/auth/v1/recover':
+                self.recoveries.append(request.post_data_json)
+                result={}
             elif path=='/auth/v1/token':result={'access_token':token,'refresh_token':'fixture-refresh','expires_in':3600,'token_type':'bearer','user':user}
-            elif path=='/auth/v1/user':result=user
+            elif path=='/auth/v1/user':
+                if request.method=='PUT':
+                    self.password_updates.append(request.post_data_json)
+                result=user
             elif path=='/auth/v1/logout':route.fulfill(status=204,body='');return
             elif path=='/rest/v1/profiles':
                 self.assertEqual(request.method,'GET');self.assertEqual(params.get('id'),['eq.'+owner]);self.assertEqual(request.headers['authorization'],'Bearer '+token)
@@ -112,7 +123,7 @@ class AccountSyncTests(unittest.TestCase):
         _,page=self.device(auto_login=False)
         page.locator('[name="fullName"]').fill('Gabriel')
         page.locator('[name="email"]').fill('fixture@example.invalid')
-        for code,expected in [('signup_disabled','temporariamente indisponível'),('weak_password','pelo menos 6 caracteres'),('over_email_send_rate_limit','limite de envio de e-mails')]:
+        for code,expected in [('signup_disabled','temporariamente indisponível'),('weak_password','pelo menos 10 caracteres'),('over_email_send_rate_limit','limite de envio de e-mails')]:
             self.signup_error=code
             page.locator('[name="password"]').fill('fixture-password')
             page.locator('button[value="signup"]').click()
@@ -302,3 +313,16 @@ class AccountSyncTests(unittest.TestCase):
         self.assertEqual(page.evaluate('data.tasks[0].title'),'Não perder')
         self.deny_write=False;page.evaluate('PlanningAccount.sync()');self.wait_cloud(page,1)
         self.assertEqual(self.writes,1)
+
+    def test_password_recovery_and_minlength_validation(self):
+        _,page=self.device(auto_login=False)
+        self.assertEqual(page.locator('[name="password"]').get_attribute('minlength'),'10')
+        self.assertIn('mínimo de 10 caracteres',page.locator('#account-login-form').inner_text())
+        page.locator('[data-action="account-forgot"]').click()
+        self.assertTrue(page.locator('#account-forgot-form').is_visible())
+        page.locator('#account-forgot-form [name="email"]').fill('usuario@example.invalid')
+        page.locator('#account-forgot-form button[type="submit"]').click()
+        page.wait_for_function("document.querySelector('#account-forgot-status').textContent.includes('Enviamos um link')")
+        self.assertEqual(self.recoveries[0]['email'],'usuario@example.invalid')
+        page.locator('[data-action="account-cancel-forgot"]').click()
+        self.assertTrue(page.locator('#account-login-form').is_visible())
