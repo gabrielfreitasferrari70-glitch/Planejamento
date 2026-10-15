@@ -10,15 +10,27 @@
   }
   const topic=title=>plain(title).replace(/^(estudar:|aprender\s*\/\s*aprofundar:|repor aula nao assistida:)\s*/, '');
   const key=event=>'event:'+event.id;
-  function sync(data){
+  const currentDay=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Cuiaba',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  function sync(data,asOf=currentDay()){
     if(!enabled(data))return false;
     const policy=data.settings.classTaskPolicy;
-    if(!/^\d{4}-\d{2}-\d{2}$/.test(policy.fromDate||''))return false;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(policy.fromDate||'')||!/^\d{4}-\d{2}-\d{2}$/.test(asOf||''))return false;
     const ledger=data.settings.classTaskLedger||(data.settings.classTaskLedger={});
-    const bound=new Set(Object.values(ledger));
     let changed=false;
-    for(const event of [...(data.replacement||[]),...(data.events||[])]){
+    const events=[...(data.replacement||[]),...(data.events||[])];
+    // Undo the earlier bulk generation, preserving manual tasks and any user edits/work.
+    for(const event of events.filter(e=>e.date>asOf)){
+      const id=ledger[key(event)],task=data.tasks.find(t=>t.id===id);
+      if(!task||task.id!=='class-task:'+event.id||task.origin!=='class'||task.done)continue;
+      const original={id:task.id,title:'Estudar: '+event.title,subject:event.subject||'UC2',date:event.date,priority:priorityFor(event),estimate:60,done:false,origin:'class',classSourceId:event.id,classDate:event.date};
+      if(Object.keys(task).length!==Object.keys(original).length||Object.keys(original).some(k=>task[k]!==original[k]))continue;
+      data.tasks=data.tasks.filter(t=>t.id!==id);
+      delete ledger[key(event)];changed=true;
+    }
+    const bound=new Set(Object.values(ledger));
+    for(const event of events){
       if(!event.id||!lesson(event)||!/^\d{4}-\d{2}-\d{2}$/.test(event.date||''))continue;
+      if(event.date>asOf)continue;
       if(event.date<policy.fromDate&&!(policy.extraEventIds||[]).includes(event.id))continue;
       if(Object.hasOwn(ledger,key(event)))continue;
       let task=data.tasks.find(t=>t.classSourceId===event.id)||data.tasks.find(t=>{
@@ -36,10 +48,10 @@
     }
     return changed;
   }
-  function followup(data,event,fields){
+  function followup(data,event,fields,asOf=currentDay()){
     // The day-closing flow reuses the lesson's task, including across devices.
     if(!enabled(data)||!lesson(event))return null;
-    sync(data);
+    sync(data,asOf);
     const id=data.settings.classTaskLedger?.[key(event)];
     if(!id)return null;
     const task=data.tasks.find(t=>t.id===id);

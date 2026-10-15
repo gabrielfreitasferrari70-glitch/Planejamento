@@ -278,7 +278,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.semester-event').count(),193)
         self.page.evaluate("goto('materials')")
         self.assertEqual(self.page.locator('.materials-drive-link').get_attribute('href'),'https://drive.google.com/drive/folders/test-materials-folder')
-        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v7');return (await cache.keys()).map(req=>req.url)}")
+        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v8');return (await cache.keys()).map(req=>req.url)}")
         self.assertTrue(all(url.startswith(self.url) for url in cached))
         self.assertFalse(any('mr_reviews' in url or '/auth/' in url or '.pdf' in url for url in cached))
         self.context.set_offline(False)

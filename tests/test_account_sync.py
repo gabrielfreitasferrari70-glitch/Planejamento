@@ -457,8 +457,13 @@ class AccountSyncTests(unittest.TestCase):
         payload={k:[] for k in ['tasks','sessions','reviews','materials','events','notes','replacement','mistakes']}
         payload.update(settings={'ligaAnatomia':1,'classTaskPolicy':{'enabled':True,'fromDate':'2026-10-15','extraEventIds':['yesterday']}},examScopes={},integration={})
         payload['replacement']=[{'id':'yesterday','date':'2026-10-14','type':'class','subject':'ANATOMIA','title':'ANATOMIA: Sistema urinário'}, {'id':'new','date':'2026-10-15','type':'class','subject':'EMBRIOLOGIA','title':'EMBRIOLOGIA: Sistema urogenital'}]
+        payload['replacement'].append({'id':'future','date':'2099-10-20','type':'class','subject':'ANATOMIA','title':'Aula futura'})
+        payload['tasks']=[{'id':'class-task:future','title':'Estudar: Aula futura','subject':'ANATOMIA','date':'2099-10-20','priority':'3','estimate':60,'done':False,'origin':'class','classSourceId':'future','classDate':'2099-10-20'}]
+        payload['settings']['classTaskLedger']={'event:future':'class-task:future'}
         self.database[owner]={'revision':1,'payload':payload}
         _,mac=self.device();self.wait_cloud(mac,2)
+        self.assertFalse(mac.evaluate("Object.hasOwn(data.settings.classTaskLedger,'event:future')"))
+        self.assertEqual(mac.evaluate("data.replacement.filter(e=>e.id==='future').length"),1)
         # The closing flow must update the existing lesson task, even if saved twice.
         for _ in range(2):
             mac.locator('[data-action="open-day-closing"]').first.evaluate("el=>el.dataset.date='2026-10-15'")
