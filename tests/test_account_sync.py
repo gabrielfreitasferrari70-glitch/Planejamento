@@ -29,7 +29,7 @@ class AccountSyncTests(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.browser.close();cls.playwright.stop();cls.server.shutdown();cls.server.server_close();cls.thread.join()
-    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[];self.approvals={};self.document_reads=0;self.profile_missing=False;self.recoveries=[];self.password_updates=[]
+    def setUp(self):self.contexts=[];self.errors=[];self.database={};self.writes=0;self.deny_write=False;self.force_conflict=False;self.signup_error=None;self.signups=[];self.approvals={};self.document_reads=0;self.profile_missing=False;self.recoveries=[];self.password_updates=[];self.versions={};self.simulate_401=False;self.simulate_network_error=False
     def tearDown(self):
         for context in self.contexts:context.close()
         self.assertEqual(self.errors,[])
@@ -46,6 +46,10 @@ class AccountSyncTests(unittest.TestCase):
         user={'id':owner,'email':fixture_email,'aud':'authenticated','role':'authenticated','app_metadata':{},'user_metadata':{}}
         def transport(route):
             request=route.request;path=urlsplit(request.url).path;params=parse_qs(urlsplit(request.url).query)
+            if self.simulate_network_error and path.startswith('/rest/'):
+                route.abort('connectionfailed');return
+            if self.simulate_401 and path.startswith('/rest/'):
+                route.fulfill(status=401,content_type='application/json',body=json.dumps({'code':'PGRST301','message':'JWT expired'}));return
             if path=='/auth/v1/signup':
                 self.signups.append(request.post_data_json)
                 if self.signup_error:
@@ -68,6 +72,15 @@ class AccountSyncTests(unittest.TestCase):
                 self.document_reads+=1
                 self.assertEqual(request.method,'GET');self.assertEqual(params.get('user_id'),['eq.'+owner]);self.assertEqual(request.headers['authorization'],'Bearer '+token)
                 row=self.database.get(owner);result=[{'schema_version':1,**row}] if row else []
+            elif path=='/rest/v1/planejamento_document_versions':
+                self.assertEqual(request.method,'GET');self.assertEqual(request.headers['authorization'],'Bearer '+token)
+                user_versions=self.versions.get(owner,[])
+                id_param=params.get('id')
+                if id_param and id_param[0].startswith('eq.'):
+                    target_id=int(id_param[0].split('.')[1])
+                    result=[v for v in user_versions if v['id']==target_id]
+                else:
+                    result=[{'id':v['id'],'user_id':v['user_id'],'revision':v['revision'],'saved_at':v['saved_at']} for v in user_versions]
             elif path=='/rest/v1/rpc/planejamento_write':
                 self.assertEqual(request.method,'POST');self.assertEqual(request.headers['authorization'],'Bearer '+token)
                 if self.deny_write:route.fulfill(status=403,content_type='application/json',body=json.dumps({'code':'42501','message':'Denied'}));return
@@ -75,7 +88,19 @@ class AccountSyncTests(unittest.TestCase):
                 if self.force_conflict and owner in self.database:
                     self.force_conflict=False;row['revision']+=1;row['payload']['tasks'].append({'id':'concurrent','title':'Outro dispositivo','done':False});revision=row['revision']
                 if body['expected_revision']!=revision:route.fulfill(status=409,content_type='application/json',body=json.dumps({'code':'PT409','message':'Changed'}));return
-                self.writes+=1;row={'revision':revision+1,'payload':body['new_payload']};self.database[owner]=row;result={'schema_version':1,**row}
+                self.writes+=1
+                if owner in self.database:
+                    cur=self.database[owner]
+                    v_list=self.versions.setdefault(owner,[])
+                    v_list.insert(0,{
+                        'id':len(v_list)+1,
+                        'user_id':owner,
+                        'revision':cur['revision'],
+                        'payload':json.loads(json.dumps(cur['payload'])),
+                        'saved_at':'2026-10-15T12:00:00.000Z'
+                    })
+                    if len(v_list)>20:del v_list[20:]
+                row={'revision':revision+1,'payload':body['new_payload']};self.database[owner]=row;result={'schema_version':1,**row}
             else:raise AssertionError('Unexpected account endpoint: '+path)
             route.fulfill(status=200,content_type='application/json',body=json.dumps(result))
         context.route(remote+'/**',transport)
@@ -361,4 +386,46 @@ class AccountSyncTests(unittest.TestCase):
         page.wait_for_function("PlanningAccount.user === null && document.querySelector('#account-login-form') !== null")
         self.assertTrue(page.locator('#account-login-form').is_visible())
         self.assertEqual(self.document_reads,0)
+
+    def test_document_versions_archived_and_restorable_via_revision(self):
+        owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        _,page=self.device()
+        page.evaluate("data.tasks.push({id:'task-v1',title:'Primeira versao',done:false});save()")
+        self.wait_cloud(page,1)
+        page.evaluate("data.tasks.push({id:'task-v2',title:'Segunda versao',done:false});save()")
+        self.wait_cloud(page,2)
+        self.assertEqual(len(self.versions.get(owner,[])),1)
+        self.assertEqual(self.versions[owner][0]['revision'],1)
+        page.evaluate("goto('settings')")
+        self.assertTrue(page.locator('#account-versions-fold').is_visible())
+        page.locator('#account-versions-fold summary').click()
+        page.wait_for_selector('.version-item')
+        self.assertIn('Revisão 1',page.locator('#account-versions-content').inner_text())
+        page.once('dialog',lambda dialog:dialog.accept())
+        page.locator('[data-action="account-restore-version"]').first.click()
+        page.wait_for_function("PlanningAccount.status==='synced' && data.tasks.length===1")
+        self.assertEqual(page.evaluate('data.tasks[0].id'),'task-v1')
+        self.assertGreaterEqual(self.database[owner]['revision'],3)
+        self.assertEqual(self.database[owner]['payload']['tasks'][0]['id'],'task-v1')
+        self.assertGreaterEqual(len(self.versions[owner]),2)
+
+    def test_network_failure_and_session_expired_show_clear_message_and_retry_button(self):
+        context,page=self.device()
+        page.evaluate("data.tasks.push({id:'t1',title:'Online',done:false});save()")
+        self.wait_cloud(page,1)
+        self.simulate_network_error=True
+        page.evaluate("PlanningAccount.sync()")
+        page.wait_for_function("document.querySelector('#account-status').textContent.includes('Sem conexão com a internet')")
+        self.assertTrue(page.locator('#account-status [data-action="account-retry"]').is_visible())
+        self.simulate_network_error=False
+        page.locator('#account-status [data-action="account-retry"]').click()
+        self.wait_cloud(page,1)
+        self.simulate_401=True
+        page.evaluate("PlanningAccount.sync()")
+        page.wait_for_function("document.querySelector('#account-status').textContent.includes('Sua sessão expirou')")
+        self.assertTrue(page.locator('#account-status [data-action="account-retry"]').is_visible())
+        self.simulate_401=False
+        page.locator('#account-status [data-action="account-retry"]').click()
+        self.wait_cloud(page,1)
+
 
