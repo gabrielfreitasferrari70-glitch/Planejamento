@@ -72,7 +72,7 @@ class SiteSmokeTests(unittest.TestCase):
     def test_static_assets_and_empty_schedule(self):
         self.open()
         for name in ['index.html', 'styles.css', 'insights.css', 'app.js',
-                     'insights.js', 'legacy-import.js', 'cloud-drive.js',
+                     'insights.js', 'legacy-import.js', 'question-data.js', 'questions.js',
                      'favicon.svg', 'academic.json']:
             response = self.context.request.get(self.url + name)
             self.assertEqual(response.status, 200, name)
@@ -278,7 +278,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.semester-event').count(),193)
         self.page.evaluate("goto('materials')")
         self.assertEqual(self.page.locator('.materials-drive-link').get_attribute('href'),'https://drive.google.com/drive/folders/test-materials-folder')
-        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v9');return (await cache.keys()).map(req=>req.url)}")
+        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v10');return (await cache.keys()).map(req=>req.url)}")
         self.assertTrue(all(url.startswith(self.url) for url in cached))
         self.assertFalse(any('mr_reviews' in url or '/auth/' in url or '.pdf' in url for url in cached))
         self.context.set_offline(False)
@@ -330,7 +330,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.saved()['settings']['availability'],{})
         self.page.locator('#settings-connections').locator('..').locator('summary').click()
         self.assertTrue(self.page.locator('#oauth-client-id').is_visible())
-        self.assertTrue(self.page.locator('[data-action="drive-auth"]').is_visible())
+        self.assertEqual(self.page.locator('[data-action="drive-auth"]').count(),0)
         self.page.set_viewport_size({'width':320,'height':568})
         self.assertTrue(self.page.evaluate('document.documentElement.scrollWidth <= innerWidth'))
 

@@ -80,9 +80,6 @@
     },
     "api/cron-daily-summary.js": {
       "maxDuration": 60
-    },
-    "api/questions.py": {
-      "maxDuration": 120
     }
   }
 }

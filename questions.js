@@ -1,66 +1,60 @@
-/* Questions stay in the authenticated Planejamento document. Drive tokens stay in memory. */
+/* Manual ChatGPT imports; no generation API, source access, or external authentication. */
 'use strict';
 (function(){
-  let token='',expires=0,generation=0,busy=false,files=[],cursor='',folder='root',selected=new Map(),active='',status='Conecte o Drive para selecionar seus materiais.',settings={count:10,subject:'Medicina',difficulty:'intermediária'},ready=null;
-  const folderMime='application/vnd.google-apps.folder';
+  let generation=0,busy=false,active='',status='Importe um arquivo de questões para começar.';
   MENU.splice(MENU.findIndex(x=>x[0]==='studies'),0,['questions','exams','Questões']);
   const rows=()=>Array.isArray(data.settings.questionSets)?data.settings.questionSets:[];
   const previousRender=render;
-  render=function(){previousRender();if(page==='questions'){$('app').innerHTML=view();$('subtitle').textContent='Simulados baseados nos seus materiais, com fontes conferíveis.';if(busy)$('app').querySelectorAll('button,input,select').forEach(el=>{if(el.dataset.action!=='questions-disconnect')el.disabled=true})}};
+  render=function(){previousRender();if(page==='questions'){$('app').innerHTML=view();$('subtitle').textContent='Questões do seu chat, simulados e resultados no Planejamento.';if(busy)$('questions-import').disabled=true}};
   function redraw(){if(page==='questions')render()}
-  function message(text){status=text;redraw();notify(text)}
   const action=(label,name,attrs='')=>btn(label,'questions-'+name,attrs);
+  function message(value){status=value;redraw();notify(value)}
   function view(){
-    const set=rows().find(s=>s.id===active),history=rows().map(s=>'<li>'+action(esc(s.subject)+' · '+s.questions.length+' questões'+(s.finishedAt?' · '+s.correct+'/'+s.questions.length+' acertos':''),'open','data-id="'+esc(s.id)+'"')+'</li>').join('');
-    return panel('Questões com seus materiais','<p class="muted">Escolha arquivos do Drive e gere um simulado quando quiser. Questões e respostas ficam na sua conta do Planejamento.</p><p class="tiny">PDF, Google Docs, Slides ou TXT · até 5 arquivos, 4 MB por arquivo e 140 mil caracteres no total. PDFs escaneados sem texto não são aceitos.</p><p class="tiny">A autorização permite ler seu Drive. Só os arquivos selecionados serão enviados ao servidor e, ao gerar, ao Gemini. O token Google fica apenas nesta aba. O uso da cota gratuita do Gemini está sujeito aos termos de dados do Google.</p><label class="field-label">OAuth Client ID do Google (Web)<input id="questions-client" class="field" value="'+esc(data.integration?.clientId||'')+'" placeholder="...apps.googleusercontent.com" autocomplete="off"></label><div class="pill-row">'+action('Conectar Drive para leitura','connect')+action('Desconectar','disconnect')+action('Verificar Gemini','status')+'</div><p class="tiny" role="status" aria-live="polite">'+esc(status)+(busy?' Aguarde…':'')+'</p>'+(ready===false?'<div class="alert">Gemini ainda não configurado no servidor. O fluxo ChatGPT abaixo pode ser usado após autorizar o Drive. Nenhum faturamento foi ativado.</div>':'')+'<label class="field-label">Pasta do Drive ou ID (opcional)<input class="field" id="questions-folder" placeholder="https://drive.google.com/drive/folders/..."></label><div class="pill-row">'+action('Abrir pasta','folder')+action('Meu Drive','root')+(cursor?action('Carregar mais','more'):'')+'</div><ul>'+files.map(f=>'<li>'+(f.mimeType===folderMime?action('Abrir '+esc(f.name),'folder','data-id="'+esc(f.id)+'"'):'<label><input type="checkbox" data-q-file="'+esc(f.id)+'" '+(selected.has(f.id)?'checked':'')+'> '+esc(f.name)+'</label>')+'</li>').join('')+'</ul><h3>Seleção · '+selected.size+'/5</h3><ul>'+[...selected.values()].map(f=>'<li>'+esc(f.name)+' '+action('Retirar','remove','data-id="'+esc(f.id)+'"')+'</li>').join('')+'</ul><p class="tiny">Abra as pastas para escolher os arquivos desejados. Selecionar uma pasta não envia todo o conteúdo automaticamente.</p><div class="settings-grid"><label class="field-label">Quantidade<input class="field" id="questions-count" type="number" min="1" max="20" value="'+settings.count+'"></label><label class="field-label">Disciplina<input class="field" id="questions-subject" maxlength="100" value="'+esc(settings.subject)+'"></label><label class="field-label">Dificuldade<select class="field" id="questions-difficulty">'+['fácil','intermediária','avançada'].map(d=>'<option '+(settings.difficulty===d?'selected':'')+'>'+d+'</option>').join('')+'</select></label></div>'+action('Gerar com Gemini','generate',busy?' disabled':''))+
-      panel('Usar os mesmos materiais no ChatGPT','<p>Conecte o Google Drive no ChatGPT e autorize a leitura dos arquivos escolhidos. O botão abaixo baixa um pedido com os mesmos IDs e trechos extraídos; você pode anexá-lo ao chat e pedir as questões. A disponibilidade do conector depende da sua conta.</p><p class="tiny">A assinatura ChatGPT Plus não é uma API gratuita para este site. Este fluxo acontece no ChatGPT e volta por importação, sem chamada à API OpenAI.</p>'+action('Baixar pedido para ChatGPT','prompt')+'<label class="field-label">Importar resposta JSON do ChatGPT<input class="field" type="file" id="questions-import" accept=".json,application/json"></label><p class="tiny">A importação relê os arquivos selecionados e recusa citações que não existam no texto. Confira a seleção antes de importar.</p>')+
-      (set?quiz(set):'')+panel('Meus simulados',history?'<ul>'+history+'</ul>':empty('Seus simulados aparecerão aqui.'));
+    const set=rows().find(s=>s.id===active);
+    const history=rows().map(s=>'<li>'+action(esc(s.subject)+' · '+s.questions.length+' questões'+(s.finishedAt?' · '+s.correct+'/'+s.questions.length+' acertos':''),'open','data-id="'+esc(s.id)+'"')+' '+action('Excluir','delete','data-id="'+esc(s.id)+'"')+'</li>').join('');
+    return panel('Questões do ChatGPT','<p class="muted">Peça as questões no chat normal do ChatGPT e importe o arquivo aqui. Responda ao simulado e acompanhe seus acertos na sua conta.</p><ol><li>Abra uma conversa no ChatGPT em modo Chat e forneça os materiais.</li><li>Use o pedido abaixo para receber um arquivo JSON com questões e fontes.</li><li>Importe o arquivo neste site e responda ao simulado.</li></ol><div class="pill-row"><a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Abrir ChatGPT ↗</a>'+action('Baixar pedido para ChatGPT','prompt')+'</div><p class="tiny">O site importa e corrige o simulado sem chamar serviços de IA ou iniciar tarefas no Work. A conversa aberta no ChatGPT segue o modo e os limites do seu plano.</p><label class="field-label">Importar questões do ChatGPT<input class="field" type="file" id="questions-import" accept=".json,application/json"></label><p class="tiny">Até 20 questões por arquivo · JSON de até 300 KB. Cada questão precisa de quatro alternativas, gabarito, explicação, nome da fonte e trecho.</p><p class="tiny">As referências são recebidas no arquivo. O site não abre nem confere os documentos originais; confira trechos e páginas antes de usar o gabarito.</p><p class="tiny" role="status" aria-live="polite">'+esc(status)+(busy?' Aguarde…':'')+'</p>')+(set?quiz(set):'')+panel('Meus simulados',history?'<ul>'+history+'</ul>':empty('Seus simulados aparecerão aqui.'));
+  }
+  function citation(c,s){
+    const imported=s.sourceVerification==='imported-unverified'||c.verification==='imported-unverified';
+    const url=PlanningQuestionData.safeUrl(c.url)||(c.sourceId&&/^[\w-]{10,160}$/.test(c.sourceId)?'https://drive.google.com/file/d/'+encodeURIComponent(c.sourceId)+'/view':'');
+    const location=c.page?'página '+c.page+(c.locationKind==='pdf-export'?' do PDF exportado':''):'trecho';
+    return '<details><summary>Fonte: '+esc(c.name)+' · '+esc(location)+(imported?' (informada no arquivo)':'')+'</summary><blockquote>'+esc(c.quote)+'</blockquote>'+(url?'<a class="surface-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir documento ↗</a>':'')+'<p class="tiny">'+(imported?'Referência importada. Confira no material original; o site não verificou esta página ou trecho.':'Referência preservada do simulado anterior. O arquivo original pode ter mudado desde a geração.')+'</p></details>';
   }
   function quiz(s){
     const answers=s.answers||{},finished=Boolean(s.finishedAt);
-    return panel(esc(s.subject)+' · '+(finished?s.correct+'/'+s.questions.length+' acertos':'Responder simulado'),'<p class="tiny">Fonte conferida significa que o trecho existe no arquivo. A pertinência do gabarito ainda exige revisão humana. Páginas referem-se à posição no PDF; em Docs/Slides, ao PDF exportado.</p>'+s.questions.map((q,i)=>'<fieldset class="panel"><legend>'+(i+1)+'. '+esc(q.stem)+'</legend>'+q.options.map((o,j)=>'<label class="field-label"><span><input type="radio" name="question-'+i+'" data-q-answer="'+i+'" value="'+j+'" '+(answers[i]===j?'checked':'')+' '+(finished?'disabled':'')+'> '+esc(o)+'</span></label>').join('')+(finished?'<p><strong>'+(answers[i]===q.answer?'Acertou':'Errou')+' · Gabarito: '+String.fromCharCode(65+q.answer)+'</strong></p><p>'+esc(q.explanation)+'</p>'+q.citations.map(c=>'<details><summary>Fonte: '+esc(c.name)+' · '+(c.page?'página '+c.page+(c.locationKind==='pdf-export'?' do PDF exportado':''):'trecho '+esc(c.unitId))+'</summary><blockquote>'+esc(c.quote)+'</blockquote><a class="surface-link" href="'+esc('https://drive.google.com/file/d/'+encodeURIComponent(c.sourceId)+'/view')+'" target="_blank" rel="noopener noreferrer">Abrir documento ↗</a><p class="tiny">Versão lida em '+esc(c.modifiedTime||'data não informada')+'. O arquivo pode ter mudado após a geração.</p></details>').join(''):'')+'</fieldset>').join('')+(finished?'<p>Resultado salvo no Planejamento. Nenhum registro foi enviado ao MedReview.</p>'+action('Baixar simulado e resultado','export','data-id="'+esc(s.id)+'"')+action('Excluir simulado','delete','data-id="'+esc(s.id)+'"'):action('Concluir e corrigir','finish')));
+    return panel(esc(s.subject)+' · '+(finished?s.correct+'/'+s.questions.length+' acertos':'Responder simulado'),s.questions.map((q,i)=>'<fieldset class="panel"><legend>'+(i+1)+'. '+esc(q.stem)+'</legend>'+q.options.map((o,j)=>'<label class="field-label"><span><input type="radio" name="question-'+i+'" data-q-answer="'+i+'" value="'+j+'" '+(answers[i]===j?'checked':'')+' '+(finished?'disabled':'')+'> '+esc(o)+'</span></label>').join('')+(finished?'<p><strong>'+(answers[i]===q.answer?'Acertou':'Errou')+' · Gabarito: '+String.fromCharCode(65+q.answer)+'</strong></p><p>'+esc(q.explanation)+'</p>'+q.citations.map(c=>citation(c,s)).join(''):'')+'</fieldset>').join('')+(finished?'<p>Resultado salvo no Planejamento.</p>'+action('Baixar simulado e resultado','export','data-id="'+esc(s.id)+'"'):action('Concluir e corrigir','finish')));
   }
-  async function run(work){if(busy)return;const owner=window.PlanningAccount?.user?.id,epoch=generation;if(!owner){message('Entre na sua conta do Planejamento.');return}busy=true;redraw();try{await work(epoch)}catch(e){if(epoch===generation&&owner===window.PlanningAccount?.user?.id)message(e.message)}finally{if(epoch===generation){busy=false;redraw()}}}
-  async function api(body,epoch=generation){if(!window.PlanningAccount?.questionsRequest)throw Error('Entre na sua conta do Planejamento.');const result=await PlanningAccount.questionsRequest(body);if(epoch!==generation)throw Error('A conta ou conexão mudou. Repita a operação.');return result}
-  function readToken(){if(!token||Date.now()>=expires)throw Error('Conecte o Drive para ler seus materiais.');return token}
-  const params=()=>({driveToken:readToken(),fileIds:[...selected.keys()],...settings});
-  async function list(id,more=false,epoch=generation){const result=await api({action:'list',driveToken:readToken(),folder:id,cursor:more?cursor:''},epoch);files=more?[...files,...result.files]:result.files;cursor=result.nextPageToken||'';folder=id;status='Pasta aberta. Selecione os arquivos para usar.'}
-  async function connect(clientId){
-    if(!/^\d{8,}-[\w-]+\.apps\.googleusercontent\.com$/.test(clientId))throw Error('Informe um OAuth Client ID Web válido.');
-    const epoch=generation,owner=PlanningAccount.user.id;
-    if(!globalThis.google?.accounts?.oauth2)await new Promise((resolve,reject)=>{const script=document.createElement('script');script.src='https://accounts.google.com/gsi/client';script.onload=resolve;script.onerror=()=>reject(Error('Não foi possível carregar a conexão Google.'));document.head.append(script)});
-    if(epoch!==generation)return;
-    await new Promise((resolve,reject)=>{google.accounts.oauth2.initTokenClient({client_id:clientId,scope:'https://www.googleapis.com/auth/drive.readonly',include_granted_scopes:false,error_callback:()=>reject(Error('Conexão Google cancelada.')),callback:res=>{if(epoch!==generation||PlanningAccount.user?.id!==owner){reject(Error('A conta mudou.'));return}if(res.error||!res.access_token){reject(Error('Drive não autorizado.'));return}token=res.access_token;expires=Date.now()+Math.max(0,Number(res.expires_in||3600)-90)*1000;data.integration=data.integration||{};data.integration.clientId=clientId;save();resolve()}}).requestAccessToken({prompt:'consent'})});
-    await list('root',false,epoch);
+  async function importFile(file){
+    if(busy)return;const owner=window.PlanningAccount?.user?.id,epoch=generation;
+    if(!owner){message('Entre na sua conta do Planejamento.');return}
+    busy=true;redraw();
+    try{
+      if(file.size>300000)throw Error('JSON acima de 300 KB.');
+      const content=await file.text();
+      if(epoch!==generation||PlanningAccount.user?.id!==owner)return;
+      let raw;try{raw=JSON.parse(content)}catch{throw Error('Arquivo JSON inválido. Peça ao ChatGPT um arquivo no formato do pedido.')}
+      const result=PlanningQuestionData.parse(raw);
+      if(rows().length>=20)throw Error('Limite de 20 simulados. Exporte e exclua um antigo antes de importar outro.');
+      const signature=JSON.stringify(result.questions);
+      if(rows().some(s=>JSON.stringify(s.questions)===signature))throw Error('Este simulado já foi importado. Abra-o no histórico.');
+      const set={...result,id:uid(),createdAt:new Date().toISOString(),answers:{}};
+      const next=[...rows(),set];
+      if(new TextEncoder().encode(JSON.stringify(next)).length>650000||new TextEncoder().encode(JSON.stringify({...data,settings:{...data.settings,questionSets:next}})).length>1350000)throw Error('Histórico cheio. Exporte e exclua simulados antigos.');
+      data.settings.questionSets=next;active=set.id;save();message('Simulado importado. As referências precisam ser conferidas no material original.');
+    }catch(e){if(epoch===generation&&PlanningAccount.user?.id===owner)message(e.message)}
+    finally{if(epoch===generation){busy=false;redraw()}}
   }
-  function keep(result){if(rows().length>=20)throw Error('Limite de 20 simulados. Exporte seus dados antes de gerar outros.');const set={id:uid(),createdAt:new Date().toISOString(),subject:settings.subject,provider:result.provider,questions:result.questions,answers:{}};const next=[...rows(),set];if(new TextEncoder().encode(JSON.stringify(next)).length>650000||new TextEncoder().encode(JSON.stringify({...data,settings:{...data.settings,questionSets:next}})).length>1350000)throw Error('Histórico de simulados cheio. Exporte e exclua simulados antigos.');data.settings.questionSets=next;active=set.id;save();message('Simulado criado com citações verificadas nos arquivos selecionados.')}
-  function reset(){generation++;token='';expires=0;selected=new Map();files=[];cursor='';folder='root';active='';busy=false;ready=null;status='Drive desconectado. Autorize novamente para ler materiais.'}
-  window.addEventListener('planning-account-reset',reset);
+  window.addEventListener('planning-account-reset',()=>{generation++;active='';busy=false;status='Importe um arquivo de questões para começar.'});
   document.addEventListener('change',event=>{const el=event.target;
-    if(el.dataset.qFile){const f=files.find(f=>f.id===el.dataset.qFile);if(el.checked&&selected.size>=5){el.checked=false;notify('Escolha até 5 arquivos.');return}if(el.checked&&f)selected.set(f.id,f);else selected.delete(el.dataset.qFile);redraw()}
-    if(el.id==='questions-count')settings.count=Number(el.value);if(el.id==='questions-subject')settings.subject=el.value;if(el.id==='questions-difficulty')settings.difficulty=el.value;
-    if(el.dataset.qAnswer!==undefined){const set=rows().find(s=>s.id===active);if(set&&!set.finishedAt){set.answers={...set.answers,[el.dataset.qAnswer]:Number(el.value)};save()}}
-    if(el.id==='questions-import'&&el.files[0]){const file=el.files[0];run(async epoch=>{if(file.size>300000)throw Error('JSON acima de 300 KB.');const payload=JSON.parse(await file.text());keep(await api({action:'validate',...params(),payload},epoch))})}
+    if(el.id==='questions-import'&&el.files[0])importFile(el.files[0]);
+    if(el.dataset.qAnswer!==undefined){const s=rows().find(s=>s.id===active);if(s&&!s.finishedAt){s.answers={...s.answers,[el.dataset.qAnswer]:Number(el.value)};save()}}
   });
   document.addEventListener('click',event=>{const b=event.target.closest('[data-action^="questions-"]');if(!b)return;const a=b.dataset.action.slice(10);
-    if(a==='disconnect'){reset();redraw();return}
-    if(a==='remove'){selected.delete(b.dataset.id);redraw();return}
+    if(a==='prompt'){downloadFile(PlanningQuestionData.prompt,'pedido-chatgpt.txt','text/plain;charset=utf-8');return}
     if(a==='open'){active=b.dataset.id;redraw();return}
-    if(a==='delete'){if(confirm('Excluir este simulado e suas respostas do Planejamento? Exporte antes se quiser guardar uma cópia.')){data.settings.questionSets=rows().filter(s=>s.id!==b.dataset.id);active='';save();redraw()}return}
+    if(a==='delete'){if(confirm('Excluir este simulado e suas respostas do Planejamento? Exporte antes se quiser guardar uma cópia.')){data.settings.questionSets=rows().filter(s=>s.id!==b.dataset.id);if(active===b.dataset.id)active='';save();redraw()}return}
     if(a==='export'){const s=rows().find(s=>s.id===b.dataset.id);if(s)downloadFile(JSON.stringify({format:'planejamento-question-set-v1',set:s},null,2),'simulado-planejamento.json','application/json');return}
-    if(a==='finish'){const s=rows().find(s=>s.id===active);if(!s||s.finishedAt)return;if(s.questions.some((q,i)=>!Number.isInteger(s.answers?.[i]))){notify('Responda todas as questões antes de corrigir.');return}s.correct=s.questions.filter((q,i)=>s.answers[i]===q.answer).length;s.finishedAt=new Date().toISOString();save();redraw();return}
-    // Capture fields before run() rerenders the page.
-    const clientId=a==='connect'?$('questions-client').value.trim():'';
-    const targetFolder=a==='folder'?(b.dataset.id||$('questions-folder').value.trim()):'';
-    run(async epoch=>{
-      if(a==='connect')return connect(clientId);
-      if(a==='status'){ready=(await api({action:'status'},epoch)).geminiReady;status=ready?'Gemini configurado no servidor.':'Gemini ainda não configurado no servidor.';return}
-      if(a==='root')return list('root',false,epoch);
-      if(a==='more')return list(folder,true,epoch);
-      if(a==='folder'){const match=targetFolder.match(/\/folders\/([\w-]+)/);return list(match?match[1]:targetFolder,false,epoch)}
-      if(a==='generate')return keep(await api({action:'generate',...params()},epoch));
-      if(a==='prompt'){const result=await api({action:'prompt',...params()},epoch);const links=[...selected.values()].map(f=>'https://drive.google.com/file/d/'+f.id+'/view').join('\n');downloadFile('Use o conector Google Drive autorizado para consultar estes arquivos. Se não houver acesso, informe a limitação; os trechos abaixo foram extraídos deles. Não invente fontes. Retorne um arquivo .json para importar no Planejamento.\n'+links+'\n\n'+result.prompt,'pedido-chatgpt.txt','text/plain;charset=utf-8');status='Pedido baixado. Leve ao ChatGPT; importe o JSON mantendo os mesmos arquivos selecionados.'}
-    });
+    if(a==='finish'){const s=rows().find(s=>s.id===active);if(!s||s.finishedAt)return;if(s.questions.some((q,i)=>!Number.isInteger(s.answers?.[i]))){notify('Responda todas as questões antes de corrigir.');return}s.correct=s.questions.filter((q,i)=>s.answers[i]===q.answer).length;s.finishedAt=new Date().toISOString();save();redraw()}
   });
   render();
 })();
