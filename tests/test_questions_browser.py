@@ -57,6 +57,18 @@ class QuestionsBrowserTests(unittest.TestCase):
         page.locator('[data-q-answer="1"][value="0"]').check()
         page.locator('[data-action="questions-finish"]').click()
         self.assertEqual(page.locator('.q-comment').count(),4)
+        self.assertEqual(page.locator('.q-index-wrong').count(),1)
+        self.assertEqual(page.locator('.q-index-correct').count(),1)
+        self.assertIn('errou',page.locator('.q-index-wrong').get_attribute('aria-label'))
+        self.assertTrue(page.locator('.q-index-wrong').evaluate("e=>e.classList.contains('q-index-current')"))
+        self.assertEqual(page.locator('.q-option-wrong input:checked').count(),1)
+        for theme,correct,wrong in [('light','rgb(236, 253, 243)','rgb(255, 241, 242)'),('dark','rgb(21, 53, 40)','rgb(67, 30, 43)')]:
+            page.evaluate('(t)=>document.documentElement.dataset.theme=t',theme)
+            self.assertEqual(page.locator('.q-index-correct').evaluate('e=>getComputedStyle(e).backgroundColor'),correct)
+            self.assertEqual(page.locator('.q-index-wrong').evaluate('e=>getComputedStyle(e).backgroundColor'),wrong)
+            self.assertEqual(page.locator('.q-option-correct').evaluate('e=>getComputedStyle(e).backgroundColor'),correct)
+            self.assertEqual(page.locator('.q-option-wrong').evaluate('e=>getComputedStyle(e).backgroundColor'),wrong)
+
         for i,comment in enumerate(comments): self.assertEqual(page.locator('.q-comment .q-prose').nth(i).inner_text(),comment.strip())
         self.assertIn('Sua resposta',page.locator('.q-comment').nth(1).inner_text())
         self.assertGreaterEqual(page.locator('.q-stem').evaluate('e=>parseFloat(getComputedStyle(e).fontSize)'),19)
