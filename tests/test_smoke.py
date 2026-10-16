@@ -85,7 +85,7 @@ class SiteSmokeTests(unittest.TestCase):
     def test_all_desktop_sections_at_small_height(self):
         self.open()
         menu = self.page.evaluate('MENU.map(x=>[x[0],x[2]])')
-        self.assertEqual(len(menu), 14)
+        self.assertEqual(len(menu), 15)
         for target, title in menu:
             self.nav(target)
             self.assertEqual(self.page.locator('#heading').inner_text(), title)
@@ -278,7 +278,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.semester-event').count(),193)
         self.page.evaluate("goto('materials')")
         self.assertEqual(self.page.locator('.materials-drive-link').get_attribute('href'),'https://drive.google.com/drive/folders/test-materials-folder')
-        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v8');return (await cache.keys()).map(req=>req.url)}")
+        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v9');return (await cache.keys()).map(req=>req.url)}")
         self.assertTrue(all(url.startswith(self.url) for url in cached))
         self.assertFalse(any('mr_reviews' in url or '/auth/' in url or '.pdf' in url for url in cached))
         self.context.set_offline(False)
