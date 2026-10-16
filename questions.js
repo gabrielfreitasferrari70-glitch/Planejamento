@@ -1,60 +1,60 @@
-/* Manual ChatGPT imports; no generation API, source access, or external authentication. */
+/* Manual ChatGPT imports; question workspace is separate from preparation and library. */
 'use strict';
 (function(){
-  let generation=0,busy=false,active='',status='Importe um arquivo de questões para começar.';
+  let generation=0,busy=false,active='',current=0,tab='library',status='';
   MENU.splice(MENU.findIndex(x=>x[0]==='studies'),0,['questions','exams','Questões']);
   const rows=()=>Array.isArray(data.settings.questionSets)?data.settings.questionSets:[];
+  const action=(label,name,attrs='',cls='btn')=>btn(label,'questions-'+name,attrs,cls);
   const previousRender=render;
-  render=function(){previousRender();if(page==='questions'){$('app').innerHTML=view();$('subtitle').textContent='Questões do seu chat, simulados e resultados no Planejamento.';if(busy)$('questions-import').disabled=true}};
+  render=function(){previousRender();if(page==='questions'){$('app').innerHTML=view();$('subtitle').textContent=active?'Seu espaço de resolução e correção comentada.':'Prepare suas questões no ChatGPT e estude em um simulado próprio.';if(busy&&$('questions-import'))$('questions-import').disabled=true}};
   function redraw(){if(page==='questions')render()}
-  const action=(label,name,attrs='')=>btn(label,'questions-'+name,attrs);
   function message(value){status=value;redraw();notify(value)}
+  function focusWorkspace(){requestAnimationFrame(()=>{const el=$('questions-workspace');if(el){el.focus({preventScroll:true});el.scrollIntoView({block:'start',behavior:'instant'})}})}
   function view(){
-    const set=rows().find(s=>s.id===active);
-    const history=rows().map(s=>'<li>'+action(esc(s.subject)+' · '+s.questions.length+' questões'+(s.finishedAt?' · '+s.correct+'/'+s.questions.length+' acertos':''),'open','data-id="'+esc(s.id)+'"')+' '+action('Excluir','delete','data-id="'+esc(s.id)+'"')+'</li>').join('');
-    return panel('Questões do ChatGPT','<p class="muted">Peça as questões no chat normal do ChatGPT e importe o arquivo aqui. Responda ao simulado e acompanhe seus acertos na sua conta.</p><ol><li>Abra uma conversa no ChatGPT em modo Chat e forneça os materiais.</li><li>Use o pedido abaixo para receber um arquivo JSON com questões e fontes.</li><li>Importe o arquivo neste site e responda ao simulado.</li></ol><div class="pill-row"><a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Abrir ChatGPT ↗</a>'+action('Baixar pedido para ChatGPT','prompt')+'</div><p class="tiny">O site importa e corrige o simulado sem chamar serviços de IA ou iniciar tarefas no Work. A conversa aberta no ChatGPT segue o modo e os limites do seu plano.</p><label class="field-label">Importar questões do ChatGPT<input class="field" type="file" id="questions-import" accept=".json,application/json"></label><p class="tiny">Até 20 questões por arquivo · JSON de até 300 KB. Cada questão precisa de quatro alternativas, gabarito, explicação, nome da fonte e trecho.</p><p class="tiny">As referências são recebidas no arquivo. O site não abre nem confere os documentos originais; confira trechos e páginas antes de usar o gabarito.</p><p class="tiny" role="status" aria-live="polite">'+esc(status)+(busy?' Aguarde…':'')+'</p>')+(set?quiz(set):'')+panel('Meus simulados',history?'<ul>'+history+'</ul>':empty('Seus simulados aparecerão aqui.'));
+    const set=rows().find(s=>s.id===active);if(set)return quiz(set);
+    const tabs='<div class="q-tabs" role="tablist" aria-label="Área de questões">'+[['library','Meus simulados'],['prepare','Criar e importar']].map(([id,label])=>action(label,'tab','role="tab" aria-selected="'+(tab===id)+'" data-tab="'+id+'" aria-controls="q-tab-content"',tab===id?'btn btn-primary':'btn')).join('')+'</div>';
+    return '<div class="q-home">'+tabs+'<div id="q-tab-content" role="tabpanel">'+(tab==='prepare'?prepare():library())+'</div></div>';
   }
+  function library(){
+    const list=rows();return '<section class="panel q-library"><div class="q-heading"><div><span class="mr-eyebrow">Seu espaço de estudo</span><h2>Meus simulados</h2><p class="muted">Abra um simulado para responder em uma área dedicada ou revisar cada alternativa.</p></div>'+action('Novo simulado','tab','data-tab="prepare"','btn btn-primary')+'</div>'+(list.length?'<div class="q-set-grid">'+[...list].reverse().map(s=>{const answered=Object.keys(s.answers||{}).length;return '<article class="q-set-card"><span class="tag">'+(s.finishedAt?'Concluído':'Em andamento')+'</span><h3>'+esc(s.subject)+'</h3><p>'+s.questions.length+' questões · '+(s.finishedAt?s.correct+'/'+s.questions.length+' acertos':answered+' respondidas')+'</p><div class="pill-row">'+action(s.finishedAt?'Revisar correção':'Abrir simulado','open','data-id="'+esc(s.id)+'"','btn btn-primary')+action('Exportar','export','data-id="'+esc(s.id)+'"')+action('Excluir','delete','data-id="'+esc(s.id)+'"')+'</div></article>'}).join('')+'</div>':empty('Você ainda não importou simulados. Use “Novo simulado” para preparar o primeiro.'))+'</section>';
+  }
+  function prepare(){return '<section class="panel q-prepare"><span class="mr-eyebrow">Prepare uma vez, estude aqui</span><h2>Criar e importar um simulado</h2><p>O pedido atualizado exige comentários detalhados para <strong>cada alternativa</strong>: por que está certa ou errada, qual é a correção e qual conceito sustenta a resposta.</p><ol><li>Baixe o pedido e leve ao chat normal do ChatGPT com seus materiais.</li><li>Informe o tema específico, a dificuldade e a quantidade desejada, até 20 questões.</li><li>Peça o arquivo JSON e importe abaixo. O simulado abrirá em sua própria área.</li></ol><div class="pill-row">'+action('Baixar pedido atualizado','prompt','','btn btn-primary')+'<a class="btn" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Abrir ChatGPT ↗</a></div><label class="field-label q-upload">Importar questões do ChatGPT<input class="field" type="file" id="questions-import" accept=".json,application/json"></label><p class="tiny">Até 20 questões · JSON de até 900 KB. O novo formato inclui quatro comentários por questão. Arquivos antigos continuam aceitos; comentários ausentes serão indicados na correção.</p><p class="tiny">As referências são importadas e precisam ser conferidas nos originais. O pedido prioriza materiais e livros consultados, sem inventar edições ou páginas. O site não chama IA nem inicia Work.</p><p class="tiny" role="status" aria-live="polite">'+esc(status)+(busy?' Aguarde…':'')+'</p></section>'}
   function citation(c,s){
     const imported=s.sourceVerification==='imported-unverified'||c.verification==='imported-unverified';
     const url=PlanningQuestionData.safeUrl(c.url)||(c.sourceId&&/^[\w-]{10,160}$/.test(c.sourceId)?'https://drive.google.com/file/d/'+encodeURIComponent(c.sourceId)+'/view':'');
     const location=c.page?'página '+c.page+(c.locationKind==='pdf-export'?' do PDF exportado':''):'trecho';
-    return '<details><summary>Fonte: '+esc(c.name)+' · '+esc(location)+(imported?' (informada no arquivo)':'')+'</summary><blockquote>'+esc(c.quote)+'</blockquote>'+(url?'<a class="surface-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir documento ↗</a>':'')+'<p class="tiny">'+(imported?'Referência importada. Confira no material original; o site não verificou esta página ou trecho.':'Referência preservada do simulado anterior. O arquivo original pode ter mudado desde a geração.')+'</p></details>';
+    const bibliographic=[c.author,c.edition,c.chapter].filter(Boolean).join(' · ');
+    return '<details class="q-source"><summary>Fonte: '+esc(c.name)+' · '+esc(location)+(imported?' (informada no arquivo)':'')+'</summary>'+(bibliographic?'<p>'+esc(bibliographic)+'</p>':'')+'<blockquote>'+esc(c.quote)+'</blockquote>'+(url?'<a class="surface-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Abrir documento ↗</a>':'')+'<p class="tiny">'+(imported?'Referência importada. Confira no original; o site não verificou esta página ou trecho.':'Referência preservada do simulado anterior. O documento pode ter mudado.')+'</p></details>';
   }
   function quiz(s){
-    const answers=s.answers||{},finished=Boolean(s.finishedAt);
-    return panel(esc(s.subject)+' · '+(finished?s.correct+'/'+s.questions.length+' acertos':'Responder simulado'),s.questions.map((q,i)=>'<fieldset class="panel"><legend>'+(i+1)+'. '+esc(q.stem)+'</legend>'+q.options.map((o,j)=>'<label class="field-label"><span><input type="radio" name="question-'+i+'" data-q-answer="'+i+'" value="'+j+'" '+(answers[i]===j?'checked':'')+' '+(finished?'disabled':'')+'> '+esc(o)+'</span></label>').join('')+(finished?'<p><strong>'+(answers[i]===q.answer?'Acertou':'Errou')+' · Gabarito: '+String.fromCharCode(65+q.answer)+'</strong></p><p>'+esc(q.explanation)+'</p>'+q.citations.map(c=>citation(c,s)).join(''):'')+'</fieldset>').join('')+(finished?'<p>Resultado salvo no Planejamento.</p>'+action('Baixar simulado e resultado','export','data-id="'+esc(s.id)+'"'):action('Concluir e corrigir','finish')));
+    current=Math.min(Math.max(0,current),s.questions.length-1);const q=s.questions[current],answers=s.answers||{},finished=Boolean(s.finishedAt),answered=Object.keys(answers).length,selected=answers[current];
+    const navigation='<aside class="q-sidebar"><h3>Questões</h3><div class="q-index">'+s.questions.map((item,i)=>action(String(i+1),'jump','data-index="'+i+'" aria-label="Questão '+(i+1)+(Number.isInteger(answers[i])?', respondida':', não respondida')+'"'+(i===current?' aria-current="step"':''),'btn '+(i===current?'q-index-current':Number.isInteger(answers[i])?'q-index-answered':''))).join('')+'</div><p class="tiny">'+answered+' de '+s.questions.length+' respondidas</p>'+(finished?'<strong>'+s.correct+'/'+s.questions.length+' acertos</strong>':action('Concluir e corrigir','finish','','btn btn-primary'))+'</aside>';
+    const options=q.options.map((option,j)=>'<label class="q-option '+(finished?(j===q.answer?'q-option-correct':selected===j?'q-option-wrong':''):selected===j?'q-option-selected':'')+'"><input type="radio" name="question-'+current+'" data-q-answer="'+current+'" value="'+j+'" '+(selected===j?'checked':'')+' '+(finished?'disabled':'')+'><span class="q-letter">'+String.fromCharCode(65+j)+'</span><span>'+esc(option)+'</span>'+(finished&&j===q.answer?'<strong class="q-option-badge">Correta</strong>':'')+'</label>').join('');
+    const comments=finished?'<section class="q-correction"><h3>'+(selected===q.answer?'Acertou':'Errou')+' · Gabarito: '+String.fromCharCode(65+q.answer)+'</h3><h4>Comentário de cada alternativa</h4>'+q.options.map((option,j)=>'<article class="q-comment '+(j===q.answer?'q-comment-correct':'')+'"><h4>'+String.fromCharCode(65+j)+' · '+(j===q.answer?'Correta':'Incorreta')+(selected===j?' · Sua resposta':'')+'</h4><p class="q-comment-option">'+esc(option)+'</p><div class="q-prose">'+esc(q.optionExplanations?.[j]||'Este arquivo antigo não inclui um comentário separado para esta alternativa. Use o pedido atualizado para gerar uma nova versão com o detalhamento completo.')+'</div></article>').join('')+'<h4>Síntese do tema</h4><div class="q-prose">'+esc(q.explanation)+'</div><h4>Fontes e bibliografia</h4>'+q.citations.map(c=>citation(c,s)).join('')+'</section>':'';
+    return '<section class="q-workspace" id="questions-workspace" tabindex="-1"><div class="q-workspace-top">'+action('← Meus simulados','back')+'<span class="tag">'+(finished?'Correção comentada':'Simulado')+'</span>'+action('Exportar simulado','export','data-id="'+esc(s.id)+'"')+'</div><header class="q-workspace-title"><span class="mr-eyebrow">'+(finished?'Revise o raciocínio de cada alternativa':'Concentre-se em uma questão por vez')+'</span><h2>'+esc(s.subject)+'</h2><p>'+s.questions.length+' questões · '+(finished?s.correct+'/'+s.questions.length+' acertos':answered+' respondidas')+'</p></header><div class="q-layout">'+navigation+'<div class="q-reading"><article class="panel q-question"><span class="mr-eyebrow">Questão '+(current+1)+' de '+s.questions.length+'</span><h3 class="q-stem">'+esc(q.stem)+'</h3><fieldset class="q-options"><legend class="sr-only">Escolha uma alternativa</legend>'+options+'</fieldset>'+comments+'<nav class="q-pagination" aria-label="Navegação do simulado">'+action('← Anterior','jump','data-index="'+(current-1)+'"'+(current===0?' disabled':''))+'<span>'+(current+1)+' / '+s.questions.length+'</span>'+action('Próxima →','jump','data-index="'+(current+1)+'"'+(current===s.questions.length-1?' disabled':''))+'</nav></article></div></div></section>';
   }
   async function importFile(file){
-    if(busy)return;const owner=window.PlanningAccount?.user?.id,epoch=generation;
-    if(!owner){message('Entre na sua conta do Planejamento.');return}
-    busy=true;redraw();
+    if(busy)return;const owner=window.PlanningAccount?.user?.id,epoch=generation;if(!owner){message('Entre na sua conta do Planejamento.');return}busy=true;redraw();
     try{
-      if(file.size>300000)throw Error('JSON acima de 300 KB.');
-      const content=await file.text();
-      if(epoch!==generation||PlanningAccount.user?.id!==owner)return;
-      let raw;try{raw=JSON.parse(content)}catch{throw Error('Arquivo JSON inválido. Peça ao ChatGPT um arquivo no formato do pedido.')}
-      const result=PlanningQuestionData.parse(raw);
-      if(rows().length>=20)throw Error('Limite de 20 simulados. Exporte e exclua um antigo antes de importar outro.');
-      const signature=JSON.stringify(result.questions);
-      if(rows().some(s=>JSON.stringify(s.questions)===signature))throw Error('Este simulado já foi importado. Abra-o no histórico.');
-      const set={...result,id:uid(),createdAt:new Date().toISOString(),answers:{}};
-      const next=[...rows(),set];
-      if(new TextEncoder().encode(JSON.stringify(next)).length>650000||new TextEncoder().encode(JSON.stringify({...data,settings:{...data.settings,questionSets:next}})).length>1350000)throw Error('Histórico cheio. Exporte e exclua simulados antigos.');
-      data.settings.questionSets=next;active=set.id;save();message('Simulado importado. As referências precisam ser conferidas no material original.');
-    }catch(e){if(epoch===generation&&PlanningAccount.user?.id===owner)message(e.message)}
-    finally{if(epoch===generation){busy=false;redraw()}}
+      if(file.size>900000)throw Error('JSON acima de 900 KB.');const content=await file.text();if(epoch!==generation||PlanningAccount.user?.id!==owner)return;
+      let raw;try{raw=JSON.parse(content)}catch{throw Error('Arquivo JSON inválido. Peça ao ChatGPT o arquivo no formato do pedido atualizado.')}
+      const result=PlanningQuestionData.parse(raw);if(rows().length>=20)throw Error('Limite de 20 simulados. Exporte e exclua um antigo.');
+      if(rows().some(s=>JSON.stringify(s.questions)===JSON.stringify(result.questions)))throw Error('Este simulado já foi importado. Abra-o na biblioteca.');
+      const set={...result,id:uid(),createdAt:new Date().toISOString(),answers:{}},next=[...rows(),set];
+      if(new TextEncoder().encode(JSON.stringify(next)).length>1100000||new TextEncoder().encode(JSON.stringify({...data,settings:{...data.settings,questionSets:next}})).length>1350000)throw Error('Histórico cheio. Exporte e exclua simulados antigos.');
+      data.settings.questionSets=next;active=set.id;current=0;save();status='';notify('Simulado importado. Confira as referências no material original.');focusWorkspace();
+    }catch(e){if(epoch===generation&&PlanningAccount.user?.id===owner)message(e.message)}finally{if(epoch===generation){busy=false;redraw();if(active)focusWorkspace()}}
   }
-  window.addEventListener('planning-account-reset',()=>{generation++;active='';busy=false;status='Importe um arquivo de questões para começar.'});
-  document.addEventListener('change',event=>{const el=event.target;
-    if(el.id==='questions-import'&&el.files[0])importFile(el.files[0]);
-    if(el.dataset.qAnswer!==undefined){const s=rows().find(s=>s.id===active);if(s&&!s.finishedAt){s.answers={...s.answers,[el.dataset.qAnswer]:Number(el.value)};save()}}
-  });
+  window.addEventListener('planning-account-reset',()=>{generation++;active='';current=0;tab='library';busy=false;status=''});
+  document.addEventListener('change',event=>{const el=event.target;if(el.id==='questions-import'&&el.files[0])importFile(el.files[0]);if(el.dataset.qAnswer!==undefined){const s=rows().find(s=>s.id===active);if(s&&!s.finishedAt){s.answers={...s.answers,[el.dataset.qAnswer]:Number(el.value)};save();redraw()}}});
   document.addEventListener('click',event=>{const b=event.target.closest('[data-action^="questions-"]');if(!b)return;const a=b.dataset.action.slice(10);
     if(a==='prompt'){downloadFile(PlanningQuestionData.prompt,'pedido-chatgpt.txt','text/plain;charset=utf-8');return}
-    if(a==='open'){active=b.dataset.id;redraw();return}
-    if(a==='delete'){if(confirm('Excluir este simulado e suas respostas do Planejamento? Exporte antes se quiser guardar uma cópia.')){data.settings.questionSets=rows().filter(s=>s.id!==b.dataset.id);if(active===b.dataset.id)active='';save();redraw()}return}
+    if(a==='tab'){active='';tab=b.dataset.tab==='prepare'?'prepare':'library';redraw();return}
+    if(a==='back'){active='';tab='library';redraw();return}
+    if(a==='open'){active=b.dataset.id;current=0;redraw();focusWorkspace();return}
+    if(a==='jump'){const s=rows().find(s=>s.id===active),i=Number(b.dataset.index);if(s&&Number.isInteger(i)&&i>=0&&i<s.questions.length){current=i;redraw();focusWorkspace()}return}
+    if(a==='delete'){if(confirm('Excluir este simulado e suas respostas? Exporte antes se quiser guardar uma cópia.')){data.settings.questionSets=rows().filter(s=>s.id!==b.dataset.id);if(active===b.dataset.id)active='';save();redraw()}return}
     if(a==='export'){const s=rows().find(s=>s.id===b.dataset.id);if(s)downloadFile(JSON.stringify({format:'planejamento-question-set-v1',set:s},null,2),'simulado-planejamento.json','application/json');return}
-    if(a==='finish'){const s=rows().find(s=>s.id===active);if(!s||s.finishedAt)return;if(s.questions.some((q,i)=>!Number.isInteger(s.answers?.[i]))){notify('Responda todas as questões antes de corrigir.');return}s.correct=s.questions.filter((q,i)=>s.answers[i]===q.answer).length;s.finishedAt=new Date().toISOString();save();redraw()}
-  });
-  render();
+    if(a==='finish'){const s=rows().find(s=>s.id===active);if(!s||s.finishedAt)return;if(s.questions.some((q,i)=>!Number.isInteger(s.answers?.[i]))){notify('Responda todas as questões antes de corrigir.');return}s.correct=s.questions.filter((q,i)=>s.answers[i]===q.answer).length;s.finishedAt=new Date().toISOString();current=0;save();redraw();focusWorkspace()}
+  });render();
 })();
