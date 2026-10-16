@@ -21,7 +21,7 @@ Leia isto antes de explorar o código. Evite reler arquivos inteiros: use `grep`
 - Configurações novas PRECISAM entrar na lista de `cloud-data.js` (a sincronização descarta chaves desconhecidas).
 - Compromissos (`FORM.event`) podem repetir toda semana (cria ocorrências com `seriesId`; excluir pelo modal do evento). `FORM.multitask` (botão "Tarefa em vários dias") cria uma tarefa por dia com `groupId`. `seedLigaAnatomia()` semeia 1x a Liga de Anatomia (terças 18h–19h até 15/12/2026) só em contas com cronograma importado; flag `settings.ligaAnatomia`.
 - Campos de tarefa: subtasks, repeat, nextId, spent, completedAt. Itens de listas são preservados inteiros.
-- Arquivo novo usado offline → ASSETS em `sw.js` e incrementar `planejamento-shell-vN` (hoje v11; teste em tests/test_smoke.py usa o nome).
+- Arquivo novo usado offline → ASSETS em `sw.js` e incrementar `planejamento-shell-vN` (hoje v12; teste em tests/test_smoke.py usa o nome).
 - Nada de CDN/script externo (CSP ativa). Sem segredos, UUIDs ou links privados no código.
 
 ## Testes
