@@ -232,17 +232,20 @@ html[data-theme=dark] .timeline-milestone-icon {
 /* Camada 1: Faixas de Duração das Fases */
 .timeline-phases-track {
   display: flex;
-  height: 48px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 12;
+  align-items: stretch;
 }
 
 .timeline-phase-band {
   position: absolute;
-  height: 38px;
+  height: 34px;
   top: 5px;
   border-radius: 8px;
   padding: 4px 10px;
@@ -274,12 +277,14 @@ html[data-theme=dark] .timeline-milestone-icon {
 
 /* Camada 2: Carga Horária Planejada e Marcos */
 .timeline-load-track {
-  height: 34px;
+  height: 36px;
+  min-height: 36px;
+  max-height: 36px;
   background: var(--card);
   border-bottom: 1px solid var(--border);
   display: flex;
   position: relative;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 .timeline-day-load-col {
@@ -290,6 +295,15 @@ html[data-theme=dark] .timeline-milestone-icon {
   align-items: center;
   justify-content: flex-end;
   height: 100%;
+  border-right: 1px dashed rgba(0,0,0,0.04);
+}
+
+.timeline-day-load-col.is-weekend {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+html[data-theme=dark] .timeline-day-load-col.is-weekend {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .timeline-load-bar {
@@ -310,7 +324,10 @@ html[data-theme=dark] .timeline-milestone-icon {
   background: var(--bg);
   border-bottom: 2px solid var(--border);
   position: relative;
-  height: 48px;
+  height: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  align-items: stretch;
 }
 
 .timeline-ruler-col {
@@ -325,6 +342,16 @@ html[data-theme=dark] .timeline-milestone-icon {
   font-size: 11px;
   cursor: pointer;
   user-select: none;
+  transition: background 0.15s ease;
+}
+
+.timeline-ruler-col.is-weekend {
+  background: rgba(0, 0, 0, 0.025);
+  color: var(--muted);
+}
+
+html[data-theme=dark] .timeline-ruler-col.is-weekend {
+  background: rgba(255, 255, 255, 0.025);
 }
 
 .timeline-ruler-col:hover {
@@ -374,6 +401,78 @@ html[data-theme=dark] .timeline-milestone-icon {
   padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(88,105,197,0.3);
+}
+
+/* Barra Lateral Esquerda Unificada (Dock / Dimensões) */
+.timeline-sidebar-cell,
+.timeline-lane-header {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+  height: 100%;
+  background: var(--card);
+  padding: 0 12px;
+  border-right: 2px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 3px 0 8px rgba(0,0,0,0.03);
+  box-sizing: border-box;
+  user-select: none;
+}
+
+.timeline-sidebar-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--accentbg);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+
+.timeline-sidebar-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.timeline-sidebar-title {
+  font-size: 11.5px;
+  font-weight: 750;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.2px;
+}
+
+.timeline-sidebar-sub {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.timeline-sidebar-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 2px 6px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 /* Camada 4: Trilhas de Atividades (Swimlanes) */
@@ -381,52 +480,32 @@ html[data-theme=dark] .timeline-milestone-icon {
   display: flex;
   flex-direction: column;
   position: relative;
-  min-height: 280px;
   background: var(--card);
 }
 
 .timeline-lane {
   display: flex;
+  height: 64px;
   min-height: 64px;
-  border-bottom: 1px dashed var(--border);
+  max-height: 64px;
+  border-bottom: 1px solid var(--border);
   position: relative;
-  align-items: center;
-}
-
-.timeline-lane-header {
-  position: sticky;
-  left: 0;
-  z-index: 8;
-  width: 140px;
-  background: var(--card);
-  padding: 8px 12px;
-  border-right: 2px solid var(--border);
-  font-size: 11px;
-  font-weight: 750;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  box-shadow: 2px 0 6px rgba(0,0,0,0.03);
-  pointer-events: none;
+  align-items: stretch;
 }
 
 .timeline-lane-items {
   position: relative;
-  height: 100%;
+  height: 64px;
   flex: 1;
 }
 
 /* Cards e Chips de Atividade na Linha do Tempo */
 .timeline-act-card {
   position: absolute;
-  top: 6px;
-  bottom: 6px;
-  border-radius: 8px;
-  padding: 5px 8px;
-  font-size: 11px;
+  border-radius: 7px;
+  padding: 4px 7px;
   border: 1px solid var(--border);
-  background: var(--bg);
+  background: var(--card);
   color: var(--text);
   display: flex;
   flex-direction: column;
@@ -434,8 +513,13 @@ html[data-theme=dark] .timeline-milestone-icon {
   cursor: pointer;
   overflow: hidden;
   text-align: left;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
   z-index: 2;
+  box-sizing: border-box;
+}
+
+.timeline-act-card.is-compact {
+  padding: 2px 6px;
 }
 
 .timeline-act-card * {
@@ -444,64 +528,115 @@ html[data-theme=dark] .timeline-milestone-icon {
 
 .timeline-act-card:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
   z-index: 15;
+  border-color: var(--accent);
 }
 
 /* Status Tripartido da Atividade (Planejado, Realizado, Sugerido) */
 .timeline-act-card.status-planned {
-  border-left: 4px solid var(--accent);
+  border-left: 3.5px solid var(--accent);
+  background: var(--card);
 }
 
 .timeline-act-card.status-completed {
-  border-left: 4px solid var(--mint);
-  background: color-mix(in srgb, var(--mint) 8%, var(--card));
+  border-left: 3.5px solid var(--mint);
+  background: color-mix(in srgb, var(--mint) 7%, var(--card));
 }
 
 .timeline-act-card.status-suggested {
   border: 1px dashed var(--violet);
-  border-left: 4px solid var(--violet);
-  background: color-mix(in srgb, var(--violet) 8%, var(--card));
+  border-left: 3.5px solid var(--violet);
+  background: color-mix(in srgb, var(--violet) 7%, var(--card));
 }
 
 .timeline-act-card.sheet-coded {
   border-left-color: var(--sheet-edge);
 }
 
-.timeline-act-time {
-  font-size: 9.5px;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 2px;
+.timeline-act-full-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
 }
 
+.timeline-act-title-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.status-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-indicator.planned { background: var(--accent); }
+.status-indicator.completed { background: var(--mint); }
+.status-indicator.suggested { background: var(--violet); }
+
 .timeline-act-title {
-  font-size: 11.5px;
+  font-size: 11px;
   font-weight: 700;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--text);
+  flex: 1;
+}
+
+.timeline-act-title.compact {
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.timeline-act-compact-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
 }
 
 .timeline-act-footer {
   display: flex;
   align-items: center;
-  gap: 5px;
-  margin-top: 3px;
-  font-size: 9.5px;
+  justify-content: space-between;
+  gap: 4px;
 }
 
-/* Zoom Geral: Pills Super Compactas */
-.timeline-view.zoom-general .timeline-act-card {
-  padding: 2px 4px;
+.timeline-act-sub {
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
 }
-.timeline-view.zoom-general .timeline-act-time,
-.timeline-view.zoom-general .timeline-act-footer {
+
+.status-tag-text {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.status-tag-text.completed { color: var(--mint); }
+.status-tag-text.suggested { color: var(--violet); }
+
+/* Zoom Geral: Micro chips */
+.timeline-view.zoom-general .timeline-act-card {
+  padding: 1px 2px;
+  border-radius: 3px;
+}
+.timeline-view.zoom-general .timeline-act-footer,
+.timeline-view.zoom-general .status-indicator {
   display: none;
 }
 .timeline-view.zoom-general .timeline-act-title {
-  font-size: 10px;
+  font-size: 9px;
 }
 
 /* Painel Foco do Dia ("O que tenho para fazer neste dia") */
@@ -713,10 +848,13 @@ html[data-theme=dark] .timeline-rules-box {
   .timeline-hero-main {
     grid-template-columns: 1fr;
   }
+  .timeline-sidebar-cell,
   .timeline-lane-header {
-    width: 100px;
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
     font-size: 10px;
-    padding: 6px 8px;
+    padding: 0 8px;
   }
 }
 

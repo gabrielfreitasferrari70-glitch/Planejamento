@@ -209,9 +209,49 @@
     const nextExam = upcomingExams[0];
     const daysToExam = nextExam ? Math.round((Date.parse(nextExam.date + 'T12:00:00Z') - Date.parse(t + 'T12:00:00Z')) / 86400000) : null;
 
-    // Configuração de Largura por Dia conforme Zoom
-    const dayWidth = zoomLevel === 'general' ? 28 : (zoomLevel === 'weeks' ? 88 : 200);
-    const canvasWidth = totalDays * dayWidth;
+    // Helper para gerar o cabeçalho uniforme e definido da barra lateral esquerda (dock)
+    function makeSidebarHeader(iconName, title, subtitle, count = null) {
+      return `
+        <div class="timeline-sidebar-cell">
+          <div class="timeline-sidebar-icon">${ico(iconName)}</div>
+          <div class="timeline-sidebar-meta">
+            <span class="timeline-sidebar-title">${esc(title)}</span>
+            ${subtitle ? `<span class="timeline-sidebar-sub">${esc(subtitle)}</span>` : ''}
+          </div>
+          ${count !== null && count !== undefined ? `<span class="timeline-sidebar-badge">${count}</span>` : ''}
+        </div>
+      `;
+    }
+
+    // Configuração de Largura por Dia conforme Zoom com espaçamento adaptativo didático
+    const dayMap = {};
+    let curLeft = 0;
+    for (let i = 0; i < totalDays; i++) {
+      const d = dayAdd(minDate, i);
+      const dayEvts = all.filter(x => x.date === d);
+      const dow = new Date(d + 'T12:00:00Z').getUTCDay(); // 0 = Dom, 6 = Sáb
+      const isWeekend = dow === 0 || dow === 6;
+      let w = 80;
+      if (zoomLevel === 'weeks') {
+        w = (isWeekend && dayEvts.length === 0) ? 32 : 80;
+      } else if (zoomLevel === 'general') {
+        w = (isWeekend && dayEvts.length === 0) ? 14 : 24;
+      } else {
+        // 'days'
+        w = (isWeekend && dayEvts.length === 0) ? 60 : 140;
+      }
+
+      dayMap[d] = {
+        date: d,
+        index: i,
+        events: dayEvts,
+        left: curLeft,
+        width: w,
+        isWeekend
+      };
+      curLeft += w;
+    }
+    const canvasWidth = curLeft;
 
     // Cabeçalho de Posicionamento ("Onde estou no planejamento")
     const heroHTML = `
@@ -269,19 +309,6 @@
       </section>
     `;
 
-    // Gerar Mapa de Dias e Carga
-    const dayMap = {};
-    for (let i = 0; i < totalDays; i++) {
-      const d = dayAdd(minDate, i);
-      dayMap[d] = {
-        date: d,
-        index: i,
-        events: all.filter(x => x.date === d),
-        left: i * dayWidth,
-        width: dayWidth
-      };
-    }
-
     // Filtrar Atividades Visíveis
     const filterFn = x => {
       if (activeFilter === 'all') return true;
@@ -291,10 +318,11 @@
 
     // Montar Camada 1: Faixas de Duração das Fases
     const phaseBandsHTML = phases.map(p => {
-      const startIdx = Math.max(0, Math.round((Date.parse(p.from + 'T12:00:00Z') - Date.parse(minDate + 'T12:00:00Z')) / 86400000));
-      const endIdx = Math.min(totalDays - 1, Math.round((Date.parse(p.to + 'T12:00:00Z') - Date.parse(minDate + 'T12:00:00Z')) / 86400000));
-      const pLeft = startIdx * dayWidth;
-      const pWidth = Math.max(dayWidth, (endIdx - startIdx + 1) * dayWidth - 4);
+      const startDay = dayMap[p.from] || dayMap[minDate];
+      const endDay = dayMap[p.to] || dayMap[maxDate];
+      const pLeft = startDay ? startDay.left : 0;
+      const pRight = endDay ? (endDay.left + endDay.width) : canvasWidth;
+      const pWidth = Math.max(30, pRight - pLeft - 4);
       const isCurrent = t >= p.from && t <= p.to;
 
       return `
@@ -314,7 +342,7 @@
       if (totalMins === 0) return '';
 
       return `
-        <div class="timeline-day-load-col" style="left:${day.left}px;width:${day.width}px" title="${fmt(day.date)}: ${hrs}h planejadas (${day.events.length} atividades)">
+        <div class="timeline-day-load-col ${day.isWeekend ? 'is-weekend' : ''}" style="left:${day.left}px;width:${day.width}px" title="${fmt(day.date)}: ${hrs}h planejadas (${day.events.length} atividades)">
           <div class="timeline-load-bar ${intensity}"></div>
         </div>
       `;
@@ -328,7 +356,7 @@
       const weekday = fmt(day.date, { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
 
       return `
-        <div class="timeline-ruler-col ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" style="left:${day.left}px;width:${day.width}px" data-action="timeline-select-day" data-date="${day.date}">
+        <div class="timeline-ruler-col ${day.isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" style="left:${day.left}px;width:${day.width}px" data-action="timeline-select-day" data-date="${day.date}" title="${fmt(day.date, { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'UTC' })}">
           <strong>${dayNum}</strong>
           <small>${esc(weekday)}</small>
         </div>
@@ -336,31 +364,32 @@
     }).join('');
 
     // Marcador de Hoje Vertical
-    const todayIndex = dayMap[t]?.index;
-    const todayMarkerHTML = todayIndex !== undefined ? `
-      <div class="timeline-today-marker" style="left:${todayIndex * dayWidth + dayWidth/2}px">
+    const todayDay = dayMap[t];
+    const todayMarkerHTML = todayDay ? `
+      <div class="timeline-today-marker" style="left:${todayDay.left + todayDay.width / 2}px">
         <div class="timeline-today-flag">Hoje</div>
       </div>
     ` : '';
 
-    // Montar Camada 4: Trilhas de Atividades (Swimlanes)
+    // Montar Camada 4: Trilhas de Atividades (Swimlanes) com altura fixa e layout didático
     const lanes = [
-      { id: 'class', title: 'Aulas & Práticas', icon: 'studies', types: ['class', 'welcome'] },
-      { id: 'tutorial', title: 'Tutorias / PBL', icon: 'target', types: ['tutorial'] },
-      { id: 'community', title: 'Interação Comunitária', icon: 'cross', types: ['community'] },
-      { id: 'exam', title: 'Avaliações & Prazos', icon: 'exams', types: ['exam'] },
-      { id: 'study', title: 'Estudos & Revisões', icon: 'reviews', types: ['study', 'review'] }
+      { id: 'class', title: 'Aulas & Práticas', sub: 'Teóricas e Laboratório', icon: 'studies', types: ['class', 'welcome'] },
+      { id: 'tutorial', title: 'Tutorias / PBL', sub: 'Discussões e Problemas', icon: 'target', types: ['tutorial'] },
+      { id: 'community', title: 'Comunidade', sub: 'IESC e UBS', icon: 'cross', types: ['community'] },
+      { id: 'exam', title: 'Avaliações', sub: 'Provas e Prazos', icon: 'exams', types: ['exam'] },
+      { id: 'study', title: 'Estudos & Rev.', sub: 'MedReview / Flashcards', icon: 'reviews', types: ['study', 'review'] }
     ];
+
+    const LANE_HEIGHT = 64; // Altura didática uniforme para todas as trilhas
 
     const lanesHTML = lanes.map(lane => {
       const laneEvents = all.filter(x => lane.types.includes(x.type) && filterFn(x));
-      const dayCounts = {};
-      laneEvents.forEach(e => {
-        dayCounts[e.date] = (dayCounts[e.date] || 0) + 1;
-      });
-      const maxCount = Math.max(1, ...(Object.values(dayCounts).length ? Object.values(dayCounts) : [1]));
-      const laneHeight = Math.max(68, maxCount * 44 + 8);
       const dayIndexMap = {};
+
+      const dayEvtCounts = {};
+      laneEvents.forEach(e => {
+        dayEvtCounts[e.date] = (dayEvtCounts[e.date] || 0) + 1;
+      });
 
       const itemsHTML = laneEvents.map(x => {
         const day = dayMap[x.date];
@@ -368,34 +397,60 @@
         const slotIdx = dayIndexMap[x.date] || 0;
         dayIndexMap[x.date] = slotIdx + 1;
 
+        const countInDay = dayEvtCounts[x.date] || 1;
+        const isMulti = countInDay > 1;
+
         const status = getActivityStatus(x);
         const statusClass = 'status-' + status;
-        const timeLabel = x.from ? (x.to ? x.from + '–' + x.to : x.from) : 'Geral';
+        const timeLabel = x.from ? (x.to ? x.from + '–' + x.to : x.from) : '';
         const title = displayTitle(x.title);
         const cardLeft = day.left + 2;
-        const cardWidth = Math.max(24, day.width - 4);
-        const cardTop = 6 + slotIdx * 42;
-        const cardHeight = 36;
+        const cardWidth = Math.max(20, day.width - 4);
+
+        let cardTop = 8;
+        let cardHeight = 48;
+
+        if (isMulti) {
+          cardHeight = 25;
+          cardTop = slotIdx === 0 ? 5 : 33;
+        }
+
+        const tooltip = `${title} · ${x.subject || 'UC2'}${timeLabel ? ' (' + timeLabel + ')' : ''} — ${status === 'completed' ? 'Concluído' : status === 'suggested' ? 'Sugerido' : 'Planejado'}`;
 
         return `
-          <button type="button" class="timeline-act-card ${statusClass} ${x.sheetColor ? 'sheet-coded' : ''}" style="left:${cardLeft}px;width:${cardWidth}px;top:${cardTop}px;height:${cardHeight}px" ${sheetStyle(x)} data-action="timeline-activity-click" data-id="${esc(x.id)}" title="${esc(title)} (${timeLabel})">
-            <span class="timeline-act-time">${esc(timeLabel)}</span>
-            <span class="timeline-act-title">${esc(title)}</span>
-            <div class="timeline-act-footer">
-              <span class="tag ${status==='completed'?'good':status==='suggested'?'review':'gray'}">${status==='completed'?'✓ Realizado':status==='suggested'?'✨ Sugerido':'Planejado'}</span>
-              ${x.professor ? '<span class="tiny muted">' + esc(x.professor.split(' ')[0]) + '</span>' : ''}
-            </div>
+          <button type="button" 
+            class="timeline-act-card ${statusClass} ${x.sheetColor ? 'sheet-coded' : ''} ${isMulti ? 'is-compact' : ''}" 
+            style="left:${cardLeft}px;width:${cardWidth}px;top:${cardTop}px;height:${cardHeight}px" 
+            ${sheetStyle(x)} 
+            data-action="timeline-activity-click" 
+            data-id="${esc(x.id)}" 
+            title="${esc(tooltip)}">
+            
+            ${isMulti ? `
+              <div class="timeline-act-compact-row">
+                <span class="status-indicator ${status}"></span>
+                <span class="timeline-act-title compact">${esc(title)}</span>
+              </div>
+            ` : `
+              <div class="timeline-act-full-body">
+                <div class="timeline-act-title-row">
+                  <span class="status-indicator ${status}"></span>
+                  <strong class="timeline-act-title">${esc(title)}</strong>
+                </div>
+                <div class="timeline-act-footer">
+                  <span class="timeline-act-sub">${esc(displayTitle(x.subject || 'UC2'))}</span>
+                  <span class="status-tag-text ${status}">${status === 'completed' ? '✓ Feito' : status === 'suggested' ? '✨' : ''}</span>
+                </div>
+              </div>
+            `}
           </button>
         `;
       }).join('');
 
       return `
-        <div class="timeline-lane" style="min-height:${laneHeight}px">
-          <div class="timeline-lane-header">
-            ${ico(lane.icon)}
-            <span>${esc(lane.title)}</span>
-          </div>
-          <div class="timeline-lane-items" style="width:${canvasWidth}px;height:${laneHeight}px">
+        <div class="timeline-lane" style="height:${LANE_HEIGHT}px">
+          ${makeSidebarHeader(lane.icon, lane.title, lane.sub, laneEvents.length)}
+          <div class="timeline-lane-items" style="width:${canvasWidth}px;height:${LANE_HEIGHT}px">
             ${itemsHTML}
           </div>
         </div>
@@ -465,23 +520,23 @@
         ${heroHTML}
 
         <div class="timeline-scroll-container" id="timeline-scroller">
-          <div class="timeline-canvas" style="width:${canvasWidth + 140}px">
+          <div class="timeline-canvas" style="width:${canvasWidth + 180}px">
             <!-- Camada 1: Faixas de Fases -->
             <div class="timeline-phases-track">
-              <div class="timeline-lane-header">${ico('calendar')} Fases</div>
-              <div style="position:relative;flex:1">${phaseBandsHTML}</div>
+              ${makeSidebarHeader('calendar', 'Fases', 'Ciclos do Módulo', phases.length)}
+              <div style="position:relative;flex:1;height:100%">${phaseBandsHTML}</div>
             </div>
 
             <!-- Camada 2: Carga Horária Planejada -->
             <div class="timeline-load-track">
-              <div class="timeline-lane-header">${ico('clock')} Carga</div>
-              <div style="position:relative;flex:1">${loadBarsHTML}</div>
+              ${makeSidebarHeader('clock', 'Carga', 'Horas / Dia')}
+              <div style="position:relative;flex:1;height:100%">${loadBarsHTML}</div>
             </div>
 
             <!-- Camada 3: Régua de Datas -->
             <div class="timeline-ruler-track">
-              <div class="timeline-lane-header">${ico('target')} Dias</div>
-              <div style="position:relative;flex:1">${rulerColsHTML} ${todayMarkerHTML}</div>
+              ${makeSidebarHeader('target', 'Calendário', 'Dias e Semanas')}
+              <div style="position:relative;flex:1;height:100%">${rulerColsHTML} ${todayMarkerHTML}</div>
             </div>
 
             <!-- Camada 4: Trilhas de Atividades -->
