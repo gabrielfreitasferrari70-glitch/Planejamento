@@ -11,7 +11,10 @@
   let selectedActivityId = null;
   let geometry = null;
   let pendingAnchor = null;
+  let pendingPixel = null;
+  let zoomValue = 60;
   let scrollFrame = null;
+  let wheelFrame = null, wheelDelta = 0, wheelX = 0;
   const scales = ['general', 'weeks', 'days'];
   const laneColors = {class:'#4f65b5', tutorial:'#8560a8', community:'#267c72', exam:'#b45546', study:'#517c45'};
   const statusLabels = {planned:'Planejado', in_progress:'Em andamento', completed:'Concluído', suggested:'Sugerido'};
@@ -20,16 +23,21 @@
     const el = $('timeline-scroller');
     return el && geometry ? (el.scrollLeft + (el.clientWidth-geometry.sidebar)/2)/geometry.dayWidth : null;
   }
-  function changeZoom(level, anchor = visibleAnchor()) {
-    if (!scales.includes(level)) return;
-    pendingAnchor = anchor;
-    zoomLevel = level;
+  function setZoom(value, anchor=visibleAnchor(), pixel=null) {
+    zoomValue=Math.max(0,Math.min(100,Number(value)));
+    pendingAnchor=anchor;
+    pendingPixel=pixel;
+    zoomLevel=zoomValue<30?'general':zoomValue<78?'weeks':'days';
     render();
+  }
+  function changeZoom(level, anchor=visibleAnchor()) {
+    if (!scales.includes(level)) return;
+    setZoom({general:0,weeks:60,days:100}[level],anchor);
   }
   function focusDate(date, level) {
     selectedDate = date;
     pendingAnchor = geometry ? dateDiff(date, geometry.minDate)+0.5 : null;
-    if (level) zoomLevel = level;
+    if (level) { zoomLevel=level; zoomValue={general:0,weeks:60,days:100}[level]; }
     render();
   }
 
@@ -242,8 +250,9 @@
     const available = Math.max(240, ($('app')?.clientWidth || 1100) - 2);
     const sidebar = 0;
     const usable = available - sidebar;
-    const dayWidth = zoomLevel === 'general' ? Math.max(5, usable / totalDays) :
-      zoomLevel === 'weeks' ? Math.max(96, usable / 7) : Math.max(240, usable / 3);
+    const minimum=Math.max(3,usable/totalDays), weekly=Math.max(110,usable/7), daily=Math.max(280,usable/3);
+    const dayWidth=zoomValue<=60 ? minimum*Math.pow(weekly/minimum,zoomValue/60) : weekly*Math.pow(daily/weekly,(zoomValue-60)/40);
+    zoomLevel=dayWidth<90?'general':dayWidth<220?'weeks':'days';
     const dayMap = {};
     const byDate = new Map();
     all.forEach(x => { if (!byDate.has(x.date)) byDate.set(x.date, []); byDate.get(x.date).push(x); });
@@ -310,6 +319,7 @@
               <button type="button" class="timeline-zoom-btn ${zoomLevel==='weeks'?'active':''}" data-action="timeline-zoom" data-zoom="weeks" aria-pressed="${zoomLevel==='weeks'}">Semana</button>
               <button type="button" class="timeline-zoom-btn ${zoomLevel==='days'?'active':''}" data-action="timeline-zoom" data-zoom="days" aria-pressed="${zoomLevel==='days'}">Dia</button>
             </div>
+            <label class="timeline-zoom-range-label">Zoom<input id="timeline-zoom-range" type="range" min="0" max="100" value="${zoomValue}" aria-label="Aproximação do cronograma"></label>
             ${btn('−', 'timeline-zoom-step', 'data-step="-1" aria-label="Diminuir zoom"', 'btn btn-small')}
             ${btn('+', 'timeline-zoom-step', 'data-step="1" aria-label="Aumentar zoom"', 'btn btn-small')}
             ${btn(ico('target') + ' Ir para Hoje', 'timeline-scroll-today', '', 'btn btn-small')}
@@ -406,7 +416,7 @@
       const laneEvents = all.filter(x => lane.types.includes(x.type) && filterFn(x));
       if (activeFilter !== 'all' && activeFilter !== 'pending' && !laneEvents.length) return '';
       const color = laneColors[lane.id];
-      let itemsHTML = '', laneHeight = zoomLevel === 'days' ? 122 : 88;
+      let itemsHTML = '', laneHeight = zoomLevel === 'days' ? 122 : zoomLevel === 'weeks' ? 132 : 88;
       const buckets = new Map();
       laneEvents.forEach(x=>{
         const day=dayMap[x.date]; if (!day) return;
@@ -425,8 +435,8 @@
           itemsHTML+=`<button class="timeline-week-summary" style="left:${start*dayWidth+2}px;width:${Math.max(8,(end-start)*dayWidth-4)}px" data-action="timeline-open-period" data-date="${dayAdd(minDate,start)}" data-zoom="weeks" title="${group.length} atividades · ${done} concluídas · clique para explorar a semana"><strong>${group.length}</strong><span>ativ.</span><i style="width:${done/group.length*100}%"></i></button>`;
         } else if(zoomLevel==='weeks') {
           const done=group.filter(x=>getActivityStatus(x)==='completed').length;
-          const preview=group.slice(0,2).map(x=>displayTitle(x.subject||x.title)).join(' · ');
-          itemsHTML+=`<button class="timeline-day-summary" style="left:${first.left+4}px;width:${dayWidth-8}px" data-action="timeline-open-period" data-date="${first.date}" data-zoom="days" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}"><strong>${group.length} ${group.length===1?'atividade':'atividades'}</strong><span>${esc(preview)}</span><small>${done ? done+' concluída'+(done>1?'s':'') : 'Ver dia →'}</small></button>`;
+          const previews=group.slice(0,2).map(x=>`<span class="timeline-week-item"><small>${esc(x.from||'Livre')} · ${esc(displayTitle(x.subject||'Atividade'))}</small><span>${esc(displayTitle(x.title))}</span></span>`).join('');
+          itemsHTML+=`<button class="timeline-day-summary" style="left:${first.left+4}px;width:${dayWidth-8}px" data-action="timeline-open-period" data-date="${first.date}" data-zoom="days" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}">${previews}<small class="timeline-week-more">${group.length>2?'+'+(group.length-2)+' atividades · ':''}${done?done+' concluídas · ':''}Abrir dia →</small></button>`;
         } else {
           laneHeight=Math.max(laneHeight,group.length*110+12);
           group.forEach((x,index)=>{
@@ -503,6 +513,7 @@
         ${heroHTML}
 
         ${overviewHTML}
+        <div class="timeline-milestones" aria-label="Próximas avaliações">${all.filter(x=>x.type==='exam'&&x.date>=selectedDate).slice(0,4).map(x=>`<button type="button" class="timeline-milestone-link" data-action="timeline-activity-click" data-id="${esc(x.id)}"><small>${fmt(x.date)} · Avaliação</small><strong>${esc(displayTitle(x.title))}</strong></button>`).join('')}</div>
         <div class="timeline-reading-guide"><small>${zoomLevel==='general'?'Resumo por semana · clique para aproximar':zoomLevel==='weeks'?'Distribuição por dia · clique para ver as atividades':'Atividades e horários · clique para abrir os detalhes'}</small></div>
         <div class="timeline-scroll-container" id="timeline-scroller" tabindex="0" aria-label="Linha do tempo. Use as setas para navegar e Control mais rolagem para ampliar.">
           <div class="timeline-canvas" style="width:${canvasWidth + sidebar}px">
@@ -541,6 +552,7 @@
     const x = all.find(e => e.id === id);
     if (!x) return;
 
+    persistDrawerDraft();
     selectedActivityId = id;
     const meta = getActivityMeta(id);
     const status = getActivityStatus(x);
@@ -558,11 +570,11 @@
 
     const continuityHTML = `
       <div class="timeline-continuity-chain">
-        <div class="breadcrumb" style="margin-bottom:0">COMO ESSA ATIVIDADE SE CONECTA AO QUE VEM DEPOIS</div>
+        <div class="breadcrumb" style="margin-bottom:0">SEQUÊNCIA DA MATÉRIA · SUGESTÕES POR DATA</div>
         <div class="timeline-continuity-steps">
           <div class="timeline-chain-step">
-            <small>⬅️ Anterior no Módulo</small>
-            <strong>${continuity.previous ? esc(displayTitle(continuity.previous.title)) : 'Início do módulo'}</strong>
+            <small>Anterior na matéria</small>
+            ${continuity.previous ? btn(esc(displayTitle(continuity.previous.title)),'timeline-activity-click',`data-id="${esc(continuity.previous.id)}"`,'timeline-connection-link') : '<strong>Sem atividade anterior</strong>'}
             <span class="tiny muted">${continuity.previous ? fmt(continuity.previous.date) : '—'}</span>
           </div>
           <div class="timeline-chain-step current">
@@ -571,13 +583,13 @@
             <span class="tiny muted">${fmt(x.date)} (${timeStr})</span>
           </div>
           <div class="timeline-chain-step">
-            <small>➡️ Próximo Passo</small>
-            <strong>${continuity.next ? esc(displayTitle(continuity.next.title)) : 'Fim do módulo'}</strong>
+            <small>Próxima na matéria</small>
+            ${continuity.next ? btn(esc(displayTitle(continuity.next.title)),'timeline-activity-click',`data-id="${esc(continuity.next.id)}"`,'timeline-connection-link') : '<strong>Sem próxima atividade</strong>'}
             <span class="tiny muted">${continuity.next ? fmt(continuity.next.date) : '—'}</span>
           </div>
           <div class="timeline-chain-step">
-            <small>🏆 Avaliação Alvo</small>
-            <strong>${continuity.exam ? esc(displayTitle(continuity.exam.title)) : 'Nenhuma prova vinculada'}</strong>
+            <small>Próxima avaliação possível</small>
+            ${continuity.exam ? btn(esc(displayTitle(continuity.exam.title)),'timeline-activity-click',`data-id="${esc(continuity.exam.id)}"`,'timeline-connection-link') : '<strong>Nenhuma avaliação encontrada</strong>'}
             <span class="tiny muted">${continuity.exam ? fmt(continuity.exam.date) : '—'}</span>
           </div>
         </div>
@@ -595,8 +607,8 @@
     `).join('');
 
     const modalHTML = `
-      <div class="modal-card" style="max-width:680px" role="dialog" aria-modal="true">
-        <button type="button" class="close" data-action="close" aria-label="Fechar">×</button>
+      <div class="timeline-drawer-card" role="region" aria-label="Detalhes da atividade">
+        <div class="timeline-drawer-top"><strong>Detalhes da atividade</strong><button type="button" class="btn btn-small" data-action="timeline-detail-close" aria-label="Fechar detalhes">×</button></div>
         
         <div class="timeline-modal-detail">
           <div class="timeline-detail-header">
@@ -664,12 +676,42 @@
       </div>
     `;
 
-    $('modal').innerHTML = modalHTML;
-    $('modal').classList.remove('hidden');
+    let drawer=$('timeline-drawer');
+    if(!drawer) {drawer=document.createElement('aside');drawer.id='timeline-drawer';drawer.addEventListener('change',persistDrawerDraft);document.body.appendChild(drawer);}
+    drawer.hidden=false;
+    drawer.innerHTML=modalHTML;
+    drawer.querySelectorAll('textarea').forEach(el=>el.dataset.initial=el.value);
+    document.querySelectorAll('.timeline-act-card').forEach(el=>el.classList.toggle('is-inspected',el.dataset.id===id));
+    drawer.querySelector('[data-action="timeline-detail-close"]')?.focus({preventScroll:true});
   }
+
+  function persistDrawerDraft() {
+    const drawer=$('timeline-drawer');
+    if(!drawer||drawer.hidden||!selectedActivityId)return;
+    const objective=$('timeline-act-objective'),notes=$('timeline-act-notes');
+    const changed=[objective,notes].filter(el=>el&&el.value!==el.dataset.initial);
+    if(!changed.length)return;
+    ensureTimelineMeta();
+    const meta=data.settings.timelineActivityMeta[selectedActivityId] ||= {};
+    if(changed.includes(objective))meta.objective=objective.value.trim();
+    if(changed.includes(notes))meta.notes=notes.value.trim();
+    changed.forEach(el=>el.dataset.initial=el.value);
+    save();
+  }
+  function closeTimelineDetail() {
+    persistDrawerDraft();
+    const id=selectedActivityId;
+    selectedActivityId=null;
+    const drawer=$('timeline-drawer');if(drawer)drawer.hidden=true;
+    document.querySelectorAll('.is-inspected').forEach(el=>el.classList.remove('is-inspected'));
+    const card=[...document.querySelectorAll('.timeline-act-card')].find(el=>el.dataset.id===id);
+    card?.focus({preventScroll:true});
+  }
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('timeline-drawer')&&!$('timeline-drawer').hidden)closeTimelineDetail();});
 
   // 7. Ações de Regras e Manipulação
   function setActivityStatus(id, newStatus) {
+    persistDrawerDraft();
     ensureTimelineMeta();
     if (!data.settings.timelineActivityMeta[id]) data.settings.timelineActivityMeta[id] = {};
     data.settings.timelineActivityMeta[id].status = newStatus;
@@ -691,6 +733,8 @@
     const noteEl = $('timeline-act-notes');
     if (objEl) data.settings.timelineActivityMeta[id].objective = objEl.value.trim();
     if (noteEl) data.settings.timelineActivityMeta[id].notes = noteEl.value.trim();
+    if(objEl)objEl.dataset.initial=objEl.value;
+    if(noteEl)noteEl.dataset.initial=noteEl.value;
     save();
     render();
     notify('Objetivo e anotações salvos com sucesso!');
@@ -734,6 +778,7 @@
   function applyRuleStudy(id) {
     const x = events().find(e => e.id === id);
     if (!x) return;
+    closeTimelineDetail();
     closeModal();
     openForm('study', {
       subject: x.subject || '',
@@ -746,6 +791,7 @@
   function applyRuleTask(id) {
     const x = events().find(e => e.id === id);
     if (!x) return;
+    closeTimelineDetail();
     closeModal();
     openForm('task', {
       title: 'Fixar e resumir: ' + x.title,
@@ -776,15 +822,6 @@
   function bindTimeline() {
     const el=$('timeline-scroller'); if(!el) return;
     el.addEventListener('scroll',()=>{cancelAnimationFrame(scrollFrame);scrollFrame=requestAnimationFrame(updateOverview);},{passive:true});
-    el.addEventListener('wheel',e=>{
-      if(!e.ctrlKey&&!e.metaKey) return;
-      e.preventDefault();
-      const next=Math.max(0,Math.min(2,scales.indexOf(zoomLevel)+(e.deltaY<0?1:-1)));
-      if(scales[next]!==zoomLevel) {
-        const local=Math.max(0,e.clientX-el.getBoundingClientRect().left-geometry.sidebar);
-        changeZoom(scales[next],(el.scrollLeft+local)/geometry.dayWidth);
-      }
-    },{passive:false});
     el.addEventListener('dblclick',e=>{
       const day=e.target.closest('[data-date]');
       if(day) focusDate(day.dataset.date,scales[Math.min(2,scales.indexOf(zoomLevel)+1)]);
@@ -800,6 +837,8 @@
     map.addEventListener('pointermove',e=>{if(map.hasPointerCapture(e.pointerId))seek(e);});
     map.addEventListener('pointerup',e=>{if(map.hasPointerCapture(e.pointerId))map.releasePointerCapture(e.pointerId);});
     $('timeline-position').addEventListener('input',e=>{el.scrollLeft=Number(e.target.value)/1000*(el.scrollWidth-el.clientWidth);updateOverview();});
+    const zoom=$('timeline-zoom-range');
+    if(zoom) zoom.addEventListener('change',e=>setZoom(e.target.value));
     updateOverview();
   }
 
@@ -824,8 +863,8 @@
       ensureMobileMore();
       if ($('timeline-scroller')) {
         if(pendingAnchor!==null) {
-          $('timeline-scroller').scrollLeft=Math.max(0,pendingAnchor*geometry.dayWidth-($('timeline-scroller').clientWidth-geometry.sidebar)/2);
-          pendingAnchor=null;
+          $('timeline-scroller').scrollLeft=Math.max(0,pendingAnchor*geometry.dayWidth-(pendingPixel??($('timeline-scroller').clientWidth-geometry.sidebar)/2));
+          pendingAnchor=null; pendingPixel=null;
         } else if(oldLeft!==undefined) $('timeline-scroller').scrollLeft=oldLeft;
         else scrollToDate(selectedDate);
         bindTimeline();
@@ -833,9 +872,30 @@
       return;
     }
 
+    if($('timeline-drawer')&&!$('timeline-drawer').hidden)closeTimelineDetail();
     previousRender();
     ensureMobileMore();
   };
+
+  document.addEventListener('wheel',e=>{
+    const el=$('timeline-scroller');
+    if(page!=='timeline'||!el||!el.contains(e.target)||(!e.ctrlKey&&!e.metaKey))return;
+    e.preventDefault();
+    wheelDelta+=Math.max(-6,Math.min(6,e.deltaY*.08));wheelX=e.clientX;
+    if(wheelFrame!==null)return;
+    wheelFrame=requestAnimationFrame(()=>{
+      wheelFrame=null;
+      const current=$('timeline-scroller');
+      if(!current||page!=='timeline'){wheelDelta=0;return;}
+      const local=Math.max(0,Math.min(current.clientWidth,wheelX-current.getBoundingClientRect().left));
+      const delta=wheelDelta;wheelDelta=0;
+      setZoom(zoomValue-delta,(current.scrollLeft+local)/geometry.dayWidth,local);
+    });
+  },{passive:false});
+  window.addEventListener('planning-account-reset',()=>{
+    selectedActivityId=null;
+    const drawer=$('timeline-drawer');if(drawer){drawer.hidden=true;drawer.innerHTML='';}
+  });
 
   // 9. Ouvinte de Eventos de Clique
   document.addEventListener('click', e => {
@@ -853,7 +913,7 @@
         render();
         break;
       case 'timeline-zoom-step':
-        changeZoom(scales[Math.max(0,Math.min(2,scales.indexOf(zoomLevel)+Number(b.dataset.step)))]);
+        setZoom(zoomValue+Number(b.dataset.step)*10);
         break;
       case 'timeline-pan': {
         const el=$('timeline-scroller');
@@ -876,8 +936,11 @@
       case 'timeline-phase-click':
         selectedDate=b.dataset.from;
         pendingAnchor=geometry ? dateDiff(b.dataset.from,geometry.minDate)+Math.min(3.5,(dateDiff(b.dataset.to,b.dataset.from)+1)/2) : null;
-        zoomLevel='weeks';
+        zoomLevel='weeks'; zoomValue=60;
         render();
+        break;
+      case 'timeline-detail-close':
+        closeTimelineDetail();
         break;
       case 'timeline-activity-click':
         showTimelineDetail(id);
