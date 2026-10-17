@@ -9,6 +9,30 @@
   let activeFilter = 'all'; // 'all' | 'class' | 'tutorial' | 'community' | 'exam' | 'study' | 'pending'
   let selectedDate = today();
   let selectedActivityId = null;
+  let geometry = null;
+  let pendingAnchor = null;
+  let scrollFrame = null;
+  const scales = ['general', 'weeks', 'days'];
+  const laneColors = {class:'#4f65b5', tutorial:'#8560a8', community:'#267c72', exam:'#b45546', study:'#517c45'};
+  const statusLabels = {planned:'Planejado', in_progress:'Em andamento', completed:'Concluído', suggested:'Sugerido'};
+  function dateDiff(a,b) { return Math.round((Date.parse(a+'T12:00:00Z')-Date.parse(b+'T12:00:00Z'))/86400000); }
+  function visibleAnchor() {
+    const el = $('timeline-scroller');
+    return el && geometry ? (el.scrollLeft + (el.clientWidth-geometry.sidebar)/2)/geometry.dayWidth : null;
+  }
+  function changeZoom(level, anchor = visibleAnchor()) {
+    if (!scales.includes(level)) return;
+    pendingAnchor = anchor;
+    zoomLevel = level;
+    render();
+  }
+  function focusDate(date, level) {
+    selectedDate = date;
+    pendingAnchor = geometry ? dateDiff(date, geometry.minDate)+0.5 : null;
+    if (level) zoomLevel = level;
+    render();
+  }
+
 
   const norm = x => String(x == null ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const equals = (a, b) => norm(a) === norm(b);
@@ -70,7 +94,7 @@
     // Fallback: divide em ciclos de 4 semanas
     const phases = [];
     let cur = minDate, idx = 1;
-    while (cur < maxDate) {
+    while (cur <= maxDate) {
       let next = dayAdd(cur, 27);
       if (next > maxDate) next = maxDate;
       phases.push({
@@ -211,47 +235,42 @@
 
     // Helper para gerar o cabeçalho uniforme e definido da barra lateral esquerda (dock)
     function makeSidebarHeader(iconName, title, subtitle, count = null) {
-      return `
-        <div class="timeline-sidebar-cell">
-          <div class="timeline-sidebar-icon">${ico(iconName)}</div>
-          <div class="timeline-sidebar-meta">
-            <span class="timeline-sidebar-title">${esc(title)}</span>
-            ${subtitle ? `<span class="timeline-sidebar-sub">${esc(subtitle)}</span>` : ''}
-          </div>
-          ${count !== null && count !== undefined ? `<span class="timeline-sidebar-badge">${count}</span>` : ''}
-        </div>
-      `;
+      return `<div class="timeline-section-heading" style="width:${Math.max(240,($('app')?.clientWidth||1100)-2)}px"><span class="timeline-section-icon">${ico(iconName)}</span><strong>${esc(title)}</strong>${count > 0 ? `<span class="timeline-section-count">${count} atividades</span>` : ''}${count === 0 ? '<span class="timeline-section-empty">Nenhuma atividade</span>' : ''}</div>`;
     }
 
-    // Configuração de Largura por Dia conforme Zoom com espaçamento adaptativo didático
+    // Equal time intervals keep every layer aligned while zoom changes the level of detail.
+    const available = Math.max(240, ($('app')?.clientWidth || 1100) - 2);
+    const sidebar = 0;
+    const usable = available - sidebar;
+    const dayWidth = zoomLevel === 'general' ? Math.max(5, usable / totalDays) :
+      zoomLevel === 'weeks' ? Math.max(96, usable / 7) : Math.max(240, usable / 3);
     const dayMap = {};
-    let curLeft = 0;
+    const byDate = new Map();
+    all.forEach(x => { if (!byDate.has(x.date)) byDate.set(x.date, []); byDate.get(x.date).push(x); });
     for (let i = 0; i < totalDays; i++) {
       const d = dayAdd(minDate, i);
-      const dayEvts = all.filter(x => x.date === d);
-      const dow = new Date(d + 'T12:00:00Z').getUTCDay(); // 0 = Dom, 6 = Sáb
-      const isWeekend = dow === 0 || dow === 6;
-      let w = 80;
-      if (zoomLevel === 'weeks') {
-        w = (isWeekend && dayEvts.length === 0) ? 32 : 80;
-      } else if (zoomLevel === 'general') {
-        w = (isWeekend && dayEvts.length === 0) ? 14 : 24;
-      } else {
-        // 'days'
-        w = (isWeekend && dayEvts.length === 0) ? 60 : 140;
-      }
-
-      dayMap[d] = {
-        date: d,
-        index: i,
-        events: dayEvts,
-        left: curLeft,
-        width: w,
-        isWeekend
-      };
-      curLeft += w;
+      const dow = new Date(d + 'T12:00:00Z').getUTCDay();
+      dayMap[d] = {date:d, index:i, events:byDate.get(d)||[], left:i*dayWidth, width:dayWidth, isWeekend:dow===0||dow===6};
     }
-    const canvasWidth = curLeft;
+    const canvasWidth = totalDays * dayWidth;
+    geometry = {minDate, totalDays, dayWidth, sidebar, canvasWidth};
+    const months = [];
+    Object.values(dayMap).forEach(d => {
+      const key=d.date.slice(0,7), last=months[months.length-1];
+      if (last?.key === key) last.width += dayWidth;
+      else months.push({key, date:d.date, left:d.left, width:dayWidth});
+    });
+    const monthsHTML = months.map(m => `<div class="timeline-month" style="left:${m.left}px;width:${m.width}px">${esc(fmt(m.date,{month:'long',year:'numeric',timeZone:'UTC'}))}</div>`).join('');
+    const overviewHTML = `<section class="timeline-overview" aria-label="Navegação do semestre">
+      <div class="timeline-overview-heading"><strong>Mapa do semestre</strong><span id="timeline-visible-range"></span></div>
+      <div class="timeline-map" id="timeline-map" title="Clique ou arraste para navegar pelo cronograma">
+        ${phases.map((p,i)=>`<span class="timeline-map-phase phase-tone-${i%3}" style="left:${Math.max(0,dateDiff(p.from,minDate))/totalDays*100}%;width:${Math.max(0,dateDiff(p.to,p.from)+1)/totalDays*100}%"></span>`).join('')}
+        ${all.filter(x=>x.type==='exam').map(x=>`<span class="timeline-map-exam" style="left:${(dateDiff(x.date,minDate)+.5)/totalDays*100}%" title="${esc(displayTitle(x.title))}"></span>`).join('')}
+        <span class="timeline-map-window" id="timeline-map-window"></span>
+      </div>
+      <div class="timeline-overview-dates"><span>${fmt(minDate)}</span><span>Arraste o visor para explorar · duplo clique para aproximar</span><span>${fmt(maxDate)}</span></div>
+      <label class="sr-only" for="timeline-position">Posição no cronograma</label><input id="timeline-position" class="timeline-position-range" type="range" min="0" max="1000" value="0" aria-label="Posição no cronograma">
+    </section>`;
 
     // Cabeçalho de Posicionamento ("Onde estou no planejamento")
     const heroHTML = `
@@ -285,24 +304,27 @@
 
         <div class="timeline-toolbar">
           <div class="timeline-toolbar-group">
-            <span class="tiny muted" style="font-weight:700">ZOOM PROGRESSIVO:</span>
+            <span class="tiny muted" style="font-weight:700">ESCALA:</span>
             <div class="timeline-zoom-controls" role="group" aria-label="Controle de Zoom">
-              <button type="button" class="timeline-zoom-btn ${zoomLevel==='general'?'active':''}" data-action="timeline-zoom" data-zoom="general">Geral (Semestre)</button>
-              <button type="button" class="timeline-zoom-btn ${zoomLevel==='weeks'?'active':''}" data-action="timeline-zoom" data-zoom="weeks">Semanas (Médio)</button>
-              <button type="button" class="timeline-zoom-btn ${zoomLevel==='days'?'active':''}" data-action="timeline-zoom" data-zoom="days">Dias (Detalhado)</button>
+              <button type="button" class="timeline-zoom-btn ${zoomLevel==='general'?'active':''}" data-action="timeline-zoom" data-zoom="general" aria-pressed="${zoomLevel==='general'}">Semestre</button>
+              <button type="button" class="timeline-zoom-btn ${zoomLevel==='weeks'?'active':''}" data-action="timeline-zoom" data-zoom="weeks" aria-pressed="${zoomLevel==='weeks'}">Semana</button>
+              <button type="button" class="timeline-zoom-btn ${zoomLevel==='days'?'active':''}" data-action="timeline-zoom" data-zoom="days" aria-pressed="${zoomLevel==='days'}">Dia</button>
             </div>
+            ${btn('−', 'timeline-zoom-step', 'data-step="-1" aria-label="Diminuir zoom"', 'btn btn-small')}
+            ${btn('+', 'timeline-zoom-step', 'data-step="1" aria-label="Aumentar zoom"', 'btn btn-small')}
             ${btn(ico('target') + ' Ir para Hoje', 'timeline-scroll-today', '', 'btn btn-small')}
-            ${btn(ico('list') + ' Ver em Lista', 'timeline-view-list', '', 'btn btn-small')}
+            ${btn('←', 'timeline-pan', 'data-direction="-1" aria-label="Período anterior"', 'btn btn-small')}
+            ${btn('→', 'timeline-pan', 'data-direction="1" aria-label="Próximo período"', 'btn btn-small')}
           </div>
 
           <div class="timeline-toolbar-group">
             <div class="timeline-filters-bar" role="group" aria-label="Filtro de Atividades">
-              <button type="button" class="timeline-filter-chip ${activeFilter==='all'?'active':''}" data-action="timeline-filter" data-filter="all">Todas</button>
-              <button type="button" class="timeline-filter-chip ${activeFilter==='class'?'active':''}" data-action="timeline-filter" data-filter="class">Aulas</button>
-              <button type="button" class="timeline-filter-chip ${activeFilter==='tutorial'?'active':''}" data-action="timeline-filter" data-filter="tutorial">Tutorias</button>
-              <button type="button" class="timeline-filter-chip ${activeFilter==='exam'?'active':''}" data-action="timeline-filter" data-filter="exam">Avaliações</button>
-              <button type="button" class="timeline-filter-chip ${activeFilter==='study'?'active':''}" data-action="timeline-filter" data-filter="study">Estudos / Revisões</button>
-              <button type="button" class="timeline-filter-chip ${activeFilter==='pending'?'active':''}" data-action="timeline-filter" data-filter="pending">Apenas Pendentes</button>
+              <button type="button" class="timeline-filter-chip ${activeFilter==='all'?'active':''}" data-action="timeline-filter" data-filter="all" aria-pressed="${activeFilter==='all'}">Todas</button>
+              <button type="button" class="timeline-filter-chip ${activeFilter==='class'?'active':''}" data-action="timeline-filter" data-filter="class" aria-pressed="${activeFilter==='class'}">Aulas</button>
+              <button type="button" class="timeline-filter-chip ${activeFilter==='tutorial'?'active':''}" data-action="timeline-filter" data-filter="tutorial" aria-pressed="${activeFilter==='tutorial'}">Tutorias</button>
+              <button type="button" class="timeline-filter-chip ${activeFilter==='exam'?'active':''}" data-action="timeline-filter" data-filter="exam" aria-pressed="${activeFilter==='exam'}">Avaliações</button>
+              <button type="button" class="timeline-filter-chip ${activeFilter==='study'?'active':''}" data-action="timeline-filter" data-filter="study" aria-pressed="${activeFilter==='study'}">Estudos / Revisões</button>
+              <button type="button" class="timeline-filter-chip ${activeFilter==='pending'?'active':''}" data-action="timeline-filter" data-filter="pending" aria-pressed="${activeFilter==='pending'}">Apenas Pendentes</button>
             </div>
           </div>
         </div>
@@ -313,11 +335,11 @@
     const filterFn = x => {
       if (activeFilter === 'all') return true;
       if (activeFilter === 'pending') return getActivityStatus(x) !== 'completed';
-      return x.type === activeFilter;
+      return activeFilter === 'study' ? ['study','review'].includes(x.type) : activeFilter === 'class' ? ['class','welcome'].includes(x.type) : x.type === activeFilter;
     };
 
     // Montar Camada 1: Faixas de Duração das Fases
-    const phaseBandsHTML = phases.map(p => {
+    const phaseBandsHTML = phases.map((p, phaseIndex) => {
       const startDay = dayMap[p.from] || dayMap[minDate];
       const endDay = dayMap[p.to] || dayMap[maxDate];
       const pLeft = startDay ? startDay.left : 0;
@@ -326,40 +348,40 @@
       const isCurrent = t >= p.from && t <= p.to;
 
       return `
-        <div class="timeline-phase-band" style="left:${pLeft}px;width:${pWidth}px;background:${p.bg};border-color:${p.color};color:${p.color}" title="${esc(p.name)} (${fmt(p.from)} a ${fmt(p.to)})" data-action="timeline-phase-click" data-from="${p.from}">
-          <strong>${esc(p.name)}</strong>
-          <span class="phase-badge">${isCurrent ? 'Fase Atual' : fmt(p.from) + ' – ' + fmt(p.to)}</span>
-        </div>
+        <button type="button" class="timeline-phase-band phase-tone-${phaseIndex%3}" style="left:${pLeft}px;width:${pWidth}px" title="${esc(p.name)} (${fmt(p.from)} a ${fmt(p.to)})" data-action="timeline-phase-click" data-from="${p.from}" data-to="${p.to}">
+          <strong>${esc(p.name)}</strong><span class="phase-badge">${isCurrent ? 'Atual' : fmt(p.from) + ' – ' + fmt(p.to)}</span>
+        </button>
       `;
     }).join('');
 
     // Montar Camada 2: Carga Horária Planejada (Histograma)
     const loadBarsHTML = Object.values(dayMap).map(day => {
       let totalMins = 0;
-      day.events.forEach(e => totalMins += getActivityDuration(e));
+      day.events.filter(filterFn).forEach(e => totalMins += getActivityDuration(e));
       const hrs = (totalMins / 60).toFixed(1);
       const intensity = totalMins === 0 ? 'none' : totalMins < 180 ? 'light' : (totalMins <= 360 ? 'moderate' : 'heavy');
       if (totalMins === 0) return '';
 
       return `
         <div class="timeline-day-load-col ${day.isWeekend ? 'is-weekend' : ''}" style="left:${day.left}px;width:${day.width}px" title="${fmt(day.date)}: ${hrs}h planejadas (${day.events.length} atividades)">
-          <div class="timeline-load-bar ${intensity}"></div>
+          <div class="timeline-load-bar ${intensity}" style="height:${Math.min(100,totalMins/600*100)}%"></div>
         </div>
       `;
     }).join('');
 
     // Montar Camada 3: Régua de Datas e Dias
     const rulerColsHTML = Object.values(dayMap).map(day => {
+      if (zoomLevel === 'general' && day.index !== 0 && new Date(day.date+'T12:00:00Z').getUTCDay() !== 1) return '';
       const isToday = day.date === t;
       const isSelected = day.date === selectedDate;
       const dayNum = Number(day.date.slice(8));
       const weekday = fmt(day.date, { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
 
       return `
-        <div class="timeline-ruler-col ${day.isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" style="left:${day.left}px;width:${day.width}px" data-action="timeline-select-day" data-date="${day.date}" title="${fmt(day.date, { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'UTC' })}">
+        <button type="button" class="timeline-ruler-col ${day.isWeekend ? 'is-weekend' : ''} ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" style="left:${day.left}px;width:${day.width}px" data-action="timeline-select-day" data-date="${day.date}" title="${fmt(day.date, { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'UTC' })}">
           <strong>${dayNum}</strong>
           <small>${esc(weekday)}</small>
-        </div>
+        </button>
       `;
     }).join('');
 
@@ -380,86 +402,47 @@
       { id: 'study', title: 'Estudos & Rev.', sub: 'MedReview / Flashcards', icon: 'reviews', types: ['study', 'review'] }
     ];
 
-    const LANE_HEIGHT = 64; // Altura didática uniforme para todas as trilhas
-
     const lanesHTML = lanes.map(lane => {
       const laneEvents = all.filter(x => lane.types.includes(x.type) && filterFn(x));
-      const dayIndexMap = {};
-
-      const dayEvtCounts = {};
-      laneEvents.forEach(e => {
-        dayEvtCounts[e.date] = (dayEvtCounts[e.date] || 0) + 1;
+      if (activeFilter !== 'all' && activeFilter !== 'pending' && !laneEvents.length) return '';
+      const color = laneColors[lane.id];
+      let itemsHTML = '', laneHeight = zoomLevel === 'days' ? 122 : 88;
+      const buckets = new Map();
+      laneEvents.forEach(x=>{
+        const day=dayMap[x.date]; if (!day) return;
+        // At semester scale a week becomes one meaningful summary, rather than unreadable cards.
+        const key=zoomLevel==='general' ? Math.floor((day.index + (new Date(minDate+'T12:00:00Z').getUTCDay()+6)%7)/7) : day.index;
+        if (!buckets.has(key)) buckets.set(key,[]);
+        buckets.get(key).push(x);
       });
-
-      const itemsHTML = laneEvents.map(x => {
-        const day = dayMap[x.date];
-        if (!day) return '';
-        const slotIdx = dayIndexMap[x.date] || 0;
-        dayIndexMap[x.date] = slotIdx + 1;
-
-        const countInDay = dayEvtCounts[x.date] || 1;
-        const isMulti = countInDay > 1;
-
-        const status = getActivityStatus(x);
-        const statusClass = 'status-' + status;
-        const timeLabel = x.from ? (x.to ? x.from + '–' + x.to : x.from) : '';
-        const title = displayTitle(x.title);
-        const cardLeft = day.left + 2;
-        const cardWidth = Math.max(20, day.width - 4);
-
-        let cardTop = 8;
-        let cardHeight = 48;
-
-        if (isMulti) {
-          cardHeight = 25;
-          cardTop = slotIdx === 0 ? 5 : 33;
+      buckets.forEach(group=>{
+        group.sort((a,b)=>a.date.localeCompare(b.date)||(a.from||'').localeCompare(b.from||''));
+        const first=dayMap[group[0].date];
+        if(zoomLevel==='general') {
+          const offset=(new Date(first.date+'T12:00:00Z').getUTCDay()+6)%7;
+          const start=Math.max(0,first.index-offset), end=Math.min(totalDays,first.index-offset+7);
+          const done=group.filter(x=>getActivityStatus(x)==='completed').length;
+          itemsHTML+=`<button class="timeline-week-summary" style="left:${start*dayWidth+2}px;width:${Math.max(8,(end-start)*dayWidth-4)}px" data-action="timeline-open-period" data-date="${dayAdd(minDate,start)}" data-zoom="weeks" title="${group.length} atividades · ${done} concluídas · clique para explorar a semana"><strong>${group.length}</strong><span>ativ.</span><i style="width:${done/group.length*100}%"></i></button>`;
+        } else if(zoomLevel==='weeks') {
+          const done=group.filter(x=>getActivityStatus(x)==='completed').length;
+          const preview=group.slice(0,2).map(x=>displayTitle(x.subject||x.title)).join(' · ');
+          itemsHTML+=`<button class="timeline-day-summary" style="left:${first.left+4}px;width:${dayWidth-8}px" data-action="timeline-open-period" data-date="${first.date}" data-zoom="days" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}"><strong>${group.length} ${group.length===1?'atividade':'atividades'}</strong><span>${esc(preview)}</span><small>${done ? done+' concluída'+(done>1?'s':'') : 'Ver dia →'}</small></button>`;
+        } else {
+          laneHeight=Math.max(laneHeight,group.length*110+12);
+          group.forEach((x,index)=>{
+            const status=getActivityStatus(x);
+            const timeLabel=x.from ? x.from+(x.to?' – '+x.to:'') : 'Horário livre';
+            const title=displayTitle(x.title);
+            itemsHTML+=`<button type="button" class="timeline-act-card status-${status}" style="left:${first.left+6}px;width:${dayWidth-12}px;top:${index*110+8}px;height:102px" data-action="timeline-activity-click" data-id="${esc(x.id)}" title="${esc(title+' · '+timeLabel+' · '+statusLabels[status])}"><span class="timeline-card-time">${esc(timeLabel)}</span><strong class="timeline-act-title">${esc(title)}</strong><span class="timeline-act-footer"><span class="timeline-act-sub">${esc(displayTitle(x.subject||'UC2'))}</span><span class="timeline-card-status">${status==='completed'?'✓ ':status==='in_progress'?'◔ ':''}${esc(statusLabels[status]||status)}</span></span></button>`;
+          });
         }
-
-        const tooltip = `${title} · ${x.subject || 'UC2'}${timeLabel ? ' (' + timeLabel + ')' : ''} — ${status === 'completed' ? 'Concluído' : status === 'suggested' ? 'Sugerido' : 'Planejado'}`;
-
-        return `
-          <button type="button" 
-            class="timeline-act-card ${statusClass} ${x.sheetColor ? 'sheet-coded' : ''} ${isMulti ? 'is-compact' : ''}" 
-            style="left:${cardLeft}px;width:${cardWidth}px;top:${cardTop}px;height:${cardHeight}px" 
-            ${sheetStyle(x)} 
-            data-action="timeline-activity-click" 
-            data-id="${esc(x.id)}" 
-            title="${esc(tooltip)}">
-            
-            ${isMulti ? `
-              <div class="timeline-act-compact-row">
-                <span class="status-indicator ${status}"></span>
-                <span class="timeline-act-title compact">${esc(title)}</span>
-              </div>
-            ` : `
-              <div class="timeline-act-full-body">
-                <div class="timeline-act-title-row">
-                  <span class="status-indicator ${status}"></span>
-                  <strong class="timeline-act-title">${esc(title)}</strong>
-                </div>
-                <div class="timeline-act-footer">
-                  <span class="timeline-act-sub">${esc(displayTitle(x.subject || 'UC2'))}</span>
-                  <span class="status-tag-text ${status}">${status === 'completed' ? '✓ Feito' : status === 'suggested' ? '✨' : ''}</span>
-                </div>
-              </div>
-            `}
-          </button>
-        `;
-      }).join('');
-
-      return `
-        <div class="timeline-lane" style="height:${LANE_HEIGHT}px">
-          ${makeSidebarHeader(lane.icon, lane.title, lane.sub, laneEvents.length)}
-          <div class="timeline-lane-items" style="width:${canvasWidth}px;height:${LANE_HEIGHT}px">
-            ${itemsHTML}
-          </div>
-        </div>
-      `;
+      });
+      return `<div class="timeline-lane lane-${lane.id}" style="height:${laneEvents.length ? laneHeight+34 : 34}px;--lane-color:${color}">${makeSidebarHeader(lane.icon,lane.title,lane.sub,laneEvents.length)}<div class="timeline-lane-items" style="width:${canvasWidth}px;height:${laneEvents.length ? laneHeight : 0}px;background-size:${dayWidth}px 100%">${itemsHTML}</div></div>`;
     }).join('');
 
     // Painel Foco do Dia ("O que tenho para fazer neste dia")
     const focusDay = dayMap[selectedDate] || dayMap[t] || Object.values(dayMap)[0];
-    const dayEvents = focusDay ? focusDay.events : [];
+    const dayEvents = focusDay ? focusDay.events.filter(filterFn) : [];
     let dayTotalMins = 0;
     dayEvents.forEach(e => dayTotalMins += getActivityDuration(e));
 
@@ -516,26 +499,27 @@
 
     return `
       ${scheduleTabs}
-      <div class="timeline-view zoom-${zoomLevel}">
+      <div class="timeline-view zoom-${zoomLevel}" style="--timeline-sidebar:${sidebar}px">
         ${heroHTML}
 
-        <div class="timeline-scroll-container" id="timeline-scroller">
-          <div class="timeline-canvas" style="width:${canvasWidth + 180}px">
+        ${overviewHTML}
+        <div class="timeline-reading-guide"><small>${zoomLevel==='general'?'Resumo por semana · clique para aproximar':zoomLevel==='weeks'?'Distribuição por dia · clique para ver as atividades':'Atividades e horários · clique para abrir os detalhes'}</small></div>
+        <div class="timeline-scroll-container" id="timeline-scroller" tabindex="0" aria-label="Linha do tempo. Use as setas para navegar e Control mais rolagem para ampliar.">
+          <div class="timeline-canvas" style="width:${canvasWidth + sidebar}px">
             <!-- Camada 1: Faixas de Fases -->
             <div class="timeline-phases-track">
-              ${makeSidebarHeader('calendar', 'Fases', 'Ciclos do Módulo', phases.length)}
               <div style="position:relative;flex:1;height:100%">${phaseBandsHTML}</div>
             </div>
 
             <!-- Camada 2: Carga Horária Planejada -->
+            <div class="timeline-track-caption"><span>Carga diária</span><small>Altura das barras = horas planejadas</small></div>
             <div class="timeline-load-track">
-              ${makeSidebarHeader('clock', 'Carga', 'Horas / Dia')}
               <div style="position:relative;flex:1;height:100%">${loadBarsHTML}</div>
             </div>
 
+            <div class="timeline-month-track"><div style="position:relative;flex:1">${monthsHTML}</div></div>
             <!-- Camada 3: Régua de Datas -->
             <div class="timeline-ruler-track">
-              ${makeSidebarHeader('target', 'Calendário', 'Dias e Semanas')}
               <div style="position:relative;flex:1;height:100%">${rulerColsHTML} ${todayMarkerHTML}</div>
             </div>
 
@@ -771,14 +755,52 @@
     });
   }
 
-  function scrollToToday() {
-    const el = $('timeline-scroller');
-    if (!el) return;
-    const todayMarker = el.querySelector('.timeline-today-marker') || el.querySelector('.is-today');
-    if (todayMarker) {
-      const targetX = Math.max(0, todayMarker.offsetLeft - (el.clientWidth / 2));
-      el.scrollTo({ left: targetX, behavior: 'smooth' });
-    }
+  function scrollToDate(date, behavior='auto') {
+    const el=$('timeline-scroller'); if (!el||!geometry) return;
+    const offset=Math.max(0,Math.min(geometry.totalDays-1,dateDiff(date,geometry.minDate)))+.5;
+    el.scrollTo({left:Math.max(0,offset*geometry.dayWidth-(el.clientWidth-geometry.sidebar)/2),behavior});
+    updateOverview();
+  }
+  function updateOverview() {
+    const el=$('timeline-scroller'), visor=$('timeline-map-window'); if(!el||!visor||!geometry) return;
+    const visible=Math.min(geometry.canvasWidth,el.clientWidth-geometry.sidebar);
+    visor.style.left=(el.scrollLeft/geometry.canvasWidth*100)+'%';
+    visor.style.width=(visible/geometry.canvasWidth*100)+'%';
+    const max=Math.max(0,el.scrollWidth-el.clientWidth);
+    const range=$('timeline-position'); if(range) {range.value=max?el.scrollLeft/max*1000:0;range.disabled=!max;}
+    const start=Math.max(0,Math.floor(el.scrollLeft/geometry.dayWidth));
+    const end=Math.min(geometry.totalDays-1,Math.ceil((el.scrollLeft+visible)/geometry.dayWidth)-1);
+    const label=$('timeline-visible-range');
+    if(label) label.textContent=fmt(dayAdd(geometry.minDate,start))+' – '+fmt(dayAdd(geometry.minDate,end));
+  }
+  function bindTimeline() {
+    const el=$('timeline-scroller'); if(!el) return;
+    el.addEventListener('scroll',()=>{cancelAnimationFrame(scrollFrame);scrollFrame=requestAnimationFrame(updateOverview);},{passive:true});
+    el.addEventListener('wheel',e=>{
+      if(!e.ctrlKey&&!e.metaKey) return;
+      e.preventDefault();
+      const next=Math.max(0,Math.min(2,scales.indexOf(zoomLevel)+(e.deltaY<0?1:-1)));
+      if(scales[next]!==zoomLevel) {
+        const local=Math.max(0,e.clientX-el.getBoundingClientRect().left-geometry.sidebar);
+        changeZoom(scales[next],(el.scrollLeft+local)/geometry.dayWidth);
+      }
+    },{passive:false});
+    el.addEventListener('dblclick',e=>{
+      const day=e.target.closest('[data-date]');
+      if(day) focusDate(day.dataset.date,scales[Math.min(2,scales.indexOf(zoomLevel)+1)]);
+    });
+    const map=$('timeline-map');
+    const seek=e=>{
+      const rect=map.getBoundingClientRect();
+      const ratio=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+      el.scrollLeft=ratio*geometry.canvasWidth-(el.clientWidth-geometry.sidebar)/2;
+      updateOverview();
+    };
+    map.addEventListener('pointerdown',e=>{if(e.button!==0)return;map.setPointerCapture(e.pointerId);seek(e);});
+    map.addEventListener('pointermove',e=>{if(map.hasPointerCapture(e.pointerId))seek(e);});
+    map.addEventListener('pointerup',e=>{if(map.hasPointerCapture(e.pointerId))map.releasePointerCapture(e.pointerId);});
+    $('timeline-position').addEventListener('input',e=>{el.scrollLeft=Number(e.target.value)/1000*(el.scrollWidth-el.clientWidth);updateOverview();});
+    updateOverview();
   }
 
   function ensureMobileMore() {
@@ -792,15 +814,22 @@
   const previousRender = render;
   render = function() {
     if (page === 'timeline') {
+      const oldLeft=$('timeline-scroller')?.scrollLeft;
       nav();
       $('breadcrumb').textContent = 'LINHA DO TEMPO DO CRONOGRAMA';
       $('heading').textContent = 'Linha do Tempo';
-      $('subtitle').textContent = 'Visão contínua com camadas, zoom progressivo e rastreamento de desdobramentos.';
+      $('subtitle').textContent = 'Explore o semestre, encontre sua semana e aproxime para organizar cada dia.';
       $('app').innerHTML = timelineView();
       renderAcademicStatus();
       ensureMobileMore();
-      // Auto-scroll inicial suave para hoje
-      setTimeout(scrollToToday, 80);
+      if ($('timeline-scroller')) {
+        if(pendingAnchor!==null) {
+          $('timeline-scroller').scrollLeft=Math.max(0,pendingAnchor*geometry.dayWidth-($('timeline-scroller').clientWidth-geometry.sidebar)/2);
+          pendingAnchor=null;
+        } else if(oldLeft!==undefined) $('timeline-scroller').scrollLeft=oldLeft;
+        else scrollToDate(selectedDate);
+        bindTimeline();
+      }
       return;
     }
 
@@ -817,32 +846,38 @@
 
     switch (action) {
       case 'timeline-zoom':
-        zoomLevel = b.dataset.zoom;
-        render();
+        changeZoom(b.dataset.zoom);
         break;
       case 'timeline-filter':
         activeFilter = b.dataset.filter;
         render();
         break;
+      case 'timeline-zoom-step':
+        changeZoom(scales[Math.max(0,Math.min(2,scales.indexOf(zoomLevel)+Number(b.dataset.step)))]);
+        break;
+      case 'timeline-pan': {
+        const el=$('timeline-scroller');
+        if(el) el.scrollBy({left:(el.clientWidth-geometry.sidebar)*Number(b.dataset.direction),behavior:'smooth'});
+        break;
+      }
+      case 'timeline-open-period':
+        focusDate(b.dataset.date,b.dataset.zoom);
+        break;
       case 'timeline-scroll-today':
-        selectedDate = today();
-        scrollToToday();
-        const focusSection = $('timeline-day-focus');
-        if (focusSection) focusSection.scrollIntoView({ behavior: 'smooth' });
+        focusDate(today());
         break;
       case 'timeline-view-list':
         goto('calendar');
         break;
       case 'timeline-select-day':
-        selectedDate = b.dataset.date;
+        selectedDate=b.dataset.date;
         render();
-        const fSec = $('timeline-day-focus');
-        if (fSec) fSec.scrollIntoView({ behavior: 'smooth' });
         break;
       case 'timeline-phase-click':
-        selectedDate = b.dataset.from;
+        selectedDate=b.dataset.from;
+        pendingAnchor=geometry ? dateDiff(b.dataset.from,geometry.minDate)+Math.min(3.5,(dateDiff(b.dataset.to,b.dataset.from)+1)/2) : null;
+        zoomLevel='weeks';
         render();
-        scrollToToday();
         break;
       case 'timeline-activity-click':
         showTimelineDetail(id);
