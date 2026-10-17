@@ -55,8 +55,85 @@
   let activeReviewTab = 'flashcards';
 
   const TRACKER_STORAGE_KEY = 'planejamento-evaluated-classes';
+  const AUTO_MISSED_MIN_DATE = '2026-10-16';
+
+  function isGabrielAdmin() {
+    return Boolean(window.AccountFeatureData?.isOwner());
+  }
+
+  function isLessonEvent(ev) {
+    return Boolean(ev && ev.title && /^\d{4}-\d{2}-\d{2}$/.test(ev.date || '') && !['study', 'review', 'free', 'break', 'exam'].includes(ev.type));
+  }
+
+  function eventDuration(ev) {
+    if (ev && ev.from && ev.to) {
+      const mFrom = mins(ev.from), mTo = mins(ev.to);
+      if (mTo > mFrom) return mTo - mFrom;
+    }
+    return Number(ev?.minutes) || 90;
+  }
+
+  function candidateLessonEvents() {
+    const base = typeof academicEvents === 'function' ? academicEvents() : (data.replacement || []);
+    const all = [...(base || []), ...(data.events || [])].filter(isLessonEvent);
+    const seen = new Set(all.map(e => (e.id || '') + '|' + e.date + '|' + e.title));
+    (data.tasks || []).forEach(t => {
+      if (t && t.origin === 'class' && t.title && /^\d{4}-\d{2}-\d{2}$/.test(t.classDate || t.date || '')) {
+        const d = t.classDate || t.date;
+        const topic = t.title.replace(/^(Estudar|Aprender \/ Aprofundar|Repor aula não assistida):\s*/i, '').trim();
+        const evId = t.classSourceId || t.id;
+        const key = evId + '|' + d + '|' + topic;
+        if (topic && !seen.has(key) && !all.some(e => (e.id && e.id === evId) || (e.date === d && e.title === topic))) {
+          seen.add(key);
+          all.push({ id: evId, date: d, title: topic, subject: t.subject || 'UC2', type: 'class', minutes: Number(t.estimate) || 90 });
+        }
+      }
+    });
+    return all;
+  }
+
+  function syncUnvotedPastClasses(asOf = today()) {
+    if (!isGabrielAdmin()) return false;
+    const todayStr = /^\d{4}-\d{2}-\d{2}$/.test(asOf || '') ? asOf : today();
+    const pastLessons = candidateLessonEvents().filter(ev => ev.date >= AUTO_MISSED_MIN_DATE && ev.date < todayStr);
+    if (!pastLessons.length) return false;
+    const list = window.AccountFeatureData?.trackedClasses() || [];
+    let changed = false;
+
+    pastLessons.forEach(ev => {
+      const evalId = 'eval-' + (ev.id || (ev.date + '-' + ev.title.slice(0, 24)));
+      const found = list.find(x =>
+        x.id === evalId ||
+        (ev.id && x.eventId === ev.id) ||
+        (x.topic === ev.title && x.date === ev.date)
+      );
+      if (!found) {
+        list.push({
+          id: evalId,
+          eventId: ev.id || '',
+          eventType: ev.type || 'class',
+          topic: ev.title,
+          subject: ev.subject || 'UC2',
+          date: ev.date,
+          minutes: eventDuration(ev),
+          professor: ev.professor || '',
+          status: 'missed',
+          autoMissed: true,
+          votedAt: ev.date + 'T23:59:59.000Z',
+          masteredAt: null
+        });
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      saveTrackedClasses(list);
+    }
+    return changed;
+  }
 
   function getTrackedClasses() {
+    syncUnvotedPastClasses();
     let list = window.AccountFeatureData?.trackedClasses()||[];
     // Sincroniza apenas sessões de aulas registradas nos fechamentos anteriores
     const existingSessions = data.sessions || [];
@@ -118,8 +195,91 @@
     return list;
   }
 
+  function getStandbyClasses(asOf = today()) {
+    if (!isGabrielAdmin()) return [];
+    const list = getTrackedClasses();
+    const todayStr = /^\d{4}-\d{2}-\d{2}$/.test(asOf || '') ? asOf : today();
+    return candidateLessonEvents().filter(ev =>
+      ev.date === todayStr &&
+      !list.some(x => (ev.id && (x.eventId === ev.id || x.id === 'eval-' + ev.id)) || (x.topic === ev.title && x.date === ev.date))
+    );
+  }
+
   function saveTrackedClasses(list) {
     window.AccountFeatureData?.saveTrackedClasses(list);
+  }
+
+  function applyClassStatusSideEffects(item, newStatus) {
+    const title = item.topic;
+    const subject = item.subject || 'UC2';
+    const dateStr = item.date || today();
+    const duration = Number(item.minutes) || 90;
+
+    if (newStatus === 'review') {
+      let existingSession = (data.sessions || []).find(s => s.topic === title && s.date === dateStr && s.origin === 'closing');
+      const sessionId = existingSession ? existingSession.id : uid();
+      if (!existingSession) {
+        data.sessions.push({
+          id: sessionId,
+          subject,
+          topic: title,
+          date: dateStr,
+          minutes: duration,
+          questions: '',
+          correct: '',
+          origin: 'closing',
+          evaluationStatus: 'review'
+        });
+      }
+      const configuredIntervals = typeof reviewIntervals === 'function' ? reviewIntervals() : [];
+      const uniqueIntervals = [...new Set(configuredIntervals.length ? configuredIntervals : [1, 7, 30])];
+      for (const n of uniqueIntervals) {
+        const due = dayAdd(dateStr, n);
+        const alreadyExists = (data.reviews || []).some(r => r.topic === title && r.due === due && r.interval === n);
+        if (!alreadyExists) {
+          data.reviews.push({
+            id: uid(),
+            sessionId,
+            subject,
+            topic: title,
+            due,
+            interval: n,
+            done: false
+          });
+        }
+      }
+      if (item.eventId) {
+        window.PlanningClassTasks?.followup(
+          data,
+          { id: item.eventId, type: item.eventType || 'class', title, subject, date: dateStr },
+          { title: `Estudar: ${title}`, date: dateStr, estimate: 60 },
+          dateStr
+        );
+      }
+    } else if (newStatus === 'learn' || newStatus === 'missed') {
+      const followupFields = newStatus === 'learn'
+        ? { title: `Aprender / Aprofundar: ${title}`, date: dayAdd(dateStr, 2), estimate: 90 }
+        : { title: `Repor aula não assistida: ${title}`, date: dayAdd(dateStr, 3), estimate: 60 };
+      const reusedTask = item.eventId && window.PlanningClassTasks?.followup(
+        data,
+        { id: item.eventId, type: item.eventType || 'class', title, subject, date: dateStr },
+        followupFields,
+        dateStr
+      );
+      if (!reusedTask) {
+        const existingTask = (data.tasks || []).find(t =>
+          !t.done && (
+            (item.eventId && t.classSourceId === item.eventId) ||
+            t.title === `Estudar: ${title}` ||
+            t.title === `Aprender / Aprofundar: ${title}` ||
+            t.title === `Repor aula não assistida: ${title}`
+          )
+        );
+        if (existingTask) {
+          Object.assign(existingTask, followupFields);
+        }
+      }
+    }
   }
 
   function setClassStatus(id, newStatus) {
@@ -128,6 +288,8 @@
     if (!item) return;
 
     item.status = newStatus;
+    item.autoMissed = false;
+    item.votedAt = new Date().toISOString();
     if (newStatus === 'mastered') {
       item.masteredAt = new Date().toISOString();
       // Conclui revisões pendentes desse tópico
@@ -142,12 +304,15 @@
       notify(`"${item.topic}" marcado como Concluído! Movido para Conteúdos Dominados 📘`);
     } else if (newStatus === 'review') {
       item.masteredAt = null;
-      notify(`"${item.topic}" movido para Revisão 🟢`);
+      applyClassStatusSideEffects(item, 'review');
+      notify(`"${item.topic}" movido para Revisão 🟢 (revisões programadas geradas)`);
     } else if (newStatus === 'learn') {
       item.masteredAt = null;
+      applyClassStatusSideEffects(item, 'learn');
       notify(`"${item.topic}" marcado como Necessidade de Aprender 🟡`);
     } else if (newStatus === 'missed') {
       item.masteredAt = null;
+      applyClassStatusSideEffects(item, 'missed');
       notify(`"${item.topic}" marcado como Não Vista 🔴`);
     }
 
@@ -156,19 +321,54 @@
     render();
   }
 
+  function voteStandbyClass(evId, dateStr, status) {
+    const ev = candidateLessonEvents().find(e => (evId && e.id === evId) || e.date === dateStr);
+    if (!ev) return;
+    const list = getTrackedClasses();
+    const evalId = 'eval-' + (ev.id || (ev.date + '-' + ev.title.slice(0, 24)));
+    let item = list.find(x => x.id === evalId || (ev.id && x.eventId === ev.id) || (x.topic === ev.title && x.date === ev.date));
+    if (!item) {
+      item = {
+        id: evalId,
+        eventId: ev.id || '',
+        eventType: ev.type || 'class',
+        topic: ev.title,
+        subject: ev.subject || 'UC2',
+        date: ev.date,
+        minutes: eventDuration(ev),
+        professor: ev.professor || '',
+        status,
+        autoMissed: false,
+        votedAt: new Date().toISOString(),
+        masteredAt: null
+      };
+      list.push(item);
+    } else {
+      item.status = status;
+      item.autoMissed = false;
+      item.votedAt = new Date().toISOString();
+    }
+    applyClassStatusSideEffects(item, status);
+    saveTrackedClasses(list);
+    save();
+    render();
+    const labels = { review: 'Revisão 🟢', learn: 'Aprender 🟡', missed: 'Não Vista 🔴' };
+    notify(`"${item.topic}" votada como ${labels[status] || status}!`);
+  }
+
   window.ClassStatusTracker = {
     getTrackedClasses,
+    getStandbyClasses,
+    syncUnvotedPastClasses,
     saveTrackedClasses,
-    setClassStatus
+    setClassStatus,
+    voteStandbyClass
   };
-
-  function isGabrielAdmin() {
-    return Boolean(window.AccountFeatureData?.isOwner());
-  }
 
   function reviewTabsHeader() {
     const list = getTrackedClasses();
-    const activeCount = list.filter(x => x.status !== 'mastered').length;
+    const standbyCount = getStandbyClasses().length;
+    const activeCount = list.filter(x => x.status !== 'mastered').length + standbyCount;
     const masteredCount = list.filter(x => x.status === 'mastered').length;
     const canDoClosing = isGabrielAdmin();
 
@@ -192,17 +392,23 @@
     if (item.status === 'learn') {
       badgeClass = 'learn'; badgeLabel = '🟡 Aprender'; cardClass = 'status-learn';
     } else if (item.status === 'missed') {
-      badgeClass = 'missed'; badgeLabel = '🔴 Não vista'; cardClass = 'status-missed';
+      badgeClass = 'missed';
+      badgeLabel = item.autoMissed ? '🔴 Não vista (automático · sem voto)' : '🔴 Não vista';
+      cardClass = 'status-missed';
     }
+    const autoNotice = (item.status === 'missed' && item.autoMissed)
+      ? '<p class="tiny" style="margin:0 0 10px;padding:6px 10px;border-radius:8px;background:rgba(239,68,68,0.1);color:var(--text)">⚠️ Como não houve voto no fechamento de <b>' + fmt(item.date) + '</b>, esta aula entrou automaticamente como <b>Não vista</b>. Você pode alterar o voto abaixo a qualquer momento:</p>'
+      : '';
     return '<div class="class-status-card ' + cardClass + '">' +
       '<div class="pill-row between" style="margin-bottom:8px">' +
         '<span class="status-badge ' + badgeClass + '">' + badgeLabel + '</span>' +
         '<small class="muted">Aula de ' + fmt(item.date) + '</small>' +
       '</div>' +
       '<h3 style="font-size:15px;margin:0 0 4px;font-weight:750">' + esc(item.topic) + '</h3>' +
-      '<p class="muted" style="font-size:12px;margin:0 0 14px">' +
-        esc(item.subject || 'UC2') + (item.professor ? ' · Prof. ' + esc(item.professor) : '') + ' · ' + (item.minutes || 90) + ' min' +
+      '<p class="muted" style="font-size:12px;margin:0 0 12px">' +
+        esc(item.subject || 'UC2') + (item.professor ? ' · ' + esc(item.professor.replace(/^Prof\.?\s*/i, 'Prof. ')) : '') + ' · ' + (item.minutes || 90) + ' min' +
       '</p>' +
+      autoNotice +
       '<div class="pill-row between" style="border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap;gap:10px">' +
         '<button class="btn btn-mastered" data-action="mark-class-mastered" data-id="' + esc(item.id) + '">✓ Concluir (Dominei o assunto) 📘</button>' +
         '<div class="pill-row">' +
@@ -215,8 +421,33 @@
     '</div>';
   }
 
+  function standbyCardHTML(ev) {
+    const duration = eventDuration(ev);
+    const timeStr = ev.from ? (ev.from + (ev.to ? '–' + ev.to : '') + ' · ') : '';
+    return '<div class="class-status-card" style="border-left:4px solid var(--accent,#f59e0b)">' +
+      '<div class="pill-row between" style="margin-bottom:8px">' +
+        '<span class="status-badge learn">⏳ Em Standby · Aguardando voto hoje</span>' +
+        '<small class="muted">Hoje · ' + fmt(ev.date) + '</small>' +
+      '</div>' +
+      '<h3 style="font-size:15px;margin:0 0 4px;font-weight:750">' + esc(ev.title) + '</h3>' +
+      '<p class="muted" style="font-size:12px;margin:0 0 12px">' +
+        esc(timeStr + (ev.subject || 'UC2')) + (ev.professor ? ' · ' + esc(ev.professor) : '') + ' · ' + duration + ' min' +
+      '</p>' +
+      '<p class="tiny muted" style="margin:0 0 10px">Vote agora ou no Fechamento do Dia. Se não houver voto até meia-noite, irá automaticamente para <b>🔴 Não Vistas</b>.</p>' +
+      '<div class="pill-row between" style="border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap;gap:10px">' +
+        '<span class="tiny muted">Votar nesta aula:</span>' +
+        '<div class="pill-row">' +
+          '<button class="btn btn-small" data-action="vote-standby-class" data-event-id="' + esc(ev.id || '') + '" data-date="' + esc(ev.date) + '" data-status="review">🟢 Revisão</button>' +
+          '<button class="btn btn-small" data-action="vote-standby-class" data-event-id="' + esc(ev.id || '') + '" data-date="' + esc(ev.date) + '" data-status="learn">🟡 Aprender</button>' +
+          '<button class="btn btn-small" data-action="vote-standby-class" data-event-id="' + esc(ev.id || '') + '" data-date="' + esc(ev.date) + '" data-status="missed">🔴 Não vista</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   function aulasVotedView() {
     const list = getTrackedClasses();
+    const standby = getStandbyClasses();
     const active = list.filter(x => x.status !== 'mastered');
     const masteredCount = list.filter(x => x.status === 'mastered').length;
     const folders = [
@@ -236,6 +467,34 @@
       '<button type="button" class="stat stat-link" data-action="set-review-tab" data-tab="dominadas"><div class="stat-top">🔵 Já Dominadas</div><div class="stat-main">' + masteredCount + '</div><div class="stat-hint">Ver dominadas →</div></button>' +
     '</div>';
 
+    let standbyHTML = '';
+    if (standby.length) {
+      standbyHTML = panel(
+        '⏳ Em Standby · Aulas de Hoje (' + standby.length + ')',
+        '<p class="muted" style="margin-bottom:14px">Estas aulas de hoje aguardam sua votação. Se você esquecer de votar até o fim do dia, elas serão movidas automaticamente para <b>🔴 Não Vistas</b> para que nenhuma aula se perca.</p>' +
+        standby.map(standbyCardHTML).join(''),
+        btn('🌙 Fechar Hoje','open-day-closing','data-date="' + esc(today()) + '"','btn btn-primary btn-small')
+      );
+    }
+
+    const autoMissedItems = active.filter(x => x.status === 'missed' && x.autoMissed);
+    let autoMissedBanner = '';
+    if (autoMissedItems.length) {
+      const latestAutoDate = autoMissedItems.reduce((m, x) => (x.date && x.date > m ? x.date : m), '');
+      autoMissedBanner = '<section class="panel" style="border-color:rgba(239,68,68,0.45);background:rgba(239,68,68,0.04)">' +
+        '<div class="pill-row between" style="flex-wrap:wrap;gap:12px">' +
+          '<div>' +
+            '<strong>🔴 ' + autoMissedItems.length + (autoMissedItems.length === 1 ? ' aula entrou automaticamente em Não Vistas' : ' aulas entraram automaticamente em Não Vistas') + ' (sem voto no fechamento)</strong>' +
+            '<p class="tiny muted" style="margin:4px 0 0">Inclui as aulas de <b>' + fmt(latestAutoDate) + '</b> que não foram votadas. Elas já estão salvas como <b>Não Vistas</b>, e você pode mudar o voto para 🟢 Revisão ou 🟡 Aprender quando quiser.</p>' +
+          '</div>' +
+          '<div class="pill-row">' +
+            btn('Abrir pasta 🔴 Não Vistas (' + byStatus('missed').length + ')','open-aula-folder','data-folder="missed"','btn btn-small') +
+            btn('🌙 Revisar Fechamento de ' + fmt(latestAutoDate),'open-day-closing','data-date="' + esc(latestAutoDate) + '"','btn btn-primary btn-small') +
+          '</div>' +
+        '</div>' +
+      '</section>';
+    }
+
     let folderHTML = '';
     if (aulaFolder) {
       const f = folders.find(x => x[0] === aulaFolder), rows = byStatus(aulaFolder);
@@ -253,11 +512,11 @@
       contentHTML = dayItems.map(classCardHTML).join('');
     }
     const archived = active.length - dayItems.length;
-    const panelVoted = panel('Aulas do dia' + (lastDate ? ' · ' + fmt(lastDate) : '') + ' · ' + dayItems.length,
-      '<p class="muted" style="margin-bottom:14px">Só as aulas do último fechamento ficam em destaque. Quando você avaliar um novo dia, as anteriores sobem para as pastas acima (Revisão, Aprender, Não vistas)' + (archived ? ' — ' + archived + ' já guardada' + (archived === 1 ? '' : 's') + ' lá' : '') + '. Ao dominar o conteúdo, clique em <b>"Concluir"</b> para movê-lo para Conteúdos Dominados.</p>' +
+    const panelVoted = panel('Aulas do último dia registrado' + (lastDate ? ' · ' + fmt(lastDate) : '') + ' · ' + dayItems.length,
+      '<p class="muted" style="margin-bottom:14px">As aulas do último dia com registro (votado ou enviado automaticamente para Não Vistas) ficam em destaque abaixo. Dias anteriores ficam organizados nas pastas acima (Revisão, Aprender, Não vistas)' + (archived ? ' — ' + archived + ' já guardada' + (archived === 1 ? '' : 's') + ' lá' : '') + '. Você pode alterar o voto (🟢, 🟡, 🔴) ou clicar em <b>"Concluir"</b> a qualquer momento.</p>' +
       contentHTML
     );
-    return statsHTML + folderHTML + panelVoted;
+    return statsHTML + autoMissedBanner + standbyHTML + folderHTML + panelVoted;
   }
 
   function masteredClassesView() {
@@ -439,6 +698,15 @@
         break;
       case'reopen-class-status':
         setClassStatus(button.dataset.id, 'review');
+        break;
+      case'vote-standby-class':
+        voteStandbyClass(button.dataset.eventId, button.dataset.date, button.dataset.status);
+        break;
+      case'open-aulas-missed':
+        activeReviewTab='aulas';
+        window.AccountFeatureData?.setReviewTab('aulas');
+        aulaFolder='missed';
+        goto('reviews');
         break;
     }
   });

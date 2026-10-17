@@ -122,27 +122,82 @@
     catch(error){notify(error.message||'Não foi possível enviar a mensagem.');return false}
   }
 
+  function isLessonItem(x) {
+    return Boolean(x && x.title && /^\d{4}-\d{2}-\d{2}$/.test(x.date || '') && !['study', 'review', 'free', 'break', 'exam'].includes(x.type));
+  }
+
+  function defaultClosingDate() {
+    window.ClassStatusTracker?.syncUnvotedPastClasses?.();
+    const todayStr = today();
+    const allLessons = events().filter(isLessonItem);
+    const todayLessons = allLessons.filter(x => x.date === todayStr);
+    const trackedList = window.ClassStatusTracker?.getTrackedClasses?.() || [];
+    const autoMissedDates = [...new Set(trackedList.filter(x => x.status === 'missed' && x.autoMissed && x.date).map(x => x.date))].sort();
+    if (!todayLessons.length && autoMissedDates.length) {
+      return autoMissedDates[autoMissedDates.length - 1];
+    }
+    if (!todayLessons.length) {
+      const pastDates = [...new Set(allLessons.filter(x => x.date <= todayStr).map(x => x.date))].sort();
+      if (pastDates.length) return pastDates[pastDates.length - 1];
+    }
+    return todayStr;
+  }
+
   // MODAL INTERATIVO: Processo inverso de Fechamento do Dia
   function openDayClosingModal(targetDate) {
     if (!isAdmin()) return;
-    const dateStr = targetDate || today();
+    window.ClassStatusTracker?.syncUnvotedPastClasses?.();
+    const dateStr = targetDate || defaultClosingDate();
     const formatted = fmt(dateStr, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
-    const dayClasses = events().filter(x => x.date === dateStr && !['study', 'review', 'free', 'break', 'exam'].includes(x.type));
+    const allLessons = events().filter(isLessonItem);
+    const dayClasses = allLessons.filter(x => x.date === dateStr);
     const dayTasks = data.tasks.filter(x => !x.done || x.date === dateStr);
     const trackedList = window.ClassStatusTracker?.getTrackedClasses?.() || [];
 
+    const recentClassDates = [...new Set([today(), ...allLessons.filter(x => x.date <= today()).map(x => x.date)])]
+      .sort((a, b) => b.localeCompare(a))
+      .slice(0, 5);
+    const datePillsHTML = recentClassDates.length > 1 ? (
+      '<div class="pill-row" style="margin-bottom:14px;flex-wrap:wrap;gap:6px">' +
+      '<span class="tiny muted">Atalhos:</span>' +
+      recentClassDates.map(d => {
+        const isCurrent = d === dateStr;
+        const autoCount = trackedList.filter(x => x.date === d && x.status === 'missed' && x.autoMissed).length;
+        const label = (d === today() ? 'Hoje (' + fmt(d) + ')' : fmt(d, { weekday: 'short', day: '2-digit', month: 'short', timeZone: 'UTC' })) +
+          (autoCount ? ' · 🔴 ' + autoCount + ' sem voto' : '');
+        return '<button type="button" class="btn btn-small' + (isCurrent ? ' btn-primary' : '') + '" data-action="open-day-closing" data-date="' + esc(d) + '">' + esc(label) + '</button>';
+      }).join('') +
+      '</div>'
+    ) : '';
+
+    const dayAutoMissed = trackedList.filter(x => x.date === dateStr && x.status === 'missed' && x.autoMissed);
+    const autoBannerHTML = dayAutoMissed.length ? (
+      '<div style="margin-bottom:14px;padding:10px 12px;border-radius:10px;border:1px solid rgba(239,68,68,0.45);background:rgba(239,68,68,0.06);font-size:12.5px">' +
+        '<strong>🔴 Marcadas automaticamente como Não Vistas (' + dayAutoMissed.length + ')</strong>' +
+        '<p class="tiny muted" style="margin:4px 0 0">Como você não votou até o fim de <b>' + fmt(dateStr) + '</b>, estas aulas entraram automaticamente em <b>Não vista</b>. Se você assistiu ou quer mudar a classificação, ajuste abaixo e clique em Confirmar.</p>' +
+      '</div>'
+    ) : '';
+
     let classesHTML = '';
     if (dayClasses.length === 0) {
-      classesHTML = '<div class="empty">Nenhuma aula cadastrada nesta data no cronograma.</div>';
+      classesHTML = '<div class="empty">Nenhuma aula cadastrada nesta data no cronograma. Use os atalhos acima para revisar a sexta-feira ou outra data.</div>';
     } else {
       classesHTML = dayClasses.map((item, idx) => {
         const timeStr = item.from ? `[${item.from}${item.to ? ' - ' + item.to : ''}] ` : '';
         const prof = item.professor ? ` · ${esc(item.professor)}` : '';
-        const existingVote = trackedList.find(x => x.topic === item.title && x.date === dateStr)?.status || 'review';
+        const existingEntry = trackedList.find(x =>
+          (item.id && (x.eventId === item.id || x.id === 'eval-' + item.id)) ||
+          (x.topic === item.title && x.date === dateStr)
+        );
+        const existingVote = existingEntry?.status || 'review';
         const selectedVote = ['review', 'learn', 'missed'].includes(existingVote) ? existingVote : 'review';
+        const autoTag = existingEntry?.autoMissed
+          ? '<span class="status-badge missed" style="display:inline-block;margin-bottom:8px;font-size:11px">🔴 Não vista (automático · sem voto no dia)</span>'
+          : '';
         return `
           <div class="closing-card" data-closing-class="${idx}" data-event-id="${esc(item.id)}" data-event-type="${esc(item.type)}" data-title="${esc(item.title)}" data-subject="${esc(item.subject || 'UC2')}" data-from="${esc(item.from || '')}" data-to="${esc(item.to || '')}" data-prof="${esc(item.professor || '')}">
-            <strong>${timeStr}${esc(item.title)}</strong>
+            ${autoTag}
+            <strong style="display:block">${timeStr}${esc(item.title)}</strong>
             <small class="muted" style="display:block;margin:3px 0 10px">${esc(item.subject || 'UC2')}${prof}</small>
             <div class="pill-row">
               <label class="status-pill review">
@@ -188,7 +243,9 @@
             <input type="date" id="closing-date-picker" class="field" value="${esc(dateStr)}">
           </label>
         </div>
-        <p class="muted" style="margin-bottom:18px">Confirme o que você assistiu e concluiu para calibrar suas revisões automáticas no MedReview e Planejamento.</p>
+        <p class="muted" style="margin-bottom:12px">Confirme o que você assistiu e concluiu para calibrar suas revisões automáticas no MedReview e Planejamento.</p>
+        ${datePillsHTML}
+        ${autoBannerHTML}
 
         <h3 style="font-size:13px;margin:10px 0 8px;font-weight:750">Aulas e Tutorias da Data</h3>
         ${classesHTML}
@@ -220,6 +277,8 @@
 
     classCards.forEach(card => {
       const idx = card.dataset.closingClass;
+      const eventId = card.dataset.eventId || '';
+      const eventType = card.dataset.eventType || 'class';
       const title = card.dataset.title;
       const subject = card.dataset.subject || 'UC2';
       const from = card.dataset.from;
@@ -235,21 +294,30 @@
       // Sincroniza com o ClassStatusTracker
       if (window.ClassStatusTracker) {
         const trackerList = window.ClassStatusTracker.getTrackedClasses();
-        let found = trackerList.find(x => x.topic === title && x.date === dateStr);
+        let found = trackerList.find(x =>
+          (eventId && (x.eventId === eventId || x.id === 'eval-' + eventId)) ||
+          (x.topic === title && x.date === dateStr)
+        );
         if (!found) {
           trackerList.push({
-            id: uid(),
+            id: eventId ? 'eval-' + eventId : uid(),
+            eventId,
+            eventType,
             topic: title,
             subject,
             date: dateStr,
             minutes: duration,
             professor: card.dataset.prof || '',
             status,
+            autoMissed: false,
             votedAt: new Date().toISOString(),
             masteredAt: null
           });
         } else {
           found.status = status;
+          found.autoMissed = false;
+          if (eventId && !found.eventId) found.eventId = eventId;
+          if (eventType && !found.eventType) found.eventType = eventType;
           found.votedAt = new Date().toISOString();
           if (status !== 'mastered') found.masteredAt = null;
         }
@@ -257,7 +325,7 @@
       }
 
       const followupFields = status === 'learn' ? {title: `Aprender / Aprofundar: ${title}`, date: dayAdd(dateStr, 2), estimate: 90} : status === 'missed' ? {title: `Repor aula não assistida: ${title}`, date: dayAdd(dateStr, 3), estimate: 60} : null;
-      const reusedTask = followupFields && window.PlanningClassTasks?.followup(data, {id: card.dataset.eventId, type: card.dataset.eventType, title, subject, date: dateStr}, followupFields, dateStr);
+      const reusedTask = followupFields && window.PlanningClassTasks?.followup(data, {id: eventId, type: eventType, title, subject, date: dateStr}, followupFields, dateStr);
       if (reusedTask) tasksCreated++;
 
       if (status === 'review') {
@@ -397,11 +465,25 @@
       if (page === 'today') {
         const app = $('app');
         if (app && !document.getElementById('card-fechamento-dia')) {
+          const trackedList = Array.isArray(data.settings?.evaluatedClasses) ? data.settings.evaluatedClasses : [];
+          const autoMissed = trackedList.filter(x => x.status === 'missed' && x.autoMissed);
+          const latestAutoDate = autoMissed.reduce((m, x) => (x.date && x.date > m ? x.date : m), '');
           const card = document.createElement('div');
           card.id = 'card-fechamento-dia';
           card.className = 'panel';
-          card.style.borderColor = 'rgba(37, 211, 102, 0.4)';
-          card.innerHTML = `
+          card.style.borderColor = autoMissed.length ? 'rgba(239, 68, 68, 0.45)' : 'rgba(37, 211, 102, 0.4)';
+          card.innerHTML = autoMissed.length ? `
+            <div class="pill-row between" style="flex-wrap:wrap;gap:12px">
+              <div>
+                <strong>🔴 ${autoMissed.length} ${autoMissed.length === 1 ? 'aula de ' + fmt(latestAutoDate) + ' foi para Não Vistas' : 'aulas de ' + fmt(latestAutoDate) + ' foram para Não Vistas'} (sem voto)</strong>
+                <p class="tiny muted" style="margin:2px 0 0">Como não houve votação no fechamento de ${fmt(latestAutoDate)}, elas entraram automaticamente em <b>Não Vistas</b>. Você pode revisar e alterar os votos quando quiser.</p>
+              </div>
+              <div class="pill-row">
+                <button class="btn btn-small" data-action="open-aulas-missed">Ver em Não Vistas</button>
+                <button class="btn btn-primary" data-action="open-day-closing" data-date="${esc(latestAutoDate)}">Revisar ${fmt(latestAutoDate)} →</button>
+              </div>
+            </div>
+          ` : `
             <div class="pill-row between">
               <div>
                 <strong>🌙 Fechamento do Dia · Aulas e Revisões</strong>

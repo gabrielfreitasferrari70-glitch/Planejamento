@@ -484,3 +484,30 @@ class AccountSyncTests(unittest.TestCase):
         _,other=self.device(owner='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
         self.assertEqual(other.evaluate('data.tasks.length'),0)
         self.assertIsNone(other.evaluate('data.settings.classTaskPolicy || null'))
+
+    def test_unvoted_friday_classes_auto_become_missed_and_can_be_fixed_later(self):
+        owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+        payload={k:[] for k in ['tasks','sessions','reviews','materials','events','notes','replacement','mistakes']}
+        payload.update(settings={'ligaAnatomia':1,'classTaskPolicy':{'enabled':True,'fromDate':'2026-10-15','extraEventIds':[]}},examScopes={},integration={})
+        payload['replacement']=[
+            {'id':'uc2-2026-2-221439ddad12f5ce','date':'2026-10-16','from':'07:30','to':'11:30','type':'class','subject':'ANATOMIA','title':'ANATOMIA: VASCULARIZAÇÃO DO SISTEMA URINÁRIO','professor':'Prof. Denício'},
+            {'id':'uc2-2026-2-90cffe4ba3df4298','date':'2026-10-16','from':'13:30','to':'17:30','type':'class','subject':'BIOQUÍMICA','title':'BIOQUÍMICA: FORMAÇÃO DE SAIS BILIARES','professor':'Profa. Claudia'}
+        ]
+        self.database[owner]={'revision':1,'payload':payload}
+        _,mac=self.device()
+        mac.wait_for_function("PlanningAccount.status==='synced' && (data.settings.evaluatedClasses||[]).length===2")
+        tracked=mac.evaluate('ClassStatusTracker.getTrackedClasses()')
+        self.assertEqual(len(tracked),2)
+        self.assertTrue(all(item['status']=='missed' and item.get('autoMissed') is True for item in tracked))
+        mac.evaluate("goto('reviews')")
+        mac.locator('[data-action="set-review-tab"][data-tab="aulas"]').click()
+        self.assertIn('ANATOMIA: VASCULARIZAÇÃO DO SISTEMA URINÁRIO',mac.locator('#app').inner_text())
+        self.assertIn('BIOQUÍMICA: FORMAÇÃO DE SAIS BILIARES',mac.locator('#app').inner_text())
+        # Later, user remembers and changes Anatomia from missed -> review (🟢)
+        mac.locator('[data-action="set-class-status"][data-id="eval-uc2-2026-2-221439ddad12f5ce"][data-status="review"]').click()
+        mac.wait_for_function("PlanningAccount.status==='synced' && data.reviews.length===3")
+        updated=mac.evaluate("ClassStatusTracker.getTrackedClasses().find(x=>x.id==='eval-uc2-2026-2-221439ddad12f5ce')")
+        self.assertEqual(updated['status'],'review')
+        self.assertFalse(updated.get('autoMissed'))
+        self.assertEqual(mac.evaluate("data.sessions.filter(s=>s.origin==='closing').length"),1)
+
