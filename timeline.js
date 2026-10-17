@@ -479,6 +479,11 @@
       buckets.forEach(group=>{
         group.sort((a,b)=>a.date.localeCompare(b.date)||(a.from||'').localeCompare(b.from||''));
         const first=dayMap[group[0].date];
+        const offset=(new Date(first.date+'T12:00:00Z').getUTCDay()+6)%7;
+        const bucketStart=zoomLevel==='general'?Math.max(0,first.index-offset):first.index;
+        const bucketEnd=zoomLevel==='general'?Math.min(totalDays,first.index-offset+7):first.index+1;
+        itemsHTML+=`<button type="button" class="timeline-fit-summary" style="--lane-color:${activityColor(group[0])};left:${bucketStart*dayWidth+3}px;width:${Math.max(8,(bucketEnd-bucketStart)*dayWidth-6)}px" data-action="timeline-period-details" data-lane="${lane.id}" data-from="${group[0].date}" data-to="${group[group.length-1].date}" data-start="${bucketStart}" data-end="${bucketEnd}" data-count="${group.length}" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}"><strong>${group.length}</strong><span>${esc(displayTitle(group[0].title))}</span></button>`;
+
         if(zoomLevel==='general') {
           const offset=(new Date(first.date+'T12:00:00Z').getUTCDay()+6)%7;
           const start=Math.max(0,first.index-offset), end=Math.min(totalDays,first.index-offset+7);
@@ -498,7 +503,7 @@
           });
         }
       });
-      return `<div class="timeline-lane lane-${lane.id} ${collapsedLanes.has(lane.id)?'is-collapsed':''}" style="height:${collapsedLanes.has(lane.id)?26:laneEvents.length ? laneHeight+26 : 26}px;--lane-color:${color}">${makeSidebarHeader(lane.icon,lane.title,lane.sub,laneEvents.length,lane.id)}<div class="timeline-lane-items" style="width:${canvasWidth}px;height:${laneEvents.length ? laneHeight : 0}px;background-size:${dayWidth}px 100%">${itemsHTML}</div></div>`;
+      return `<div data-lane="${lane.id}" data-natural-height="${laneHeight+26}" class="timeline-lane lane-${lane.id} ${collapsedLanes.has(lane.id)?'is-collapsed':''}" style="height:${collapsedLanes.has(lane.id)?26:laneEvents.length ? laneHeight+26 : 26}px;--lane-color:${color}">${makeSidebarHeader(lane.icon,lane.title,lane.sub,laneEvents.length,lane.id)}<div class="timeline-lane-items" style="width:${canvasWidth}px;height:${laneEvents.length ? laneHeight : 0}px;background-size:${dayWidth}px 100%">${itemsHTML}</div></div>`;
     }).join('');
 
     // Painel Foco do Dia ("O que tenho para fazer neste dia")
@@ -730,6 +735,18 @@
     drawer.querySelector('[data-action="timeline-detail-close"]')?.focus({preventScroll:true});
   }
 
+  function showPeriodDetails(lane,from,to) {
+    persistDrawerDraft();selectedActivityId=null;
+    const exam=events().find(x=>x.id===preparationExamId),topics=exam?scopeFor(exam):[];
+    const belongs=x=>lane==='task'?isTimelineTask(x):lane==='review'?x.type==='review':lane==='study'?x.type==='study'&&!isTimelineTask(x):lane==='class'?['class','welcome'].includes(x.type):x.type===lane;
+    const items=events().filter(x=>x.date>=from&&x.date<=to&&belongs(x)&&matchesCategory(x)&&matchesSearch(x)&&(!exam||!topics.length||x.id===exam.id||(x.date<=exam.date&&topics.some(t=>matchesTopic(x,t)))));
+    let drawer=$('timeline-drawer');
+    if(!drawer){drawer=document.createElement('aside');drawer.id='timeline-drawer';drawer.addEventListener('change',persistDrawerDraft);document.body.appendChild(drawer);}
+    drawer.hidden=false;
+    drawer.innerHTML=`<div class="timeline-drawer-card" role="region" aria-label="Atividades do período"><div class="timeline-drawer-top"><strong>${items.length} atividades · ${fmt(from)}${from!==to?' – '+fmt(to):''}</strong><button class="btn btn-small" data-action="timeline-detail-close" aria-label="Fechar detalhes">×</button></div><div class="timeline-period-list">${items.map(x=>`<button class="timeline-period-item" style="--activity-color:${activityColor(x)}" data-action="timeline-activity-click" data-id="${esc(x.id)}"><small>${fmt(x.date)} · ${esc(x.from||'Horário livre')}</small><strong>${esc(displayTitle(x.title))}</strong><span>${esc(x.subject||'UC2')} · ${esc(statusLabels[getActivityStatus(x)]||'Planejado')}</span></button>`).join('')||'<p>Nenhuma atividade neste período.</p>'}</div></div>`;
+    drawer.querySelector('[data-action="timeline-detail-close"]')?.focus({preventScroll:true});
+  }
+
   function persistDrawerDraft() {
     const drawer=$('timeline-drawer');
     if(!drawer||drawer.hidden||!selectedActivityId)return;
@@ -857,16 +874,37 @@
     const visible=Math.min(geometry.canvasWidth,el.clientWidth-geometry.sidebar);
     visor.style.left=(el.scrollLeft/geometry.canvasWidth*100)+'%';
     visor.style.width=(visible/geometry.canvasWidth*100)+'%';
-    const viewport=el.getBoundingClientRect();
-    el.querySelectorAll('.timeline-lane').forEach(lane=>{
-      if(lane.classList.contains('is-collapsed')){lane.classList.remove('is-window-empty');const button=lane.querySelector('.timeline-lane-toggle');if(button)button.disabled=false;return;}
-      const visible=[...lane.querySelectorAll('.timeline-lane-items button')].some(button=>{
-        const rect=button.getBoundingClientRect();return rect.width>0&&rect.right>viewport.left+2&&rect.left<viewport.right-2;
-      });
-      lane.classList.toggle('is-window-empty',!visible);
-      const toggle=lane.querySelector('.timeline-lane-toggle');
-      if(toggle){toggle.disabled=!visible;toggle.title=visible?'Recolher ou expandir categoria':'Sem atividades neste trecho';}
+    const firstVisible=el.scrollLeft/geometry.dayWidth,lastVisible=(el.scrollLeft+visible)/geometry.dayWidth;
+    const lanes=[...el.querySelectorAll('.timeline-lane')];
+    const active=[];
+    lanes.forEach(lane=>{
+      const groups=[...lane.querySelectorAll('.timeline-fit-summary')].filter(item=>Number(item.dataset.end)>firstVisible+.001&&Number(item.dataset.start)<lastVisible-.001);
+      lane.classList.toggle('is-window-empty',groups.length===0);
+      if(!groups.length)return;
+      const count=groups.reduce((sum,item)=>sum+Number(item.dataset.count),0);
+      let countButton=lane.querySelector('.timeline-section-count');
+      if(countButton){
+        // A category total always opens every matching activity in the visible dates.
+        if(countButton.tagName!=='BUTTON'){const replacement=document.createElement('button');replacement.className=countButton.className;countButton.replaceWith(replacement);countButton=replacement;}
+        countButton.type='button';countButton.textContent=count+' '+(count===1?'atividade':'atividades')+' · ver';
+        Object.assign(countButton.dataset,{action:'timeline-period-details',lane:lane.dataset.lane,from:dayAdd(geometry.minDate,Math.max(0,Math.floor(firstVisible))),to:dayAdd(geometry.minDate,Math.min(geometry.totalDays-1,Math.ceil(lastVisible)-1))});
+      }
+      active.push(lane);
     });
+    const available=Math.max(1,el.clientHeight-(el.querySelector('.timeline-header-tracks')?.offsetHeight||0)-2);
+    const collapsed=active.filter(lane=>collapsedLanes.has(lane.dataset.lane));
+    const share=Math.max(20,(available-collapsed.length*26)/Math.max(1,active.length-collapsed.length));
+    active.forEach(lane=>{
+      const row=collapsedLanes.has(lane.dataset.lane)?26:Math.min(Number(lane.dataset.naturalHeight),share);
+      lane.style.height=row+'px';
+      const compact=row<Number(lane.dataset.naturalHeight)-1;
+      lane.classList.toggle('is-fit-compact',compact);
+      lane.classList.toggle('is-header-only',row<46);
+      lane.style.setProperty('--fit-item-height',Math.max(18,row-30)+'px');
+      const items=lane.querySelector('.timeline-lane-items');if(items)items.style.height=Math.max(0,row-26)+'px';
+      const toggle=lane.querySelector('.timeline-lane-toggle');if(toggle)toggle.disabled=false;
+    });
+    el.scrollTop=0;
     const max=Math.max(0,el.scrollWidth-el.clientWidth);
     const range=$('timeline-position'); if(range) {range.value=max?el.scrollLeft/max*1000:0;range.disabled=!max;}
     const start=Math.max(0,Math.floor(el.scrollLeft/geometry.dayWidth));
@@ -892,7 +930,7 @@
     map.addEventListener('pointermove',e=>{if(map.hasPointerCapture(e.pointerId))seek(e);});
     map.addEventListener('pointerup',e=>{if(map.hasPointerCapture(e.pointerId))map.releasePointerCapture(e.pointerId);});
     $('timeline-position').addEventListener('input',e=>{el.scrollLeft=Number(e.target.value)/1000*(el.scrollWidth-el.clientWidth);updateOverview();});
-    const fitViewport=()=>{el.style.maxHeight=Math.max(240,Math.min(560,window.innerHeight-(el.getBoundingClientRect().top+window.scrollY)-18))+'px';};
+    const fitViewport=()=>{el.style.height=el.style.maxHeight=Math.max(240,Math.min(560,window.innerHeight-(el.getBoundingClientRect().top+window.scrollY)-18))+'px';updateOverview();};
     fitViewport();
     $('timeline-tools')?.addEventListener('toggle',e=>{toolsOpen=e.target.open;fitViewport();});
     $('timeline-day-focus')?.addEventListener('toggle',e=>{dayOpen=e.target.open;});
@@ -953,7 +991,7 @@
         } else if(oldLeft!==undefined) $('timeline-scroller').scrollLeft=oldLeft;
         else scrollToDate(selectedDate);
         bindTimeline();
-        if(oldTop!==undefined)$('timeline-scroller').scrollTop=oldTop;
+
       }
       return;
     }
@@ -978,6 +1016,11 @@
       setZoom(zoomValue-delta,(current.scrollLeft+local)/geometry.dayWidth,local);
     });
   },{passive:false});
+  let layoutResizeTimer=null;
+  window.addEventListener('resize',()=>{
+    clearTimeout(layoutResizeTimer);
+    layoutResizeTimer=setTimeout(()=>{if(page==='timeline'){pendingAnchor=visibleAnchor();render();}},100);
+  });
   window.addEventListener('planning-account-reset',()=>{
     selectedActivityId=null;
     const drawer=$('timeline-drawer');if(drawer){drawer.hidden=true;drawer.innerHTML='';}
@@ -991,6 +1034,7 @@
     const id = b.dataset.id;
 
     switch (action) {
+      case 'timeline-period-details':showPeriodDetails(b.dataset.lane,b.dataset.from,b.dataset.to);break;
       case 'timeline-lane-toggle':
         if(collapsedLanes.has(b.dataset.lane))collapsedLanes.delete(b.dataset.lane);else collapsedLanes.add(b.dataset.lane);render();break;
       case 'timeline-search-prev': jumpSearch(-1);break;
