@@ -448,7 +448,19 @@
       </section>
     `;
 
+    const scheduleTabs = `
+      <div class="schedule-view-tabs" role="tablist" aria-label="Visualização do cronograma" style="display:flex;gap:8px;margin-bottom:16px">
+        <button type="button" class="btn btn-small" data-action="navigate" data-page="calendar" role="tab" aria-selected="false">
+          ${ico('calendar')} Lista do semestre
+        </button>
+        <button type="button" class="btn btn-small btn-primary" data-action="navigate" data-page="timeline" role="tab" aria-selected="true">
+          ${ico('timeline')} Linha do tempo interativa
+        </button>
+      </div>
+    `;
+
     return `
+      ${scheduleTabs}
       <div class="timeline-view zoom-${zoomLevel}">
         ${heroHTML}
 
@@ -739,26 +751,6 @@
 
     previousRender();
     ensureMobileMore();
-
-    // Se estiver na tela de cronograma do semestre (calendar), inserir botão de alternância no topo
-    if (page === 'calendar') {
-      const headingPanel = $('app')?.querySelector('.panel');
-      if (headingPanel && !headingPanel.querySelector('.timeline-toggle-banner')) {
-        const toggleHTML = `
-          <div class="timeline-toggle-banner" style="margin-top:14px;padding:12px 14px;background:var(--accentbg);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-            <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-size:20px;color:var(--accent)">${ico('timeline')}</span>
-              <div>
-                <strong style="font-size:13px;color:var(--text)">Linha do Tempo com Camadas e Zoom</strong>
-                <p class="tiny muted" style="margin:2px 0 0">Visualize fases, carga horária planejada, marcos e conexões entre atividades.</p>
-              </div>
-            </div>
-            ${btn('Abrir Linha do Tempo Interativa →', 'navigate', 'data-page="timeline"', 'btn btn-primary')}
-          </div>
-        `;
-        headingPanel.insertAdjacentHTML('beforeend', toggleHTML);
-      }
-    }
   };
 
   // 9. Ouvinte de Eventos de Clique
@@ -842,4 +834,7 @@
     }
   });
 
+  window.timelineView = timelineView;
+  nav();
+  ensureMobileMore();
 })();
