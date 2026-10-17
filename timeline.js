@@ -6,6 +6,7 @@
 (function(){
   // Estado local da Linha do Tempo
   let zoomLevel = 'weeks'; // 'general' | 'weeks' | 'days'
+  let searchQuery='', searchIndex=0, preparationExamId='', scopeEditorOpen=false, searchTimer=null;
   let activeFilter = 'all'; // 'all' | 'class' | 'tutorial' | 'community' | 'exam' | 'study' | 'pending'
   let selectedDate = today();
   let selectedActivityId = null;
@@ -44,6 +45,65 @@
 
   const norm = x => String(x == null ? '' : x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
   const equals = (a, b) => norm(a) === norm(b);
+
+  const examScopeKey=e=>e.date+'|'+norm(String(e.title||'').trim().slice(0,160));
+  function scopeFor(exam) {
+    const scopes=data.examScopes||{}, key=examScopeKey(exam);
+    return scopes[key] || scopes[exam.date+'|'+(exam.subject||'UC2')+'|'+exam.title] || [];
+  }
+  function subjectMatches(a,b) { return !a||!b||['uc2','geral'].includes(norm(a))||equals(a,b); }
+  function matchesTopic(x,topic) {
+    const title=norm(x.title||x.topic), target=norm(topic.topic);
+    return !!title&&!!target&&subjectMatches(topic.subject,x.subject)&&(title.includes(target)||target.includes(title));
+  }
+  function matchesCategory(x) {
+    if(activeFilter==='all')return true;
+    if(activeFilter==='pending')return getActivityStatus(x)!=='completed';
+    return activeFilter==='study'?['study','review'].includes(x.type):activeFilter==='class'?['class','welcome'].includes(x.type):x.type===activeFilter;
+  }
+  function matchesSearch(x) {
+    const text=norm([x.title,x.subject,x.professor,x.date].filter(Boolean).join(' '));
+    return norm(searchQuery).split(' ').filter(Boolean).every(word=>text.includes(word));
+  }
+  function scopeCandidates(exam,all) {
+    const previous=all.filter(x=>x.type==='exam'&&x.date<exam.date&&subjectMatches(exam.subject,x.subject)).pop();
+    const seen=new Set();
+    return all.filter(x=>['class','tutorial','community','study','review'].includes(x.type)&&x.date<=exam.date&&(!previous||x.date>previous.date)&&subjectMatches(exam.subject,x.subject)).filter(x=>{
+      const key=norm(x.subject)+'|'+norm(x.title);if(seen.has(key))return false;seen.add(key);return true;
+    });
+  }
+  function preparationHTML(exam,all) {
+    if(!exam)return '';
+    const topics=scopeFor(exam), candidates=scopeCandidates(exam,all);
+    const pending=all.filter(x=>x.type!=='exam'&&x.date>=today()&&x.date<=exam.date&&topics.some(topic=>matchesTopic(x,topic))&&getActivityStatus(x)!=='completed');
+    const remaining=Math.max(0,dateDiff(exam.date,today()));
+    const studied=topics.filter(topic=>(data.sessions||[]).some(session=>matchesTopic({title:session.topic,subject:session.subject},topic)));
+    const availableDays=new Set(pending.filter(x=>['study','review'].includes(x.type)).map(x=>x.date)).size;
+    return `<section class="timeline-preparation" aria-label="Preparação para a prova"><div class="timeline-prep-heading"><div><small>ATÉ A PROVA · ${fmt(exam.date)}</small><h3>${esc(displayTitle(exam.title))}</h3></div><button class="btn btn-small" data-action="timeline-prep-exit">Sair deste modo</button></div>
+      <div class="timeline-prep-stats"><span><strong>${remaining}</strong> dias até a prova</span><span><strong>${topics.length}</strong> conteúdo${topics.length===1?'':'s'} confirmado${topics.length===1?'':'s'}</span><span><strong>${studied.length}</strong> com estudo registrado</span><span><strong>${pending.length}</strong> atividade${pending.length===1?'':'s'} pendente${pending.length===1?'':'s'}</span></div>
+      <p class="tiny muted">${exam.date<today()?'Esta avaliação já passou. ':''}${availableDays} dias com estudo ou revisão agendados até a prova. Consulte Semana para conferir seus horários livres.${topics.length?' A linha do tempo destaca os conteúdos confirmados e a avaliação.':' Confirme os conteúdos abaixo para filtrar a linha do tempo.'}</p>
+      <details id="timeline-scope-editor" ${scopeEditorOpen?'open':''}><summary>Conferir e ajustar conteúdos da avaliação</summary>
+        <p class="tiny muted">As sugestões usam matéria e datas do cronograma. Marque apenas o que realmente será cobrado. Os conteúdos confirmados também aparecem no Radar de provas.</p>
+        <div class="timeline-scope-topics">${topics.map((topic,index)=>`<label><input type="checkbox" checked data-scope-index="${index}" aria-label="Remover ${esc(topic.topic)}"><span>${esc(topic.topic)}<small>${esc(topic.subject||exam.subject||'UC2')} · Confirmado</small></span></label>`).join('')||'<p class="tiny muted">Nenhum conteúdo confirmado.</p>'}</div>
+        <form id="timeline-scope-form" class="timeline-scope-form"><label>Assunto<input class="field" name="topic" required maxlength="130" placeholder="Conteúdo cobrado"></label><label>Matéria<input class="field" name="subject" maxlength="90" value="${esc(exam.subject||'UC2')}"></label><button class="btn btn-small" type="submit">Adicionar conteúdo</button></form>
+        <div class="timeline-scope-candidates"><strong>Sugestões do cronograma</strong>${candidates.filter(x=>!topics.some(topic=>matchesTopic(x,topic))).map(x=>`<label><input type="checkbox" data-scope-event="${esc(x.id)}"><span>${esc(displayTitle(x.title))}<small>${fmt(x.date)} · ${esc(x.subject||'UC2')} · Sugestão</small></span></label>`).join('')||'<p class="tiny muted">Nenhuma outra sugestão neste período. Você pode adicionar um assunto acima.</p>'}</div>
+      </details></section>`;
+  }
+  function addScopeTopic(exam,topic,subject) {
+    const existing=scopeFor(exam);
+    if(existing.some(x=>equals(x.topic,topic)&&equals(x.subject,subject)))return;
+    data.examScopes ||= {};
+    data.examScopes[examScopeKey(exam)]=[...existing,{topic:String(topic).trim().slice(0,130),subject:String(subject||exam.subject||'UC2').trim().slice(0,90)}];
+    save();
+  }
+  function jumpSearch(direction) {
+    const exam=events().find(x=>x.id===preparationExamId);
+    const topics=exam?scopeFor(exam):[];
+    const matches=events().filter(x=>matchesCategory(x)&&matchesSearch(x)&&(!exam||!topics.length||x.id===exam.id||(x.date<=exam.date&&topics.some(topic=>matchesTopic(x,topic)))));
+    if(!matches.length){render();return;}
+    searchIndex=(searchIndex+direction+matches.length)%matches.length;
+    focusDate(matches[searchIndex].date,'days');
+  }
 
   // Registrar na navegação principal (MENU)
   const calIdx = MENU.findIndex(x => x[0] === 'calendar');
@@ -168,8 +228,8 @@
     // Regra 2: Conexão com Próxima Prova / Radar
     const nextExamItem = (events().filter(e => e.type === 'exam' && e.date >= x.date && (equals(e.subject, x.subject) || !x.subject || x.subject === 'UC2')))[0];
     if (nextExamItem) {
-      const scopeKey = nextExamItem.date + '|' + (nextExamItem.subject || 'UC2') + '|' + nextExamItem.title;
-      const inRadar = (data.examScopes?.[scopeKey] || []).some(sc => equals(sc.topic, x.title));
+      const scopeKey = examScopeKey(nextExamItem);
+      const inRadar = scopeFor(nextExamItem).some(sc => equals(sc.topic, x.title));
       followups.push({
         type: 'radar',
         label: 'Vincular ao Radar da Prova: ' + displayTitle(nextExamItem.title),
@@ -342,11 +402,16 @@
     `;
 
     // Filtrar Atividades Visíveis
+    const preparationExam=all.find(x=>x.id===preparationExamId&&x.type==='exam');
+    const confirmedTopics=preparationExam?scopeFor(preparationExam):[];
     const filterFn = x => {
-      if (activeFilter === 'all') return true;
-      if (activeFilter === 'pending') return getActivityStatus(x) !== 'completed';
-      return activeFilter === 'study' ? ['study','review'].includes(x.type) : activeFilter === 'class' ? ['class','welcome'].includes(x.type) : x.type === activeFilter;
+      if(!matchesSearch(x))return false;
+      if(preparationExam&&confirmedTopics.length&&x.id!==preparationExam.id&&!(x.date<=preparationExam.date&&confirmedTopics.some(topic=>matchesTopic(x,topic))))return false;
+      return matchesCategory(x);
     };
+    const searchMatches=all.filter(filterFn);
+    if(searchIndex>=searchMatches.length)searchIndex=0;
+    const searchHTML=`<section class="timeline-explorer"><form id="timeline-search-form" role="search"><label for="timeline-search">Localizar no cronograma</label><div class="timeline-search-row"><input class="field" id="timeline-search" type="search" value="${esc(searchQuery)}" placeholder="Assunto, matéria, docente ou data"><button class="btn btn-small" type="submit">Localizar</button>${searchQuery?'<button class="btn btn-small" type="button" data-action="timeline-search-clear">Limpar</button>':''}</div></form><div class="timeline-exam-select"><label for="timeline-prep-exam">Preparar uma avaliação</label><select class="field" id="timeline-prep-exam"><option value="">Selecionar prova…</option>${all.filter(x=>x.type==='exam').map(x=>`<option value="${esc(x.id)}" ${x.id===preparationExamId?'selected':''}>${fmt(x.date)} · ${esc(displayTitle(x.title))}</option>`).join('')}</select></div>${searchQuery?`<div class="timeline-search-status" role="status">${searchMatches.length?`${searchIndex+1} de ${searchMatches.length} resultados`:'Nenhum resultado para esta busca'}<button class="btn btn-small" data-action="timeline-search-prev" ${searchMatches.length?'':'disabled'}>Anterior</button><button class="btn btn-small" data-action="timeline-search-next" ${searchMatches.length?'':'disabled'}>Próximo</button></div>`:''}</section>`;
 
     // Montar Camada 1: Faixas de Duração das Fases
     const phaseBandsHTML = phases.map((p, phaseIndex) => {
@@ -443,7 +508,7 @@
             const status=getActivityStatus(x);
             const timeLabel=x.from ? x.from+(x.to?' – '+x.to:'') : 'Horário livre';
             const title=displayTitle(x.title);
-            itemsHTML+=`<button type="button" class="timeline-act-card status-${status}" style="left:${first.left+6}px;width:${dayWidth-12}px;top:${index*110+8}px;height:102px" data-action="timeline-activity-click" data-id="${esc(x.id)}" title="${esc(title+' · '+timeLabel+' · '+statusLabels[status])}"><span class="timeline-card-time">${esc(timeLabel)}</span><strong class="timeline-act-title">${esc(title)}</strong><span class="timeline-act-footer"><span class="timeline-act-sub">${esc(displayTitle(x.subject||'UC2'))}</span><span class="timeline-card-status">${status==='completed'?'✓ ':status==='in_progress'?'◔ ':''}${esc(statusLabels[status]||status)}</span></span></button>`;
+            itemsHTML+=`<button type="button" class="timeline-act-card status-${status} ${searchQuery&&matchesSearch(x)?'is-search-match':''}" style="left:${first.left+6}px;width:${dayWidth-12}px;top:${index*110+8}px;height:102px" data-action="timeline-activity-click" data-id="${esc(x.id)}" title="${esc(title+' · '+timeLabel+' · '+statusLabels[status])}"><span class="timeline-card-time">${esc(timeLabel)}</span><strong class="timeline-act-title">${esc(title)}</strong><span class="timeline-act-footer"><span class="timeline-act-sub">${esc(displayTitle(x.subject||'UC2'))}</span><span class="timeline-card-status">${status==='completed'?'✓ ':status==='in_progress'?'◔ ':''}${esc(statusLabels[status]||status)}</span></span></button>`;
           });
         }
       });
@@ -511,6 +576,8 @@
       ${scheduleTabs}
       <div class="timeline-view zoom-${zoomLevel}" style="--timeline-sidebar:${sidebar}px">
         ${heroHTML}
+        ${searchHTML}
+        ${preparationHTML(preparationExam,all)}
 
         ${overviewHTML}
         <div class="timeline-milestones" aria-label="Próximas avaliações">${all.filter(x=>x.type==='exam'&&x.date>=selectedDate).slice(0,4).map(x=>`<button type="button" class="timeline-milestone-link" data-action="timeline-activity-click" data-id="${esc(x.id)}"><small>${fmt(x.date)} · Avaliação</small><strong>${esc(displayTitle(x.title))}</strong></button>`).join('')}</div>
@@ -762,9 +829,9 @@
     const exam = events().find(e => e.id === examId);
     if (!exam) return;
 
-    const sKey = (exam.date || '') + '|' + (exam.subject || 'UC2') + '|' + (exam.title || '');
+    const sKey = examScopeKey(exam);
     if (!data.examScopes) data.examScopes = {};
-    if (!data.examScopes[sKey]) data.examScopes[sKey] = [];
+    if (!data.examScopes[sKey]) data.examScopes[sKey] = [...scopeFor(exam)];
 
     if (!data.examScopes[sKey].some(sc => equals(sc.topic, x.title))) {
       data.examScopes[sKey].push({ topic: x.title.slice(0, 130), subject: (x.subject || 'UC2').slice(0, 90) });
@@ -837,6 +904,31 @@
     map.addEventListener('pointermove',e=>{if(map.hasPointerCapture(e.pointerId))seek(e);});
     map.addEventListener('pointerup',e=>{if(map.hasPointerCapture(e.pointerId))map.releasePointerCapture(e.pointerId);});
     $('timeline-position').addEventListener('input',e=>{el.scrollLeft=Number(e.target.value)/1000*(el.scrollWidth-el.clientWidth);updateOverview();});
+    const search=$('timeline-search');
+    const runSearch=(jump=false)=>{
+      clearTimeout(searchTimer); searchQuery=search.value.trim();searchIndex=0;
+      if(jump){jumpSearch(0);return;}
+      const caret=search.selectionStart;
+      render();const replacement=$('timeline-search');replacement?.focus({preventScroll:true});replacement?.setSelectionRange(caret,caret);
+    };
+    search?.addEventListener('input',()=>{searchQuery=search.value.trim();searchIndex=0;clearTimeout(searchTimer);searchTimer=setTimeout(()=>runSearch(),220);});
+    $('timeline-search-form')?.addEventListener('submit',e=>{e.preventDefault();runSearch(true);});
+    $('timeline-prep-exam')?.addEventListener('change',e=>{
+      preparationExamId=e.target.value;scopeEditorOpen=true;searchIndex=0;
+      const exam=events().find(x=>x.id===preparationExamId);if(exam)focusDate(exam.date,'weeks');else render();
+    });
+    $('timeline-scope-editor')?.addEventListener('toggle',e=>{scopeEditorOpen=e.target.open;});
+    $('timeline-scope-form')?.addEventListener('submit',e=>{
+      e.preventDefault();const exam=events().find(x=>x.id===preparationExamId);if(!exam)return;
+      const topic=e.target.elements.topic.value.trim(),subject=e.target.elements.subject.value.trim();
+      if(!topic)return;addScopeTopic(exam,topic,subject);render();
+    });
+    document.querySelectorAll('[data-scope-event],[data-scope-index]').forEach(input=>input.addEventListener('change',()=>{
+      const all=events(),exam=all.find(x=>x.id===preparationExamId);if(!exam)return;
+      if(input.dataset.scopeEvent){const activity=all.find(x=>x.id===input.dataset.scopeEvent);if(activity)addScopeTopic(exam,activity.title,activity.subject);}
+      else{data.examScopes ||= {};data.examScopes[examScopeKey(exam)]=scopeFor(exam).filter((_,index)=>index!==Number(input.dataset.scopeIndex));save();}
+      render();
+    }));
     const zoom=$('timeline-zoom-range');
     if(zoom) zoom.addEventListener('change',e=>setZoom(e.target.value));
     updateOverview();
@@ -853,6 +945,7 @@
   const previousRender = render;
   render = function() {
     if (page === 'timeline') {
+      clearTimeout(searchTimer);
       const oldLeft=$('timeline-scroller')?.scrollLeft;
       nav();
       $('breadcrumb').textContent = 'LINHA DO TEMPO DO CRONOGRAMA';
@@ -905,6 +998,10 @@
     const id = b.dataset.id;
 
     switch (action) {
+      case 'timeline-search-prev': jumpSearch(-1);break;
+      case 'timeline-search-next': jumpSearch(1);break;
+      case 'timeline-search-clear': clearTimeout(searchTimer);searchQuery='';searchIndex=0;render();break;
+      case 'timeline-prep-exit': preparationExamId='';render();break;
       case 'timeline-zoom':
         changeZoom(b.dataset.zoom);
         break;
