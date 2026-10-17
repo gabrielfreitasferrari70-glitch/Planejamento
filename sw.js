@@ -1,6 +1,6 @@
 /* Cache only the public app shell. Never cache accounts, histories or Drive files. */
 'use strict';
-const CACHE='planejamento-shell-v20';
+const CACHE='planejamento-shell-v21';
 const ASSETS=['/','/index.html','/styles.css','/insights.css','/timeline.css','/app.js','/timeline.js','/insights.js','/legacy-import.js','/medreview-config.js','/medreview-data.js','/medreview.js','/pwa.js','/questions.js','/question-data.js','/questions.css','/planning-config.js','/cloud-data.js','/class-tasks.js','/account-sync.js','/account-features.js','/semester-import.js','/whatsapp-notify.js','/vendor/supabase-2.117.3.js','/vendor/fonts/InterVariable-latin.woff2','/favicon.svg','/manifest.webmanifest','/icons/app-192-v2.png','/icons/app-512-v2.png','/icons/app-maskable-512-v2.png','/icons/apple-touch-icon-v2.png'];
 const ALLOWED=new Set(ASSETS);
 self.addEventListener('install',event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS))));

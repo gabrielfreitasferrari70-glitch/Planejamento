@@ -17,7 +17,13 @@
   let scrollFrame = null;
   let wheelFrame = null, wheelDelta = 0, wheelX = 0;
   const scales = ['general', 'weeks', 'days'];
-  const laneColors = {class:'#4f65b5', tutorial:'#8560a8', community:'#267c72', exam:'#b45546', study:'#517c45'};
+  const laneColors = {class:'#8490a3', tutorial:'#FFC000', community:'#8DB4E1', exam:'#FBFF44', task:'#dc3545', review:'#8752cf', study:'#517c45'};
+  const isTimelineTask=x=>x.origin==='planned'||String(x.id||'').startsWith('schedule-');
+  function activityColor(x) {
+    if(x.type==='review')return laneColors.review;
+    if(isTimelineTask(x))return laneColors.task;
+    return /^#[0-9a-f]{6}$/i.test(x.sheetColor||'') ? x.sheetColor : (laneColors[x.type]||laneColors.class);
+  }
   const statusLabels = {planned:'Planejado', in_progress:'Em andamento', completed:'Concluído', suggested:'Sugerido'};
   function dateDiff(a,b) { return Math.round((Date.parse(a+'T12:00:00Z')-Date.parse(b+'T12:00:00Z'))/86400000); }
   function visibleAnchor() {
@@ -58,6 +64,8 @@
   }
   function matchesCategory(x) {
     if(activeFilter==='all')return true;
+    if(activeFilter==='task')return isTimelineTask(x);
+    if(activeFilter==='review')return x.type==='review';
     if(activeFilter==='pending')return getActivityStatus(x)!=='completed';
     return activeFilter==='study'?['study','review'].includes(x.type):activeFilter==='class'?['class','welcome'].includes(x.type):x.type===activeFilter;
   }
@@ -474,11 +482,13 @@
       { id: 'tutorial', title: 'Tutorias / PBL', sub: 'Discussões e Problemas', icon: 'target', types: ['tutorial'] },
       { id: 'community', title: 'Comunidade', sub: 'IESC e UBS', icon: 'cross', types: ['community'] },
       { id: 'exam', title: 'Avaliações', sub: 'Provas e Prazos', icon: 'exams', types: ['exam'] },
-      { id: 'study', title: 'Estudos & Rev.', sub: 'MedReview / Flashcards', icon: 'reviews', types: ['study', 'review'] }
+      { id: 'task', title: 'Tarefas', sub: 'A fazer', icon: 'tasks', types: ['study'] },
+      { id: 'review', title: 'Revisões', sub: 'MedReview / Flashcards', icon: 'reviews', types: ['review'] },
+      { id: 'study', title: 'Estudos', sub: 'Sessões planejadas', icon: 'studies', types: ['study'] }
     ];
 
     const lanesHTML = lanes.map(lane => {
-      const laneEvents = all.filter(x => lane.types.includes(x.type) && filterFn(x));
+      const laneEvents = all.filter(x => lane.types.includes(x.type) && (lane.id==='task'?isTimelineTask(x):lane.id==='study'?!isTimelineTask(x):true) && filterFn(x));
       if (activeFilter !== 'all' && activeFilter !== 'pending' && !laneEvents.length) return '';
       const color = laneColors[lane.id];
       let itemsHTML = '', laneHeight = zoomLevel === 'days' ? 122 : zoomLevel === 'weeks' ? 132 : 88;
@@ -497,18 +507,18 @@
           const offset=(new Date(first.date+'T12:00:00Z').getUTCDay()+6)%7;
           const start=Math.max(0,first.index-offset), end=Math.min(totalDays,first.index-offset+7);
           const done=group.filter(x=>getActivityStatus(x)==='completed').length;
-          itemsHTML+=`<button class="timeline-week-summary" style="left:${start*dayWidth+2}px;width:${Math.max(8,(end-start)*dayWidth-4)}px" data-action="timeline-open-period" data-date="${dayAdd(minDate,start)}" data-zoom="weeks" title="${group.length} atividades · ${done} concluídas · clique para explorar a semana"><strong>${group.length}</strong><span>ativ.</span><i style="width:${done/group.length*100}%"></i></button>`;
+          itemsHTML+=`<button class="timeline-week-summary" style="--lane-color:${activityColor(group[0])};left:${start*dayWidth+2}px;width:${Math.max(8,(end-start)*dayWidth-4)}px" data-action="timeline-open-period" data-date="${dayAdd(minDate,start)}" data-zoom="weeks" title="${group.length} atividades · ${done} concluídas · clique para explorar a semana"><strong>${group.length}</strong><span>ativ.</span><i style="width:${done/group.length*100}%"></i></button>`;
         } else if(zoomLevel==='weeks') {
           const done=group.filter(x=>getActivityStatus(x)==='completed').length;
-          const previews=group.slice(0,2).map(x=>`<span class="timeline-week-item"><small>${esc(x.from||'Livre')} · ${esc(displayTitle(x.subject||'Atividade'))}</small><span>${esc(displayTitle(x.title))}</span></span>`).join('');
-          itemsHTML+=`<button class="timeline-day-summary" style="left:${first.left+4}px;width:${dayWidth-8}px" data-action="timeline-open-period" data-date="${first.date}" data-zoom="days" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}">${previews}<small class="timeline-week-more">${group.length>2?'+'+(group.length-2)+' atividades · ':''}${done?done+' concluídas · ':''}Abrir dia →</small></button>`;
+          const previews=group.slice(0,2).map(x=>`<span class="timeline-week-item" style="--activity-color:${activityColor(x)}"><small>${esc(x.from||'Livre')} · ${esc(displayTitle(x.subject||'Atividade'))}</small><span>${esc(displayTitle(x.title))}</span></span>`).join('');
+          itemsHTML+=`<button class="timeline-day-summary" style="--lane-color:${activityColor(group[0])};left:${first.left+4}px;width:${dayWidth-8}px" data-action="timeline-open-period" data-date="${first.date}" data-zoom="days" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}">${previews}<small class="timeline-week-more">${group.length>2?'+'+(group.length-2)+' atividades · ':''}${done?done+' concluídas · ':''}Abrir dia →</small></button>`;
         } else {
           laneHeight=Math.max(laneHeight,group.length*110+12);
           group.forEach((x,index)=>{
             const status=getActivityStatus(x);
             const timeLabel=x.from ? x.from+(x.to?' – '+x.to:'') : 'Horário livre';
             const title=displayTitle(x.title);
-            itemsHTML+=`<button type="button" class="timeline-act-card status-${status} ${searchQuery&&matchesSearch(x)?'is-search-match':''}" style="left:${first.left+6}px;width:${dayWidth-12}px;top:${index*110+8}px;height:102px" data-action="timeline-activity-click" data-id="${esc(x.id)}" title="${esc(title+' · '+timeLabel+' · '+statusLabels[status])}"><span class="timeline-card-time">${esc(timeLabel)}</span><strong class="timeline-act-title">${esc(title)}</strong><span class="timeline-act-footer"><span class="timeline-act-sub">${esc(displayTitle(x.subject||'UC2'))}</span><span class="timeline-card-status">${status==='completed'?'✓ ':status==='in_progress'?'◔ ':''}${esc(statusLabels[status]||status)}</span></span></button>`;
+            itemsHTML+=`<button type="button" class="timeline-act-card status-${status} ${searchQuery&&matchesSearch(x)?'is-search-match':''}" style="--lane-color:${activityColor(x)};left:${first.left+6}px;width:${dayWidth-12}px;top:${index*110+8}px;height:102px" data-action="timeline-activity-click" data-id="${esc(x.id)}" title="${esc(title+' · '+timeLabel+' · '+statusLabels[status])}"><span class="timeline-card-time">${esc(timeLabel)}</span><strong class="timeline-act-title">${esc(title)}</strong><span class="timeline-act-footer"><span class="timeline-act-sub">${esc(displayTitle(x.subject||'UC2'))}</span><span class="timeline-card-status">${status==='completed'?'✓ ':status==='in_progress'?'◔ ':''}${esc(statusLabels[status]||status)}</span></span></button>`;
           });
         }
       });
@@ -527,7 +537,7 @@
       const timeStr = x.from ? (x.to ? x.from + ' – ' + x.to : x.from) : 'Horário livre';
 
       return `
-        <div class="timeline-day-event-card ${isDone ? 'status-completed' : ''}" data-action="timeline-activity-click" data-id="${esc(x.id)}">
+        <div style="--activity-color:${activityColor(x)}" class="timeline-day-event-card ${isDone ? 'status-completed' : ''}" data-action="timeline-activity-click" data-id="${esc(x.id)}">
           <div class="pill-row between">
             <span class="tiny muted" style="font-weight:700">${esc(timeStr)}</span>
             <span class="tag ${isDone?'good':status==='suggested'?'review':'gray'}">${isDone?'✓ Realizado':status==='suggested'?'✨ Sugerido':'Planejado'}</span>
@@ -581,7 +591,7 @@
 
         ${overviewHTML}
         <div class="timeline-milestones" aria-label="Próximas avaliações">${all.filter(x=>x.type==='exam'&&x.date>=selectedDate).slice(0,4).map(x=>`<button type="button" class="timeline-milestone-link" data-action="timeline-activity-click" data-id="${esc(x.id)}"><small>${fmt(x.date)} · Avaliação</small><strong>${esc(displayTitle(x.title))}</strong></button>`).join('')}</div>
-        <div class="timeline-reading-guide"><small>${zoomLevel==='general'?'Resumo por semana · clique para aproximar':zoomLevel==='weeks'?'Distribuição por dia · clique para ver as atividades':'Atividades e horários · clique para abrir os detalhes'}</small></div>
+        <div class="timeline-reading-guide"><span class="timeline-color-key" style="--activity-color:#FFC000">Tutoria</span><span class="timeline-color-key" style="--activity-color:#FBFF44">Prova</span><span class="timeline-color-key" style="--activity-color:#8752cf">Revisão</span><span class="timeline-color-key" style="--activity-color:#dc3545">Tarefa</span><small>${zoomLevel==='general'?'Resumo por semana · clique para aproximar':zoomLevel==='weeks'?'Distribuição por dia · clique para ver as atividades':'Atividades e horários · clique para abrir os detalhes'}</small></div>
         <div class="timeline-scroll-container" id="timeline-scroller" tabindex="0" aria-label="Linha do tempo. Use as setas para navegar e Control mais rolagem para ampliar.">
           <div class="timeline-canvas" style="width:${canvasWidth + sidebar}px">
             <!-- Camada 1: Faixas de Fases -->
@@ -682,7 +692,7 @@
             <div class="timeline-detail-tags">
               <span class="tag gray">${esc(x.type || 'Atividade')}</span>
               <span class="tag" style="background:var(--accentbg);color:var(--accent)">${esc(displayTitle(x.subject || 'UC2'))}</span>
-              ${x.sheetColor ? '<span class="tag" style="background:' + x.sheetColor + '33;color:' + x.sheetColor + '">Cor Oficial</span>' : ''}
+              <span class="tag timeline-color-key" style="--activity-color:${activityColor(x)}">${isTimelineTask(x)?'Tarefa':x.type==='review'?'Revisão':x.sheetColor?'Cor da planilha':'Atividade'}</span>
             </div>
             <h2 style="font-size:20px;margin:6px 0 2px">${esc(displayTitle(x.title))}</h2>
             <p class="muted" style="margin:0">${fmt(x.date, { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'UTC' })} · ${esc(timeStr)} · Duração Prevista: ${(durationMins/60).toFixed(1)}h</p>
