@@ -23,7 +23,7 @@
     ];
 
     // 1. Aulas e Compromissos
-    const todayEvents = events().filter(x => x.date === todayStr);
+    const todayEvents = events().filter(x => x.date === todayStr && x.type !== 'free');
     lines.push(`⏰ *AULAS E COMPROMISSOS (${todayEvents.length}):*`);
     if (todayEvents.length === 0) {
       lines.push('• _Nenhum compromisso previsto no cronograma para hoje._');
@@ -88,7 +88,7 @@
       timeZone: 'UTC'
     });
 
-    const todayEvents = events().filter(x => x.date === todayStr);
+    const todayEvents = events().filter(x => x.date === todayStr && !['free', 'break'].includes(x.type));
 
     let lines = [
       `🌙 *Boa noite, Gabriel!*`,
@@ -127,8 +127,9 @@
     if (!isAdmin()) return;
     const dateStr = targetDate || today();
     const formatted = fmt(dateStr, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
-    const dayClasses = events().filter(x => x.date === dateStr && x.type !== 'study' && x.type !== 'review');
+    const dayClasses = events().filter(x => x.date === dateStr && !['study', 'review', 'free', 'break', 'exam'].includes(x.type));
     const dayTasks = data.tasks.filter(x => !x.done || x.date === dateStr);
+    const trackedList = window.ClassStatusTracker?.getTrackedClasses?.() || [];
 
     let classesHTML = '';
     if (dayClasses.length === 0) {
@@ -137,21 +138,23 @@
       classesHTML = dayClasses.map((item, idx) => {
         const timeStr = item.from ? `[${item.from}${item.to ? ' - ' + item.to : ''}] ` : '';
         const prof = item.professor ? ` · ${esc(item.professor)}` : '';
+        const existingVote = trackedList.find(x => x.topic === item.title && x.date === dateStr)?.status || 'review';
+        const selectedVote = ['review', 'learn', 'missed'].includes(existingVote) ? existingVote : 'review';
         return `
-          <div class="closing-card" data-closing-class="${idx}" data-event-id="${esc(item.id)}" data-event-type="${esc(item.type)}" data-title="${esc(item.title)}" data-subject="${esc(item.subject || 'UC2')}" data-from="${esc(item.from || '')}" data-to="${esc(item.to || '')}">
+          <div class="closing-card" data-closing-class="${idx}" data-event-id="${esc(item.id)}" data-event-type="${esc(item.type)}" data-title="${esc(item.title)}" data-subject="${esc(item.subject || 'UC2')}" data-from="${esc(item.from || '')}" data-to="${esc(item.to || '')}" data-prof="${esc(item.professor || '')}">
             <strong>${timeStr}${esc(item.title)}</strong>
             <small class="muted" style="display:block;margin:3px 0 10px">${esc(item.subject || 'UC2')}${prof}</small>
             <div class="pill-row">
               <label class="status-pill review">
-                <input type="radio" name="class-status-${idx}" value="review" checked>
+                <input type="radio" name="class-status-${idx}" value="review" ${selectedVote === 'review' ? 'checked' : ''}>
                 <span>🟢 Vista → Revisão</span>
               </label>
               <label class="status-pill learn">
-                <input type="radio" name="class-status-${idx}" value="learn">
+                <input type="radio" name="class-status-${idx}" value="learn" ${selectedVote === 'learn' ? 'checked' : ''}>
                 <span>🟡 Vista → Aprender</span>
               </label>
               <label class="status-pill missed">
-                <input type="radio" name="class-status-${idx}" value="missed">
+                <input type="radio" name="class-status-${idx}" value="missed" ${selectedVote === 'missed' ? 'checked' : ''}>
                 <span>🔴 Não vista</span>
               </label>
             </div>
@@ -179,10 +182,15 @@
       <div class="modal-card" style="max-width:640px" role="dialog" aria-modal="true" aria-labelledby="closing-title">
         <button type="button" class="close" data-action="close" aria-label="Fechar">×</button>
         <span class="mr-eyebrow">Fechamento do Dia · Conta Administradora</span>
-        <h2 id="closing-title" style="margin-bottom:4px">Fechamento · ${formatted}</h2>
+        <div class="pill-row between" style="align-items:flex-end;gap:12px;margin-bottom:6px">
+          <h2 id="closing-title" style="margin:0">Fechamento · ${formatted}</h2>
+          <label class="field-label" style="margin:0;min-width:155px">Data do fechamento
+            <input type="date" id="closing-date-picker" class="field" value="${esc(dateStr)}">
+          </label>
+        </div>
         <p class="muted" style="margin-bottom:18px">Confirme o que você assistiu e concluiu para calibrar suas revisões automáticas no MedReview e Planejamento.</p>
 
-        <h3 style="font-size:13px;margin:10px 0 8px;font-weight:750">Aulas e Tutorias de Hoje</h3>
+        <h3 style="font-size:13px;margin:10px 0 8px;font-weight:750">Aulas e Tutorias da Data</h3>
         ${classesHTML}
         ${tasksHTML}
 
@@ -194,7 +202,7 @@
 
         <div class="pill-row between" style="margin-top:22px">
           <button type="button" class="btn" data-action="close">Cancelar</button>
-          <button type="button" class="btn btn-primary" data-action="save-day-closing" data-date="${dateStr}">✓ Confirmar e Gerar Revisões</button>
+          <button type="button" class="btn btn-primary" data-action="save-day-closing" data-date="${esc(dateStr)}">✓ Confirmar e Gerar Revisões</button>
         </div>
       </div>
     `;
@@ -204,7 +212,7 @@
   // Salva o fechamento do dia e executa as ações automáticas
   function saveDayClosing(targetDate) {
     if (!isAdmin()) return;
-    const dateStr = targetDate || today();
+    const dateStr = targetDate || $('closing-date-picker')?.value || today();
     const classCards = document.querySelectorAll('[data-closing-class]');
 
     let reviewsCreated = 0;
@@ -249,38 +257,46 @@
       }
 
       const followupFields = status === 'learn' ? {title: `Aprender / Aprofundar: ${title}`, date: dayAdd(dateStr, 2), estimate: 90} : status === 'missed' ? {title: `Repor aula não assistida: ${title}`, date: dayAdd(dateStr, 3), estimate: 60} : null;
-      const reusedTask = followupFields && window.PlanningClassTasks?.followup(data, {id: card.dataset.eventId, type: card.dataset.eventType, title, subject, date: dateStr}, followupFields);
+      const reusedTask = followupFields && window.PlanningClassTasks?.followup(data, {id: card.dataset.eventId, type: card.dataset.eventType, title, subject, date: dateStr}, followupFields, dateStr);
+      if (reusedTask) tasksCreated++;
 
       if (status === 'review') {
-        // 1. Vista e direcionada para revisão:
-
-        const sessionId = uid();
-        data.sessions.push({
-          id: sessionId,
-          subject,
-          topic: title,
-          date: dateStr,
-          minutes: duration,
-          questions: '',
-          correct: ''
-        });
-
-        // Gera revisões com espaçamento inteligente
-        const rawIntervals = String(data.settings.intervals || '7,25,50');
-        const intervals = rawIntervals.split(',').map(x => Number(x.trim())).filter(x => Number.isInteger(x) && x > 0);
-        const uniqueIntervals = [...new Set(intervals.length ? intervals : [7, 25, 50])];
-
-        for (const n of uniqueIntervals) {
-          data.reviews.push({
-            id: uid(),
-            sessionId,
+        // 1. Vista e direcionada para revisão (evita duplicar se já fechou a mesma aula na mesma data)
+        let existingSession = data.sessions.find(s => s.topic === title && s.date === dateStr && s.origin === 'closing');
+        const sessionId = existingSession ? existingSession.id : uid();
+        if (!existingSession) {
+          data.sessions.push({
+            id: sessionId,
             subject,
             topic: title,
-            due: dayAdd(dateStr, n),
-            interval: n,
-            done: false
+            date: dateStr,
+            minutes: duration,
+            questions: '',
+            correct: '',
+            origin: 'closing',
+            evaluationStatus: 'review'
           });
-          reviewsCreated++;
+        }
+
+        // Gera revisões com espaçamento inteligente respeitando a configuração do usuário
+        const configuredIntervals = typeof reviewIntervals === 'function' ? reviewIntervals() : [];
+        const uniqueIntervals = [...new Set(configuredIntervals.length ? configuredIntervals : [1, 7, 30])];
+
+        for (const n of uniqueIntervals) {
+          const due = dayAdd(dateStr, n);
+          const alreadyExists = data.reviews.some(r => r.topic === title && r.due === due && r.interval === n);
+          if (!alreadyExists) {
+            data.reviews.push({
+              id: uid(),
+              sessionId,
+              subject,
+              topic: title,
+              due,
+              interval: n,
+              done: false
+            });
+            reviewsCreated++;
+          }
         }
       } else if (status === 'learn' && !reusedTask) {
         // 2. Vista e necessidade de aprender:
@@ -436,7 +452,7 @@
     const action = b.dataset.action;
 
     if (action === 'open-day-closing') {
-      openDayClosingModal();
+      openDayClosingModal(b.dataset.date);
     } else if (action === 'save-day-closing') {
       saveDayClosing(b.dataset.date);
     } else if (action === 'send-morning-whatsapp') {
@@ -452,6 +468,12 @@
       }
       setWhatsAppConfig({phone,...(apiKey?{apiKey}:{})});
       notify('Configurações salvas!');
+    }
+  });
+
+  document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'closing-date-picker' && e.target.value) {
+      openDayClosingModal(e.target.value);
     }
   });
 

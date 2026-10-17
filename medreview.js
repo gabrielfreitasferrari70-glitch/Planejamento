@@ -48,7 +48,9 @@
     }).join(''):empty(summary?'Nenhuma revisão registrada nesse período.':connected?'O histórico aparecerá após a leitura do MedReview.':'O histórico ficará disponível depois de conectar sua conta.');
     const notes=summary&&(summary.invalidDates||summary.unidentified)?'<p class="tiny">'+(summary.unidentified?summary.unidentified+' revisões sem baralho identificável. ':'')+(summary.invalidDates?summary.invalidDates+' registros sem data válida não foram contabilizados.':'')+'</p>':'';
     const lastRead=summary&&state.syncedAt&&state.status==='error'?'<p class="tiny">Última leitura concluída: '+new Date(state.syncedAt).toLocaleString('pt-BR',{timeZone:ZONE})+'</p>':'';
-    return panel('Flashcards · MedReview','<p class="muted">Suas revisões realizadas no MedReview, agrupadas por dia. Clique no total diário para ver a distribuição por baralho.</p><div class="pill-row">'+actions+'<a href="'+esc(config?.site||'https://flashcard-lac-xi.vercel.app')+'" target="_blank" rel="noopener noreferrer" class="surface-link">Abrir MedReview ↗</a></div>'+identity+'<p class="tiny" role="status">'+esc(status)+'</p>'+lastRead+selector)+stats+activity(summary)+panel('Histórico diário','<p class="tiny">Uma revisão é uma resposta registrada. O mesmo cartão pode ser respondido mais de uma vez.</p>'+list+notes);
+    const localPending=(data.reviews||[]).filter(x=>!x.done),localDue=localPending.filter(x=>x.due<=today()).length;
+    const localSection='<details class="panel local-review-details" id="local-review-details"'+(localDue?' open':'')+'><summary>↻ Revisões programadas do planejamento ('+localPending.length+(localPending.length===1?' pendente':' pendentes')+(localDue?' · '+localDue+' para hoje/atrasadas':'')+')</summary>'+originalReviewView()+'</details>';
+    return panel('Flashcards · MedReview','<p class="muted">Suas revisões realizadas no MedReview, agrupadas por dia. Clique no total diário para ver a distribuição por baralho.</p><div class="pill-row">'+actions+'<a href="'+esc(config?.site||'https://flashcard-lac-xi.vercel.app')+'" target="_blank" rel="noopener noreferrer" class="surface-link">Abrir MedReview ↗</a></div>'+identity+'<p class="tiny" role="status">'+esc(status)+'</p>'+lastRead+selector)+stats+activity(summary)+panel('Histórico diário','<p class="tiny">Uma revisão é uma resposta registrada. O mesmo cartão pode ser respondido mais de uma vez.</p>'+list+notes)+localSection;
   }
   let activeReviewTab = 'flashcards';
 
@@ -56,9 +58,10 @@
 
   function getTrackedClasses() {
     let list = window.AccountFeatureData?.trackedClasses()||[];
-    // Sincroniza com as sessões de aulas registradas nos fechamentos anteriores
+    // Sincroniza apenas sessões de aulas registradas nos fechamentos anteriores
     const existingSessions = data.sessions || [];
     existingSessions.forEach(s => {
+      if (!s.evaluationStatus && s.origin !== 'closing') return;
       let found = list.find(x => x.topic === s.topic && x.date === s.date);
       if (!found) {
         list.push({

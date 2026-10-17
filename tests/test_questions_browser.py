@@ -1,6 +1,7 @@
 """Manual imports with isolated accounts. No source or model network requests."""
 import json,unittest
-import test_account_sync as account_fixture
+try: import test_account_sync as account_fixture
+except ImportError: from tests import test_account_sync as account_fixture
 class QuestionsBrowserTests(unittest.TestCase):
     setUpClass=classmethod(account_fixture.AccountSyncTests.setUpClass.__func__)
     tearDownClass=classmethod(account_fixture.AccountSyncTests.tearDownClass.__func__)

@@ -33,7 +33,7 @@ export default async function handler(req, res) {
     academic=[...(document.payload?.replacement||[]),...(document.payload?.events||[])];
   } catch(error){return res.status(error.status||503).json({error:'Não foi possível ler o cronograma da conta administradora.'})}
 
-  const todayEvents = academic.filter(x => x.date === todayStr);
+  const todayEvents = academic.filter(x => x.date === todayStr && !['free', 'break'].includes(x.type));
 
   let message = '';
 

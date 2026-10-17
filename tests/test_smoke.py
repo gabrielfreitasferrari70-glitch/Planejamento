@@ -789,6 +789,43 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.saved()['settings']['focusBreak'], 10)
         self.assertTrue(self.saved()['settings']['focusSound'])
 
+    def test_edit_study_split_planner_task_and_manage_mistakes(self):
+        self.open()
+        self.page.evaluate("""() => {
+          data.settings.availability={0:{from:'18:00',to:'19:00'},1:{from:'18:00',to:'19:00'},2:{from:'18:00',to:'19:00'},3:{from:'18:00',to:'19:00'},4:{from:'18:00',to:'19:00'},5:{from:'18:00',to:'19:00'},6:{from:'18:00',to:'19:00'}};
+          data.sessions=[{id:'s1',subject:'Fisiologia',topic:'Ciclo cardíaco',date:today(),minutes:'45',questions:'10',correct:'7'}];
+          data.reviews=[{id:'r1',sessionId:'s1',subject:'Fisiologia',topic:'Ciclo cardíaco',due:dayAdd(today(),1),interval:1,done:false}];
+          data.tasks=[{id:'tlong',title:'Estudar todo o capítulo de Renal',subject:'Fisiologia',estimate:'120',priority:'3',date:dayAdd(today(),2),done:false}];
+          data.mistakes=[{id:'m1',subject:'Anatomia',topic:'Plexo braquial',cause:'Memorização',date:today(),note:'Raízes C5-T1',resolved:false}];
+          save(); goto('studies');
+        }""")
+        self.page.locator('[data-action="study-edit"][data-id="s1"]').click()
+        self.page.locator('#record-form [name="topic"]').fill('Ciclo cardíaco e valvas')
+        self.page.locator('#record-form [name="correct"]').fill('9')
+        self.page.locator('#record-form [type="submit"]').click()
+        self.assertEqual(self.saved()['sessions'][0]['topic'], 'Ciclo cardíaco e valvas')
+        self.assertEqual(self.saved()['sessions'][0]['correct'], '9')
+        self.assertEqual(self.saved()['reviews'][0]['topic'], 'Ciclo cardíaco e valvas')
+
+        # Split long task in planner
+        self.nav('planner')
+        self.page.locator('[data-action="task-split"][data-id="tlong"]').click()
+        titles = [t['title'] for t in self.saved()['tasks']]
+        self.assertIn('Estudar todo o capítulo de Renal (1/2)', titles)
+        self.assertIn('Estudar todo o capítulo de Renal (2/2)', titles)
+
+        # Resolve, reopen, and delete mistake with undo
+        self.page.evaluate("goto('mistakes')")
+        self.page.locator('[data-action="resolve-error"][data-id="m1"]').click()
+        self.assertTrue(self.saved()['mistakes'][0]['resolved'])
+        self.page.locator('details.settings-fold > summary').click()
+        self.page.locator('[data-action="reopen-error"][data-id="m1"]').click()
+        self.assertFalse(self.saved()['mistakes'][0]['resolved'])
+        self.page.locator('[data-action="delete-error"][data-id="m1"]').click()
+        self.assertEqual(len(self.saved()['mistakes']), 0)
+        self.page.locator('#toast [data-action="toast-action"]').click()
+        self.assertEqual(len(self.saved()['mistakes']), 1)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
