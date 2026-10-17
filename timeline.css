@@ -1,0 +1,745 @@
+/* Planejamento Medicina 2.0 — Linha do Tempo Interativa com Camadas e Zoom Progressivo */
+
+/* Container Principal da Linha do Tempo */
+.timeline-view {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Barra de Contexto Estratégico ("Onde estou no planejamento") */
+.timeline-hero {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeline-hero-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(280px, 1.2fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.timeline-position-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.timeline-position-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  background: var(--accentbg);
+  padding: 4px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.timeline-position-badge .pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(88, 105, 197, 0.7);
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(88, 105, 197, 0.7); }
+  70% { box-shadow: 0 0 0 7px rgba(88, 105, 197, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(88, 105, 197, 0); }
+}
+
+.timeline-hero h2 {
+  font-size: 20px;
+  letter-spacing: -0.4px;
+  color: var(--text);
+  margin: 0;
+}
+
+.timeline-progress-track {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timeline-progress-bar {
+  height: 9px;
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.timeline-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--mint) 100%);
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.timeline-progress-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.timeline-milestone-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.timeline-milestone-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #fff0e0;
+  color: var(--amber);
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+html[data-theme=dark] .timeline-milestone-icon {
+  background: #4d3a26;
+  color: #f4cf9d;
+}
+
+.timeline-milestone-info strong {
+  display: block;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.timeline-milestone-info p {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Barra de Controles e Zoom */
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.timeline-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timeline-zoom-controls {
+  display: inline-flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 2px;
+}
+
+.timeline-zoom-btn {
+  border: 0;
+  background: transparent;
+  padding: 6px 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 680;
+  color: var(--muted);
+  transition: all 0.15s ease;
+}
+
+.timeline-zoom-btn.active {
+  background: var(--card);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.timeline-filters-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.timeline-filter-chip {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.timeline-filter-chip.active {
+  background: var(--accentbg);
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+/* Área de Rolagem da Linha do Tempo */
+.timeline-scroll-container {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow-x: auto;
+  overflow-y: hidden;
+  position: relative;
+  scrollbar-width: thin;
+}
+
+.timeline-canvas {
+  display: flex;
+  flex-direction: column;
+  min-width: 100%;
+  position: relative;
+}
+
+/* Camada 1: Faixas de Duração das Fases */
+.timeline-phases-track {
+  display: flex;
+  height: 48px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.timeline-phase-band {
+  position: absolute;
+  height: 38px;
+  top: 5px;
+  border-radius: 8px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  cursor: pointer;
+}
+
+.timeline-phase-band strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-phase-band .phase-badge {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.4);
+  white-space: nowrap;
+}
+
+/* Camada 2: Carga Horária Planejada e Marcos */
+.timeline-load-track {
+  height: 34px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  position: relative;
+  align-items: flex-end;
+}
+
+.timeline-day-load-col {
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.timeline-load-bar {
+  width: 70%;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent);
+  opacity: 0.75;
+  transition: height 0.2s;
+}
+
+.timeline-load-bar.light { background: #64c7aa; height: 35%; }
+.timeline-load-bar.moderate { background: #5869c5; height: 65%; }
+.timeline-load-bar.heavy { background: #ad7839; height: 95%; }
+
+/* Camada 3: Régua de Datas e Dias */
+.timeline-ruler-track {
+  display: flex;
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+  position: relative;
+  height: 48px;
+}
+
+.timeline-ruler-col {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.timeline-ruler-col:hover {
+  background: var(--accentbg);
+}
+
+.timeline-ruler-col.is-today {
+  background: var(--accentbg);
+  border-color: var(--accent);
+  font-weight: 800;
+}
+
+.timeline-ruler-col.is-today strong {
+  color: var(--accent);
+}
+
+.timeline-ruler-col.is-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.timeline-ruler-col small {
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+/* Marcador "Hoje" Vertical que corta a linha do tempo */
+.timeline-today-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #5869c5;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.timeline-today-flag {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  background: #5869c5;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Camada 4: Trilhas de Atividades (Swimlanes) */
+.timeline-lanes-body {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 280px;
+  background: var(--card);
+}
+
+.timeline-lane {
+  display: flex;
+  min-height: 64px;
+  border-bottom: 1px dashed var(--border);
+  position: relative;
+  align-items: center;
+}
+
+.timeline-lane-header {
+  position: sticky;
+  left: 0;
+  z-index: 8;
+  width: 140px;
+  background: var(--card);
+  padding: 8px 12px;
+  border-right: 2px solid var(--border);
+  font-size: 11px;
+  font-weight: 750;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.03);
+  pointer-events: none;
+}
+
+.timeline-lane-items {
+  position: relative;
+  height: 100%;
+  flex: 1;
+}
+
+/* Cards e Chips de Atividade na Linha do Tempo */
+.timeline-act-card {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-size: 11px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  z-index: 2;
+}
+
+.timeline-act-card * {
+  pointer-events: none;
+}
+
+.timeline-act-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 15;
+}
+
+/* Status Tripartido da Atividade (Planejado, Realizado, Sugerido) */
+.timeline-act-card.status-planned {
+  border-left: 4px solid var(--accent);
+}
+
+.timeline-act-card.status-completed {
+  border-left: 4px solid var(--mint);
+  background: color-mix(in srgb, var(--mint) 8%, var(--card));
+}
+
+.timeline-act-card.status-suggested {
+  border: 1px dashed var(--violet);
+  border-left: 4px solid var(--violet);
+  background: color-mix(in srgb, var(--violet) 8%, var(--card));
+}
+
+.timeline-act-card.sheet-coded {
+  border-left-color: var(--sheet-edge);
+}
+
+.timeline-act-time {
+  font-size: 9.5px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.timeline-act-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+
+.timeline-act-footer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: 9.5px;
+}
+
+/* Zoom Geral: Pills Super Compactas */
+.timeline-view.zoom-general .timeline-act-card {
+  padding: 2px 4px;
+}
+.timeline-view.zoom-general .timeline-act-time,
+.timeline-view.zoom-general .timeline-act-footer {
+  display: none;
+}
+.timeline-view.zoom-general .timeline-act-title {
+  font-size: 10px;
+}
+
+/* Painel Foco do Dia ("O que tenho para fazer neste dia") */
+.timeline-day-focus {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+}
+
+.timeline-day-focus-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.timeline-day-focus-head h3 {
+  font-size: 17px;
+  margin: 0;
+  color: var(--text);
+}
+
+.timeline-day-events-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+}
+
+.timeline-day-event-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.timeline-day-event-card:hover {
+  background: var(--accentbg);
+  border-color: var(--accent);
+}
+
+/* Modal e Drawer de Detalhe da Atividade */
+.timeline-modal-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.timeline-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.timeline-detail-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Status Selector Interativo */
+.timeline-status-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.timeline-status-btn {
+  border: 1px solid var(--border);
+  background: var(--card);
+  padding: 9px 10px;
+  border-radius: 9px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.15s ease;
+}
+
+.timeline-status-btn.active.status-planned {
+  background: #f0f3fb;
+  border-color: #5869c5;
+  color: #5869c5;
+}
+
+.timeline-status-btn.active.status-inprogress {
+  background: #fff8ec;
+  border-color: #ad7839;
+  color: #ad7839;
+}
+
+.timeline-status-btn.active.status-completed {
+  background: #e8f6ef;
+  border-color: #269a82;
+  color: #269a82;
+}
+
+html[data-theme=dark] .timeline-status-btn.active.status-planned {
+  background: #2c3b5d;
+  color: #a1aeff;
+}
+html[data-theme=dark] .timeline-status-btn.active.status-inprogress {
+  background: #4d3a26;
+  color: #f4cf9d;
+}
+html[data-theme=dark] .timeline-status-btn.active.status-completed {
+  background: #29473d;
+  color: #b6efdb;
+}
+
+/* Cadeia de Continuidade ("Como essa atividade se conecta ao que vem depois") */
+.timeline-continuity-chain {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.timeline-continuity-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  position: relative;
+}
+
+.timeline-chain-step {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 10.5px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.timeline-chain-step.current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accentbg);
+}
+
+.timeline-chain-step small {
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 750;
+}
+
+.timeline-chain-step strong {
+  color: var(--text);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Caixa de Regras de Desdobramento */
+.timeline-rules-box {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+html[data-theme=dark] .timeline-rules-box {
+  background: #27203b;
+  border-color: #4c3875;
+}
+
+.timeline-rules-box h4 {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--violet);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timeline-rules-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Responsividade */
+@media (max-width: 900px) {
+  .timeline-hero-main {
+    grid-template-columns: 1fr;
+  }
+  .timeline-lane-header {
+    width: 100px;
+    font-size: 10px;
+    padding: 6px 8px;
+  }
+}
+
+@media (max-width: 650px) {
+  .timeline-hero {
+    padding: 12px;
+  }
+  .timeline-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .timeline-toolbar-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .timeline-zoom-controls {
+    display: flex;
+    width: 100%;
+  }
+  .timeline-zoom-btn {
+    flex: 1;
+    text-align: center;
+    padding: 6px 4px;
+    font-size: 10px;
+  }
+}

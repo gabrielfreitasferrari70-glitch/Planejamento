@@ -85,7 +85,7 @@ class SiteSmokeTests(unittest.TestCase):
     def test_all_desktop_sections_at_small_height(self):
         self.open()
         menu = self.page.evaluate('MENU.map(x=>[x[0],x[2]])')
-        self.assertEqual(len(menu), 15)
+        self.assertEqual(len(menu), 16)
         for target, title in menu:
             self.nav(target)
             self.assertEqual(self.page.locator('#heading').inner_text(), title)
@@ -278,7 +278,7 @@ class SiteSmokeTests(unittest.TestCase):
         self.assertEqual(self.page.locator('.semester-event').count(),193)
         self.page.evaluate("goto('materials')")
         self.assertEqual(self.page.locator('.materials-drive-link').get_attribute('href'),'https://drive.google.com/drive/folders/test-materials-folder')
-        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v13');return (await cache.keys()).map(req=>req.url)}")
+        cached=self.page.evaluate("async()=>{const cache=await caches.open('planejamento-shell-v14');return (await cache.keys()).map(req=>req.url)}")
         self.assertTrue(all(url.startswith(self.url) for url in cached))
         self.assertFalse(any('mr_reviews' in url or '/auth/' in url or '.pdf' in url for url in cached))
         self.context.set_offline(False)
@@ -826,6 +826,49 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.locator('#toast [data-action="toast-action"]').click()
         self.assertEqual(len(self.saved()['mistakes']), 1)
 
+    def test_timeline_view_navigation_layers_and_activity_followups(self):
+        self.page.unroute('**/academic.json')
+        self.open()
+        self.page.wait_for_function("academicEvents().length===193")
+        # Navigate to timeline
+        self.page.evaluate("goto('timeline')")
+        self.assertEqual(self.page.locator('#heading').inner_text(), 'Linha do Tempo')
+        self.assertTrue(self.page.locator('.timeline-position-card').is_visible())
+        self.assertTrue(self.page.locator('.timeline-milestone-card').is_visible())
+
+        # Zoom controls
+        self.assertTrue(self.page.locator('.timeline-zoom-controls').is_visible())
+        self.page.locator('[data-action="timeline-zoom"][data-zoom="general"]').click()
+        self.assertTrue(self.page.locator('.timeline-ruler-track').is_visible())
+        self.page.locator('[data-action="timeline-zoom"][data-zoom="days"]').click()
+        self.assertTrue(self.page.locator('.timeline-ruler-track').is_visible())
+
+        # Swimlanes and phases
+        self.assertGreater(self.page.locator('.timeline-phase-band').count(), 0)
+        self.assertGreater(self.page.locator('.timeline-lane').count(), 0)
+
+        # Activity cards and details
+        activity_cards = self.page.locator('.timeline-act-card')
+        self.assertGreater(activity_cards.count(), 0)
+        first_card_id = activity_cards.first.get_attribute('data-id')
+        activity_cards.first.click(force=True)
+
+        # Modal detail should be open
+        self.assertTrue(self.page.locator('.timeline-modal-detail').is_visible())
+        self.assertTrue(self.page.locator('.timeline-status-selector').is_visible())
+        self.assertTrue(self.page.locator('.timeline-continuity-chain').is_visible())
+
+        # Change tripartite status to completed
+        status_btn = self.page.locator('.modal-card [data-action="timeline-set-status"][data-status="completed"]')
+        status_btn.click()
+        saved_meta = self.saved()['settings'].get('timelineActivityMeta', {})
+        self.assertEqual(saved_meta.get(first_card_id, {}).get('status'), 'completed')
+
+        # Close modal
+        self.page.locator('.modal-card button.close').click()
+        self.assertFalse(self.page.locator('#modal').is_visible())
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
