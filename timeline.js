@@ -14,8 +14,6 @@
   let pendingAnchor = null;
   let pendingPixel = null;
   let zoomValue = 60;
-  let toolsOpen=false, dayOpen=false;
-  const collapsedLanes=new Set();
   let scrollFrame = null;
   let wheelFrame = null, wheelDelta = 0, wheelX = 0;
   const scales = ['general', 'weeks', 'days'];
@@ -42,6 +40,17 @@
   function changeZoom(level, anchor=visibleAnchor()) {
     if (!scales.includes(level)) return;
     setZoom({general:0,weeks:60,days:100}[level],anchor);
+  }
+  function focusPhase(from,to) {
+    if(!geometry)return;
+    const width=($('timeline-scroller')?.clientWidth||$('app')?.clientWidth||1100)-geometry.sidebar;
+    const min=Math.max(3,width/geometry.totalDays);
+    const weekly=Math.max(110,width/7);
+    const daily=Math.max(280,width/3);
+    const duration=Math.max(1,dateDiff(to,from)+1),target=width/duration;
+    const value=target<=min?0:target<=weekly?60*Math.log(Math.max(min,target)/min)/Math.log(weekly/min):60+40*Math.log(target/weekly)/Math.log(daily/weekly);
+    selectedDate=from;
+    setZoom(value,dateDiff(from,geometry.minDate)+duration/2);
   }
   function focusDate(date, level) {
     selectedDate = date;
@@ -312,8 +321,8 @@
     const daysToExam = nextExam ? Math.round((Date.parse(nextExam.date + 'T12:00:00Z') - Date.parse(t + 'T12:00:00Z')) / 86400000) : null;
 
     // Helper para gerar o cabeçalho uniforme e definido da barra lateral esquerda (dock)
-    function makeSidebarHeader(iconName, title, subtitle, count = null, laneId = '') {
-      return `<div class="timeline-section-heading" style="width:${Math.max(240,($('app')?.clientWidth||1100)-2)}px"><span class="timeline-section-icon">${ico(iconName)}</span><strong>${esc(title)}</strong>${count > 0 ? `<span class="timeline-section-count">${count} atividades</span>` : ''}${count === 0 ? '<span class="timeline-section-empty">Nenhuma atividade</span>' : ''}${laneId?`<button type="button" class="timeline-lane-toggle" data-action="timeline-lane-toggle" data-lane="${laneId}" aria-expanded="${!collapsedLanes.has(laneId)}" aria-label="${collapsedLanes.has(laneId)?'Expandir':'Recolher'} ${esc(title)}">${collapsedLanes.has(laneId)?'+':'−'}</button>`:''}</div>`;
+    function makeSidebarHeader(iconName, title, subtitle, count = null) {
+      return `<div class="timeline-section-heading" style="width:${Math.max(240,($('app')?.clientWidth||1100)-2)}px"><span class="timeline-section-icon">${ico(iconName)}</span><strong>${esc(title)}</strong>${count > 0 ? `<span class="timeline-section-count">${count} atividades</span>` : ''}${count === 0 ? '<span class="timeline-section-empty">Nenhuma atividade</span>' : ''}</div>`;
     }
 
     // Equal time intervals keep every layer aligned while zoom changes the level of detail.
@@ -354,7 +363,33 @@
     // Cabeçalho de Posicionamento ("Onde estou no planejamento")
     const heroHTML = `
       <section class="timeline-hero">
-        <div class="timeline-context-row"><span title="${esc(activePhase?.name||'Semestre acadêmico')}">${esc(activePhase?.name||'Semestre acadêmico')}</span><small>${progressPct}% do período · ${fmt(t)}</small>${nextExam?`<button type="button" data-action="timeline-activity-click" data-id="${esc(nextExam.id)}" title="${esc(displayTitle(nextExam.title))}">Próxima prova · ${fmt(nextExam.date)}</button>`:''}</div>
+        <div class="timeline-hero-main">
+          <div class="timeline-position-card">
+            <div class="timeline-position-badge">
+              <span class="pulse"></span>
+              <span>Você está aqui · ${fmt(t, { weekday: 'long', day: '2-digit', month: 'long', timeZone: 'UTC' })}</span>
+            </div>
+            <h2>${esc(activePhase?.name || 'Semestre Acadêmico')}</h2>
+            <div class="timeline-progress-track">
+              <div class="timeline-progress-bar">
+                <div class="timeline-progress-fill" style="width: ${progressPct}%"></div>
+              </div>
+              <div class="timeline-progress-labels">
+                <span>Dia ${passedDays} de ${totalDays} (${progressPct}% do cronograma percorrido)</span>
+                <span>Fim: ${fmt(maxDate, { day: '2-digit', month: 'short', timeZone: 'UTC' })}</span>
+              </div>
+            </div>
+          </div>
+          <div class="timeline-milestone-card">
+            <div class="timeline-milestone-icon">${ico('trophy')}</div>
+            <div class="timeline-milestone-info">
+              <small class="muted">Próximo Marco Avaliativo</small>
+              <strong>${nextExam ? esc(displayTitle(nextExam.title)) : 'Nenhuma prova agendada'}</strong>
+              <p>${nextExam ? (daysToExam === 0 ? 'Hoje!' : daysToExam === 1 ? 'Amanhã!' : 'Em ' + daysToExam + ' dias (' + fmt(nextExam.date) + ')') : 'Semestre concluído com sucesso'}</p>
+            </div>
+          </div>
+        </div>
+
         <div class="timeline-toolbar">
           <div class="timeline-toolbar-group">
             <span class="tiny muted" style="font-weight:700">ESCALA:</span>
@@ -369,6 +404,7 @@
             ${btn(ico('target') + ' Ir para Hoje', 'timeline-scroll-today', '', 'btn btn-small')}
             ${btn('←', 'timeline-pan', 'data-direction="-1" aria-label="Período anterior"', 'btn btn-small')}
             ${btn('→', 'timeline-pan', 'data-direction="1" aria-label="Próximo período"', 'btn btn-small')}
+            <label class="timeline-phase-jump"><span>Explorar</span><select id="timeline-phase-jump" aria-label="Explorar um módulo do cronograma"><option value="">Escolher módulo…</option>${phases.map(p=>`<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('')}</select></label>
           </div>
 
           <div class="timeline-toolbar-group">
@@ -467,7 +503,7 @@
       const laneEvents = all.filter(x => lane.types.includes(x.type) && (lane.id==='task'?isTimelineTask(x):lane.id==='study'?!isTimelineTask(x):true) && filterFn(x));
       if (activeFilter !== 'all' && activeFilter !== 'pending' && !laneEvents.length) return '';
       const color = laneColors[lane.id];
-      let itemsHTML = '', laneHeight = zoomLevel === 'days' ? 122 : zoomLevel === 'weeks' ? 80 : 48;
+      let itemsHTML = '', laneHeight = zoomLevel === 'days' ? 122 : zoomLevel === 'weeks' ? 132 : 88;
       const buckets = new Map();
       laneEvents.forEach(x=>{
         const day=dayMap[x.date]; if (!day) return;
@@ -479,11 +515,6 @@
       buckets.forEach(group=>{
         group.sort((a,b)=>a.date.localeCompare(b.date)||(a.from||'').localeCompare(b.from||''));
         const first=dayMap[group[0].date];
-        const offset=(new Date(first.date+'T12:00:00Z').getUTCDay()+6)%7;
-        const bucketStart=zoomLevel==='general'?Math.max(0,first.index-offset):first.index;
-        const bucketEnd=zoomLevel==='general'?Math.min(totalDays,first.index-offset+7):first.index+1;
-        itemsHTML+=`<button type="button" class="timeline-fit-summary" style="--lane-color:${activityColor(group[0])};left:${bucketStart*dayWidth+3}px;width:${Math.max(8,(bucketEnd-bucketStart)*dayWidth-6)}px" data-action="timeline-period-details" data-lane="${lane.id}" data-from="${group[0].date}" data-to="${group[group.length-1].date}" data-start="${bucketStart}" data-end="${bucketEnd}" data-count="${group.length}" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}"><strong>${group.length}</strong><span>${esc(displayTitle(group[0].title))}</span></button>`;
-
         if(zoomLevel==='general') {
           const offset=(new Date(first.date+'T12:00:00Z').getUTCDay()+6)%7;
           const start=Math.max(0,first.index-offset), end=Math.min(totalDays,first.index-offset+7);
@@ -491,8 +522,8 @@
           itemsHTML+=`<button class="timeline-week-summary" style="--lane-color:${activityColor(group[0])};left:${start*dayWidth+2}px;width:${Math.max(8,(end-start)*dayWidth-4)}px" data-action="timeline-open-period" data-date="${dayAdd(minDate,start)}" data-zoom="weeks" title="${group.length} atividades · ${done} concluídas · clique para explorar a semana"><strong>${group.length}</strong><span>ativ.</span><i style="width:${done/group.length*100}%"></i></button>`;
         } else if(zoomLevel==='weeks') {
           const done=group.filter(x=>getActivityStatus(x)==='completed').length;
-          const previews=group.slice(0,1).map(x=>`<span class="timeline-week-item" style="--activity-color:${activityColor(x)}"><small>${esc(x.from||'Livre')} · ${esc(displayTitle(x.subject||'Atividade'))}</small><span>${esc(displayTitle(x.title))}</span></span>`).join('');
-          itemsHTML+=`<button class="timeline-day-summary" style="--lane-color:${activityColor(group[0])};left:${first.left+4}px;width:${dayWidth-8}px" data-action="timeline-open-period" data-date="${first.date}" data-zoom="days" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}">${previews}<small class="timeline-week-more">${group.length>1?'+'+(group.length-1)+' atividades · ':''}${done?done+' concluídas · ':''}Abrir dia →</small></button>`;
+          const previews=group.slice(0,2).map(x=>`<span class="timeline-week-item" style="--activity-color:${activityColor(x)}"><small>${esc(x.from||'Livre')} · ${esc(displayTitle(x.subject||'Atividade'))}</small><span>${esc(displayTitle(x.title))}</span></span>`).join('');
+          itemsHTML+=`<button class="timeline-day-summary" style="--lane-color:${activityColor(group[0])};left:${first.left+4}px;width:${dayWidth-8}px" data-action="timeline-open-period" data-date="${first.date}" data-zoom="days" title="${esc(group.map(x=>displayTitle(x.title)).join(' · '))}">${previews}<small class="timeline-week-more">${group.length>2?'+'+(group.length-2)+' atividades · ':''}${done?done+' concluídas · ':''}Abrir dia →</small></button>`;
         } else {
           laneHeight=Math.max(laneHeight,group.length*110+12);
           group.forEach((x,index)=>{
@@ -503,7 +534,7 @@
           });
         }
       });
-      return `<div data-lane="${lane.id}" data-natural-height="${laneHeight+26}" class="timeline-lane lane-${lane.id} ${collapsedLanes.has(lane.id)?'is-collapsed':''}" style="height:${collapsedLanes.has(lane.id)?26:laneEvents.length ? laneHeight+26 : 26}px;--lane-color:${color}">${makeSidebarHeader(lane.icon,lane.title,lane.sub,laneEvents.length,lane.id)}<div class="timeline-lane-items" style="width:${canvasWidth}px;height:${laneEvents.length ? laneHeight : 0}px;background-size:${dayWidth}px 100%">${itemsHTML}</div></div>`;
+      return `<div class="timeline-lane lane-${lane.id}" style="height:${laneEvents.length ? laneHeight+34 : 34}px;--lane-color:${color}">${makeSidebarHeader(lane.icon,lane.title,lane.sub,laneEvents.length)}<div class="timeline-lane-items" style="width:${canvasWidth}px;height:${laneEvents.length ? laneHeight : 0}px;background-size:${dayWidth}px 100%">${itemsHTML}</div></div>`;
     }).join('');
 
     // Painel Foco do Dia ("O que tenho para fazer neste dia")
@@ -534,7 +565,7 @@
     }).join('') : empty('Nenhuma atividade ou compromisso agendado para este dia.');
 
     const dayFocusHTML = `
-      <details class="timeline-day-focus" id="timeline-day-focus" ${dayOpen?'open':''}><summary>Agenda de ${fmt(focusDay?.date||t)} · ${dayEvents.length} atividades</summary>
+      <section class="timeline-day-focus" id="timeline-day-focus">
         <div class="timeline-day-focus-head">
           <div>
             <div class="breadcrumb" style="margin-bottom:4px">FOCO DO DIA SELECIONADO</div>
@@ -549,23 +580,32 @@
         <div class="timeline-day-events-list">
           ${dayCardsHTML}
         </div>
-      </details>
+      </section>
+    `;
+
+    const scheduleTabs = `
+      <div class="schedule-view-tabs" role="tablist" aria-label="Visualização do cronograma" style="display:flex;gap:8px;margin-bottom:16px">
+        <button type="button" class="btn btn-small" data-action="navigate" data-page="calendar" role="tab" aria-selected="false">
+          ${ico('calendar')} Lista do semestre
+        </button>
+        <button type="button" class="btn btn-small btn-primary" data-action="navigate" data-page="timeline" role="tab" aria-selected="true">
+          ${ico('timeline')} Linha do tempo interativa
+        </button>
+      </div>
     `;
 
     return `
+      ${scheduleTabs}
       <div class="timeline-view zoom-${zoomLevel}" style="--timeline-sidebar:${sidebar}px">
         ${heroHTML}
-        <details class="timeline-tools" id="timeline-tools" ${toolsOpen||searchQuery||preparationExamId?'open':''}><summary>Buscar assunto ou preparar prova${searchQuery?' · busca ativa':''}${preparationExamId?' · avaliação selecionada':''}</summary>
         ${searchHTML}
         ${preparationHTML(preparationExam,all)}
-        </details>
 
         ${overviewHTML}
-
+        <div class="timeline-milestones" aria-label="Próximas avaliações">${all.filter(x=>x.type==='exam'&&x.date>=selectedDate).slice(0,4).map(x=>`<button type="button" class="timeline-milestone-link" data-action="timeline-activity-click" data-id="${esc(x.id)}"><small>${fmt(x.date)} · Avaliação</small><strong>${esc(displayTitle(x.title))}</strong></button>`).join('')}</div>
         <div class="timeline-reading-guide"><span class="timeline-color-key" style="--activity-color:#FFC000">Tutoria</span><span class="timeline-color-key" style="--activity-color:#FBFF44">Prova</span><span class="timeline-color-key" style="--activity-color:#8752cf">Revisão</span><span class="timeline-color-key" style="--activity-color:#dc3545">Tarefa</span><small>${zoomLevel==='general'?'Resumo por semana · clique para aproximar':zoomLevel==='weeks'?'Distribuição por dia · clique para ver as atividades':'Atividades e horários · clique para abrir os detalhes'}</small></div>
         <div class="timeline-scroll-container" id="timeline-scroller" tabindex="0" aria-label="Linha do tempo. Use as setas para navegar e Control mais rolagem para ampliar.">
           <div class="timeline-canvas" style="width:${canvasWidth + sidebar}px">
-            <div class="timeline-header-tracks">
             <!-- Camada 1: Faixas de Fases -->
             <div class="timeline-phases-track">
               <div style="position:relative;flex:1;height:100%">${phaseBandsHTML}</div>
@@ -583,7 +623,6 @@
               <div style="position:relative;flex:1;height:100%">${rulerColsHTML} ${todayMarkerHTML}</div>
             </div>
 
-            </div>
             <!-- Camada 4: Trilhas de Atividades -->
             <div class="timeline-lanes-body">
               ${lanesHTML}
@@ -735,18 +774,6 @@
     drawer.querySelector('[data-action="timeline-detail-close"]')?.focus({preventScroll:true});
   }
 
-  function showPeriodDetails(lane,from,to) {
-    persistDrawerDraft();selectedActivityId=null;
-    const exam=events().find(x=>x.id===preparationExamId),topics=exam?scopeFor(exam):[];
-    const belongs=x=>lane==='task'?isTimelineTask(x):lane==='review'?x.type==='review':lane==='study'?x.type==='study'&&!isTimelineTask(x):lane==='class'?['class','welcome'].includes(x.type):x.type===lane;
-    const items=events().filter(x=>x.date>=from&&x.date<=to&&belongs(x)&&matchesCategory(x)&&matchesSearch(x)&&(!exam||!topics.length||x.id===exam.id||(x.date<=exam.date&&topics.some(t=>matchesTopic(x,t)))));
-    let drawer=$('timeline-drawer');
-    if(!drawer){drawer=document.createElement('aside');drawer.id='timeline-drawer';drawer.addEventListener('change',persistDrawerDraft);document.body.appendChild(drawer);}
-    drawer.hidden=false;
-    drawer.innerHTML=`<div class="timeline-drawer-card" role="region" aria-label="Atividades do período"><div class="timeline-drawer-top"><strong>${items.length} atividades · ${fmt(from)}${from!==to?' – '+fmt(to):''}</strong><button class="btn btn-small" data-action="timeline-detail-close" aria-label="Fechar detalhes">×</button></div><div class="timeline-period-list">${items.map(x=>`<button class="timeline-period-item" style="--activity-color:${activityColor(x)}" data-action="timeline-activity-click" data-id="${esc(x.id)}"><small>${fmt(x.date)} · ${esc(x.from||'Horário livre')}</small><strong>${esc(displayTitle(x.title))}</strong><span>${esc(x.subject||'UC2')} · ${esc(statusLabels[getActivityStatus(x)]||'Planejado')}</span></button>`).join('')||'<p>Nenhuma atividade neste período.</p>'}</div></div>`;
-    drawer.querySelector('[data-action="timeline-detail-close"]')?.focus({preventScroll:true});
-  }
-
   function persistDrawerDraft() {
     const drawer=$('timeline-drawer');
     if(!drawer||drawer.hidden||!selectedActivityId)return;
@@ -874,37 +901,6 @@
     const visible=Math.min(geometry.canvasWidth,el.clientWidth-geometry.sidebar);
     visor.style.left=(el.scrollLeft/geometry.canvasWidth*100)+'%';
     visor.style.width=(visible/geometry.canvasWidth*100)+'%';
-    const firstVisible=el.scrollLeft/geometry.dayWidth,lastVisible=(el.scrollLeft+visible)/geometry.dayWidth;
-    const lanes=[...el.querySelectorAll('.timeline-lane')];
-    const active=[];
-    lanes.forEach(lane=>{
-      const groups=[...lane.querySelectorAll('.timeline-fit-summary')].filter(item=>Number(item.dataset.end)>firstVisible+.001&&Number(item.dataset.start)<lastVisible-.001);
-      lane.classList.toggle('is-window-empty',groups.length===0);
-      if(!groups.length)return;
-      const count=groups.reduce((sum,item)=>sum+Number(item.dataset.count),0);
-      let countButton=lane.querySelector('.timeline-section-count');
-      if(countButton){
-        // A category total always opens every matching activity in the visible dates.
-        if(countButton.tagName!=='BUTTON'){const replacement=document.createElement('button');replacement.className=countButton.className;countButton.replaceWith(replacement);countButton=replacement;}
-        countButton.type='button';countButton.textContent=count+' '+(count===1?'atividade':'atividades')+' · ver';
-        Object.assign(countButton.dataset,{action:'timeline-period-details',lane:lane.dataset.lane,from:dayAdd(geometry.minDate,Math.max(0,Math.floor(firstVisible))),to:dayAdd(geometry.minDate,Math.min(geometry.totalDays-1,Math.ceil(lastVisible)-1))});
-      }
-      active.push(lane);
-    });
-    const available=Math.max(1,el.clientHeight-(el.querySelector('.timeline-header-tracks')?.offsetHeight||0)-2);
-    const collapsed=active.filter(lane=>collapsedLanes.has(lane.dataset.lane));
-    const share=Math.max(20,(available-collapsed.length*26)/Math.max(1,active.length-collapsed.length));
-    active.forEach(lane=>{
-      const row=collapsedLanes.has(lane.dataset.lane)?26:Math.min(Number(lane.dataset.naturalHeight),share);
-      lane.style.height=row+'px';
-      const compact=row<Number(lane.dataset.naturalHeight)-1;
-      lane.classList.toggle('is-fit-compact',compact);
-      lane.classList.toggle('is-header-only',row<46);
-      lane.style.setProperty('--fit-item-height',Math.max(18,row-30)+'px');
-      const items=lane.querySelector('.timeline-lane-items');if(items)items.style.height=Math.max(0,row-26)+'px';
-      const toggle=lane.querySelector('.timeline-lane-toggle');if(toggle)toggle.disabled=false;
-    });
-    el.scrollTop=0;
     const max=Math.max(0,el.scrollWidth-el.clientWidth);
     const range=$('timeline-position'); if(range) {range.value=max?el.scrollLeft/max*1000:0;range.disabled=!max;}
     const start=Math.max(0,Math.floor(el.scrollLeft/geometry.dayWidth));
@@ -930,10 +926,17 @@
     map.addEventListener('pointermove',e=>{if(map.hasPointerCapture(e.pointerId))seek(e);});
     map.addEventListener('pointerup',e=>{if(map.hasPointerCapture(e.pointerId))map.releasePointerCapture(e.pointerId);});
     $('timeline-position').addEventListener('input',e=>{el.scrollLeft=Number(e.target.value)/1000*(el.scrollWidth-el.clientWidth);updateOverview();});
-    const fitViewport=()=>{el.style.height=el.style.maxHeight=Math.max(240,Math.min(560,window.innerHeight-(el.getBoundingClientRect().top+window.scrollY)-18))+'px';updateOverview();};
-    fitViewport();
-    $('timeline-tools')?.addEventListener('toggle',e=>{toolsOpen=e.target.open;fitViewport();});
-    $('timeline-day-focus')?.addEventListener('toggle',e=>{dayOpen=e.target.open;});
+    $('timeline-phase-jump')?.addEventListener('change',e=>{
+      const phase=getPhases(events()).find(p=>p.id===e.target.value);if(phase)focusPhase(phase.from,phase.to);
+    });
+    let drag=null;
+    el.addEventListener('pointerdown',e=>{
+      if(e.button!==0||e.pointerType==='touch'||e.target.closest('button,input,select,textarea,a,[data-action]'))return;
+      drag={id:e.pointerId,x:e.clientX,left:el.scrollLeft};el.setPointerCapture(e.pointerId);el.classList.add('is-panning');
+    });
+    el.addEventListener('pointermove',e=>{if(drag&&drag.id===e.pointerId)el.scrollLeft=drag.left-(e.clientX-drag.x);});
+    const stopDrag=e=>{if(drag&&drag.id===e.pointerId){if(el.hasPointerCapture(e.pointerId))el.releasePointerCapture(e.pointerId);drag=null;el.classList.remove('is-panning');}};
+    el.addEventListener('pointerup',stopDrag);el.addEventListener('pointercancel',stopDrag);el.addEventListener('lostpointercapture',()=>{drag=null;el.classList.remove('is-panning');});
     const search=$('timeline-search');
     const runSearch=(jump=false)=>{
       clearTimeout(searchTimer); searchQuery=search.value.trim();searchIndex=0;
@@ -976,7 +979,7 @@
   render = function() {
     if (page === 'timeline') {
       clearTimeout(searchTimer);
-      const oldLeft=$('timeline-scroller')?.scrollLeft,oldTop=$('timeline-scroller')?.scrollTop;
+      const oldLeft=$('timeline-scroller')?.scrollLeft;
       nav();
       $('breadcrumb').textContent = 'LINHA DO TEMPO DO CRONOGRAMA';
       $('heading').textContent = 'Linha do Tempo';
@@ -991,7 +994,6 @@
         } else if(oldLeft!==undefined) $('timeline-scroller').scrollLeft=oldLeft;
         else scrollToDate(selectedDate);
         bindTimeline();
-
       }
       return;
     }
@@ -1016,11 +1018,6 @@
       setZoom(zoomValue-delta,(current.scrollLeft+local)/geometry.dayWidth,local);
     });
   },{passive:false});
-  let layoutResizeTimer=null;
-  window.addEventListener('resize',()=>{
-    clearTimeout(layoutResizeTimer);
-    layoutResizeTimer=setTimeout(()=>{if(page==='timeline'){pendingAnchor=visibleAnchor();render();}},100);
-  });
   window.addEventListener('planning-account-reset',()=>{
     selectedActivityId=null;
     const drawer=$('timeline-drawer');if(drawer){drawer.hidden=true;drawer.innerHTML='';}
@@ -1034,9 +1031,6 @@
     const id = b.dataset.id;
 
     switch (action) {
-      case 'timeline-period-details':showPeriodDetails(b.dataset.lane,b.dataset.from,b.dataset.to);break;
-      case 'timeline-lane-toggle':
-        if(collapsedLanes.has(b.dataset.lane))collapsedLanes.delete(b.dataset.lane);else collapsedLanes.add(b.dataset.lane);render();break;
       case 'timeline-search-prev': jumpSearch(-1);break;
       case 'timeline-search-next': jumpSearch(1);break;
       case 'timeline-search-clear': clearTimeout(searchTimer);searchQuery='';searchIndex=0;render();break;
@@ -1070,10 +1064,7 @@
         render();
         break;
       case 'timeline-phase-click':
-        selectedDate=b.dataset.from;
-        pendingAnchor=geometry ? dateDiff(b.dataset.from,geometry.minDate)+Math.min(3.5,(dateDiff(b.dataset.to,b.dataset.from)+1)/2) : null;
-        zoomLevel='weeks'; zoomValue=60;
-        render();
+        focusPhase(b.dataset.from,b.dataset.to);
         break;
       case 'timeline-detail-close':
         closeTimelineDetail();
