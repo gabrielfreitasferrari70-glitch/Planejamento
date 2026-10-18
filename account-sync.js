@@ -154,7 +154,15 @@
           const latest=model.merge(local,model.snapshot(data),ack.payload);
           if(latest.conflicts.length){state.conflicts={base:state.base,local:model.snapshot(data),remote:ack.payload,revision:ack.revision};state.status='conflict';persist();status();return}
           state.base=ack.payload;state.revision=ack.revision;state.syncedAt=new Date().toISOString();state.conflicts=null;
-          data=latest.payload;state.status='synced';state.message='';persist();render();
+          data=latest.payload;state.status='synced';state.message='';
+          const officialSeed=typeof window.getOfficialSeed==='function'?window.getOfficialSeed():window.seed;
+          if(typeof syncOfficialSchedule==='function'&&Array.isArray(officialSeed)&&officialSeed.length>=50){
+            if(syncOfficialSchedule(data,officialSeed)){
+              persist();
+              if(!model.equal(data,state.base)){preference=undefined;continue}
+            }
+          }
+          persist();render();
           if(!model.equal(data,state.base)){preference=undefined;continue}return;
         }
         setError('Os registros continuam mudando em outro dispositivo. Suas alterações locais estão guardadas; tente sincronizar novamente.');
