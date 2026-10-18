@@ -1503,12 +1503,12 @@
     "date": "2026-10-19",
     "from": "13:30",
     "to": "17:30",
-    "title": "Livre para Estudo",
-    "subject": "UC2",
-    "type": "free",
+    "title": "ANATOMIA: VASCULARIZAÇÃO DO SISTEMA URINÁRIO",
+    "subject": "ANATOMIA",
+    "type": "class",
     "origin": "pdf",
-    "professor": "",
-    "sheetColor": "#D7E3BB",
+    "professor": "Prof. Denício",
+    "sheetColor": "#FFFFFF",
     "sourcePages": [
       10
     ],
@@ -1518,12 +1518,12 @@
     "date": "2026-10-20",
     "from": "07:30",
     "to": "11:30",
-    "title": "Livre para Estudo",
+    "title": "TUTORIA- FECHA 10 ABRE 11",
     "subject": "UC2",
-    "type": "free",
+    "type": "tutorial",
     "origin": "pdf",
     "professor": "",
-    "sheetColor": "#D5E2BB",
+    "sheetColor": "#FFC000",
     "sourcePages": [
       10
     ],
@@ -1578,16 +1578,16 @@
     "date": "2026-10-22",
     "from": "07:30",
     "to": "11:30",
-    "title": "Livre para Estudo",
-    "subject": "UC2",
-    "type": "free",
+    "title": "EMBRIOLOGIA: SISTEMA UROGENITAL II",
+    "subject": "EMBRIOLOGIA",
+    "type": "class",
     "origin": "pdf",
-    "professor": "",
-    "sheetColor": "#D7E3BB",
+    "professor": "Profa. Larissa",
+    "sheetColor": "#FFFFFF",
     "sourcePages": [
       10
     ],
-    "id": "uc2-2026-2-c26b0710c530f014"
+    "id": "uc2-2026-2-1995bca269860b64"
   },
   {
     "date": "2026-10-22",
@@ -1623,12 +1623,12 @@
     "date": "2026-10-23",
     "from": "07:30",
     "to": "09:30",
-    "title": "TUTORIA- FECHA 10 ABRE 11",
+    "title": "PARALISAÇÃO PARA VOTAÇÃO",
     "subject": "UC2",
-    "type": "tutorial",
+    "type": "break",
     "origin": "pdf",
     "professor": "",
-    "sheetColor": "#FFC000",
+    "sheetColor": "#FC5C4B",
     "sourcePages": [
       10
     ],
@@ -1638,12 +1638,12 @@
     "date": "2026-10-23",
     "from": "09:30",
     "to": "11:30",
-    "title": "TUTORIA- FECHA 10, ABRE 11",
+    "title": "PARALISAÇÃO PARA VOTAÇÃO",
     "subject": "UC2",
-    "type": "tutorial",
+    "type": "break",
     "origin": "pdf",
     "professor": "",
-    "sheetColor": "#FFC000",
+    "sheetColor": "#FC5C4B",
     "sourcePages": [
       10
     ],
@@ -1653,16 +1653,16 @@
     "date": "2026-10-23",
     "from": "13:30",
     "to": "17:30",
-    "title": "EMBRIOLOGIA: SISTEMA UROGENITAL II",
-    "subject": "EMBRIOLOGIA",
-    "type": "class",
+    "title": "PARALISAÇÃO PARA VOTAÇÃO",
+    "subject": "UC2",
+    "type": "break",
     "origin": "pdf",
-    "professor": "Profa. Larissa",
-    "sheetColor": "#FFFFFF",
+    "professor": "",
+    "sheetColor": "#FC5C4B",
     "sourcePages": [
       10
     ],
-    "id": "uc2-2026-2-1995bca269860b64"
+    "id": "uc2-2026-2-c26b0710c530f014"
   },
   {
     "date": "2026-10-24",

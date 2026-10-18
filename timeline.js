@@ -78,7 +78,7 @@
     if(activeFilter==='task')return isTimelineTask(x);
     if(activeFilter==='review')return x.type==='review';
     if(activeFilter==='pending')return getActivityStatus(x)!=='completed';
-    return activeFilter==='study'?['study','review'].includes(x.type):activeFilter==='class'?['class','welcome'].includes(x.type):x.type===activeFilter;
+    return activeFilter==='study'?['study','review'].includes(x.type):activeFilter==='class'?['class','welcome','break'].includes(x.type):x.type===activeFilter;
   }
   function matchesSearch(x) {
     const text=norm([x.title,x.subject,x.professor,x.date].filter(Boolean).join(' '));
@@ -137,12 +137,14 @@
 
   // 1. Detecção e Cálculo de Fases do Planejamento (Faixas de Duração)
   function getPhases(allEvents) {
-    if (Array.isArray(data.settings.timelinePhases) && data.settings.timelinePhases.length) {
-      return data.settings.timelinePhases;
-    }
     const dates = [...new Set(allEvents.map(x => x.date).filter(Boolean))].sort();
     if (!dates.length) return [];
     const minDate = dates[0], maxDate = dates[dates.length - 1];
+
+    if (Array.isArray(data.settings.timelinePhases) && data.settings.timelinePhases.length) {
+      const p = data.settings.timelinePhases;
+      if (p[0].from <= minDate && p[p.length - 1].to >= maxDate) return p;
+    }
 
     // Detectar marcos de avaliação principais (ex.: AVALIAÇÃO 1º MÓDULO, AVALIAÇÃO 2º MÓDULO, PROVA FINAL)
     const exams = allEvents.filter(x => x.type === 'exam' || /avaliação|módulo|prova final/i.test(x.title)).sort((a,b) => a.date.localeCompare(b.date));
@@ -305,6 +307,9 @@
     const dates = [...new Set(all.map(x => x.date).filter(Boolean))].sort();
     const minDate = dates[0] || t;
     const maxDate = dates[dates.length - 1] || t;
+    if (!selectedDate || selectedDate < minDate || selectedDate > maxDate) {
+      selectedDate = (t >= minDate && t <= maxDate) ? t : minDate;
+    }
 
     // Obter Fases
     const phases = getPhases(all);
@@ -490,7 +495,7 @@
 
     // Montar Camada 4: Trilhas de Atividades (Swimlanes) com altura fixa e layout didático
     const lanes = [
-      { id: 'class', title: 'Aulas & Práticas', sub: 'Teóricas e Laboratório', icon: 'studies', types: ['class', 'welcome'] },
+      { id: 'class', title: 'Aulas & Práticas', sub: 'Teóricas e Laboratório', icon: 'studies', types: ['class', 'welcome', 'break'] },
       { id: 'tutorial', title: 'Tutorias / PBL', sub: 'Discussões e Problemas', icon: 'target', types: ['tutorial'] },
       { id: 'community', title: 'Comunidade', sub: 'IESC e UBS', icon: 'cross', types: ['community'] },
       { id: 'exam', title: 'Avaliações', sub: 'Provas e Prazos', icon: 'exams', types: ['exam'] },
@@ -696,8 +701,8 @@
     `).join('');
 
     const modalHTML = `
-      <div class="timeline-drawer-card" role="region" aria-label="Detalhes da atividade">
-        <div class="timeline-drawer-top"><strong>Detalhes da atividade</strong><button type="button" class="btn btn-small" data-action="timeline-detail-close" aria-label="Fechar detalhes">×</button></div>
+      <div class="timeline-drawer-card modal-card" role="region" aria-label="Detalhes da atividade">
+        <div class="timeline-drawer-top"><strong>Detalhes da atividade</strong><button type="button" class="btn btn-small close" data-action="timeline-detail-close" aria-label="Fechar detalhes">×</button></div>
         
         <div class="timeline-modal-detail">
           <div class="timeline-detail-header">
@@ -995,6 +1000,13 @@
         else scrollToDate(selectedDate);
         bindTimeline();
       }
+      if ($('timeline-drawer') && !$('timeline-drawer').hidden && selectedActivityId) {
+        if (events().some(e => e.id === selectedActivityId)) {
+          showTimelineDetail(selectedActivityId);
+        } else {
+          closeTimelineDetail();
+        }
+      }
       return;
     }
 
@@ -1002,6 +1014,10 @@
     previousRender();
     ensureMobileMore();
   };
+
+  window.addEventListener('storage', e => {
+    if (e.key === STORAGE && page === 'timeline') render();
+  });
 
   document.addEventListener('wheel',e=>{
     const el=$('timeline-scroller');

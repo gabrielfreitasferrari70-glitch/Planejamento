@@ -868,6 +868,52 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.locator('.modal-card button.close').click()
         self.assertFalse(self.page.locator('#modal').is_visible())
 
+    def test_semana_10_updates_and_timeline_auto_refresh(self):
+        self.page.unroute('**/academic.json')
+        self.open()
+        self.page.wait_for_function("academicEvents().length===193")
+
+        # Verify Semana 10 events in academicEvents
+        events = self.page.evaluate("""() => {
+            const list = academicEvents();
+            return {
+                monAft: list.find(x => x.date==='2026-10-19' && x.from==='13:30')?.title,
+                tueMorn: list.find(x => x.date==='2026-10-20' && x.from==='07:30')?.title,
+                thuMorn: list.find(x => x.date==='2026-10-22' && x.from==='07:30')?.title,
+                friMorn: list.find(x => x.date==='2026-10-23' && x.from==='07:30')?.title,
+                friAft: list.find(x => x.date==='2026-10-23' && x.from==='13:30')?.title,
+            };
+        }""")
+        self.assertIn('ANATOMIA: VASCULARIZAÇÃO DO SISTEMA URINÁRIO', events['monAft'])
+        self.assertIn('TUTORIA- FECHA 10 ABRE 11', events['tueMorn'])
+        self.assertIn('EMBRIOLOGIA: SISTEMA UROGENITAL II', events['thuMorn'])
+        self.assertIn('PARALISAÇÃO PARA VOTAÇÃO', events['friMorn'])
+        self.assertIn('PARALISAÇÃO PARA VOTAÇÃO', events['friAft'])
+
+        # Navigate to timeline and verify automatic reactive update
+        self.page.evaluate("goto('timeline')")
+        self.assertEqual(self.page.locator('#heading').inner_text(), 'Linha do Tempo')
+
+        # Add a custom event dynamically and call render() to test automatic update
+        test_title = "Teste Evento Automatico Linha do Tempo"
+        self.page.evaluate(f"""() => {{
+            data.events.push({{
+                id: 'test-auto-evt',
+                title: '{test_title}',
+                subject: 'UC2',
+                date: '2026-10-23',
+                from: '18:00',
+                to: '19:00',
+                type: 'class'
+            }});
+            save();
+            render();
+        }}""")
+
+        # Set zoom to days to view individual activity cards
+        self.page.locator('[data-action="timeline-zoom"][data-zoom="days"]').click()
+        self.assertTrue(self.page.locator(f'[data-id="test-auto-evt"]').is_visible())
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

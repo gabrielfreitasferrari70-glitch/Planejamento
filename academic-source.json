@@ -12,11 +12,11 @@
   "uniqueCells": 376,
   "counts": {
     "welcome": 5,
-    "class": 79,
-    "free": 53,
+    "class": 80,
+    "free": 50,
     "community": 15,
-    "tutorial": 22,
-    "break": 10,
+    "tutorial": 21,
+    "break": 13,
     "exam": 9
   },
   "legend": [
