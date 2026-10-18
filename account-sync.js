@@ -162,6 +162,12 @@
               if(!model.equal(data,state.base)){preference=undefined;continue}
             }
           }
+          if(typeof seedExternalTasks==='function'){
+            if(seedExternalTasks(data)){
+              persist();
+              if(!model.equal(data,state.base)){preference=undefined;continue}
+            }
+          }
           persist();render();
           if(!model.equal(data,state.base)){preference=undefined;continue}return;
         }

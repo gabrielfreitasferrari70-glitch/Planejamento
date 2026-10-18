@@ -941,6 +941,68 @@ class SiteSmokeTests(unittest.TestCase):
         self.page.locator('[data-action="timeline-zoom"][data-zoom="days"]').click()
         self.assertTrue(self.page.locator(f'[data-id="test-auto-evt"]').is_visible())
 
+    def test_task_tabs_class_and_external_and_pet_tasks_seed(self):
+        self.open()
+        self.page.evaluate("""() => {
+            data.replacement = Array.from({length: 55}, (_, i) => ({
+                id: 'uc2-2026-2-test-' + i,
+                title: 'Aula ' + i,
+                date: '2026-10-20',
+                from: '08:00',
+                to: '10:00',
+                type: 'class'
+            }));
+            data.tasks = [
+                { id: 'class-task-1', title: 'Estudar Fisiologia Renal', subject: 'Fisiologia', priority: '3', done: false }
+            ];
+            seedExternalTasks(data);
+            save();
+            render();
+        }""")
+        self.nav('tasks')
+
+        subtabs = self.page.locator('.task-subtabs button')
+        self.assertEqual(subtabs.count(), 3)
+        self.assertIn('Tarefas aulas', subtabs.nth(0).inner_text())
+        self.assertIn('Tarefas por fora', subtabs.nth(1).inner_text())
+        self.assertIn('Todas', subtabs.nth(2).inner_text())
+
+        self.assertTrue(self.page.locator('text=Estudar Fisiologia Renal').is_visible())
+        self.assertFalse(self.page.locator('text=Estudar para o PET').is_visible())
+
+        subtabs.nth(1).click()
+        self.page.wait_for_function("taskTab === 'external'")
+
+        self.assertTrue(self.page.locator('text=Estudar para o PET').is_visible())
+        self.assertTrue(self.page.locator('text=Fazer projeto para o PET').is_visible())
+        self.assertTrue(self.page.locator('text=Terminar e-book').is_visible())
+        self.assertFalse(self.page.locator('text=Estudar Fisiologia Renal').is_visible())
+
+        pet_dates = self.page.evaluate("""() => {
+            return data.tasks.filter(t => t.scope === 'external').map(t => ({ title: t.title, date: t.date, scope: t.scope }));
+        }""")
+        for item in pet_dates:
+            self.assertEqual(item['date'], '2026-10-26')
+            self.assertEqual(item['scope'], 'external')
+
+        subtabs.nth(2).click()
+        self.page.wait_for_function("taskTab === 'all'")
+        self.assertTrue(self.page.locator('text=Estudar Fisiologia Renal').is_visible())
+        self.assertTrue(self.page.locator('text=Estudar para o PET').is_visible())
+        self.assertTrue(self.page.locator('text=Terminar e-book').is_visible())
+
+        subtabs.nth(1).click()
+        self.page.locator('.task-tabs-row [data-action="create"]').click()
+        form = self.page.locator('#record-form')
+        self.assertEqual(form.locator('[name="scope"]').input_value(), 'external')
+        form.locator('[name="title"]').fill('Nova tarefa pessoal de pesquisa')
+        form.locator('button[type="submit"]').click()
+
+        new_task = self.page.evaluate("data.tasks.find(t => t.title === 'Nova tarefa pessoal de pesquisa')")
+        self.assertIsNotNone(new_task)
+        self.assertEqual(new_task.get('scope'), 'external')
+        self.assertTrue(self.page.locator('text=Nova tarefa pessoal de pesquisa').is_visible())
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
