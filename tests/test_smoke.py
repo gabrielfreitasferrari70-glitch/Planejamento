@@ -877,18 +877,45 @@ class SiteSmokeTests(unittest.TestCase):
         events = self.page.evaluate("""() => {
             const list = academicEvents();
             return {
+                monMorn: list.find(x => x.date==='2026-10-19' && x.from==='07:30'),
                 monAft: list.find(x => x.date==='2026-10-19' && x.from==='13:30')?.title,
                 tueMorn: list.find(x => x.date==='2026-10-20' && x.from==='07:30')?.title,
+                wedAft: list.find(x => x.date==='2026-10-21' && x.from==='13:30'),
                 thuMorn: list.find(x => x.date==='2026-10-22' && x.from==='07:30')?.title,
                 friMorn: list.find(x => x.date==='2026-10-23' && x.from==='07:30')?.title,
                 friAft: list.find(x => x.date==='2026-10-23' && x.from==='13:30')?.title,
             };
         }""")
+        self.assertEqual(events['monMorn']['professor'], 'Prof. Aloir')
         self.assertIn('ANATOMIA: VASCULARIZAÇÃO DO SISTEMA URINÁRIO', events['monAft'])
         self.assertIn('TUTORIA- FECHA 10 ABRE 11', events['tueMorn'])
+        self.assertEqual(events['wedAft']['professor'], 'Prof. Fernando')
         self.assertIn('EMBRIOLOGIA: SISTEMA UROGENITAL II', events['thuMorn'])
         self.assertIn('PARALISAÇÃO PARA VOTAÇÃO', events['friMorn'])
         self.assertIn('PARALISAÇÃO PARA VOTAÇÃO', events['friAft'])
+
+        # Verify automatic synchronization for user account with replacement
+        synced = self.page.evaluate("""() => {
+            const list = Array.from({length: 50}, (_, i) => ({
+                id: 'uc2-2026-2-test-' + i,
+                date: '2026-08-' + String(10 + (i%20)).padStart(2, '0'),
+                from: '07:30',
+                to: '11:30',
+                title: i === 0 ? 'ANTROPOLOGIA' : 'Aula ' + i,
+                subject: i === 0 ? 'Antropologia' : 'UC2',
+                professor: ''
+            }));
+            const sample = { settings: {}, replacement: list };
+            const changed = seedSemana10(sample);
+            return {
+                changed,
+                count: sample.replacement.length,
+                prof: sample.replacement.find(x => x.title==='ANTROPOLOGIA')?.professor
+            };
+        }""")
+        self.assertTrue(synced['changed'])
+        self.assertEqual(synced['prof'], 'Prof. Aloir')
+        self.assertEqual(synced['count'], 63)
 
         # Navigate to timeline and verify automatic reactive update
         self.page.evaluate("goto('timeline')")
